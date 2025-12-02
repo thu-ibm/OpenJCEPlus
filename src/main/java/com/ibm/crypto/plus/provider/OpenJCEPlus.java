@@ -10,6 +10,11 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.OCKContext;
 import com.ibm.crypto.plus.provider.ock.OCKException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import sun.security.util.Debug;
+
+import javax.crypto.SecretKey;
 import java.lang.reflect.Constructor;
 import java.security.InvalidParameterException;
 import java.security.Key;
@@ -22,7 +27,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.SecretKey;
 
 public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
@@ -78,8 +82,13 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
     // to find ourselves or run the risk of not being in the list.
     private static volatile OpenJCEPlus instance;
 
+    // User enabled debugging
+    private static Debug debug = Debug.getInstance(DEBUG_VALUE);
+
     private static boolean ockInitialized = false;
     private static OCKContext ockContext;
+    private static boolean opensslInitialized = false;
+    private static OpenSSLContext opensslContext;
     private static Map<String, String> attrs;
 
     public OpenJCEPlus() {
@@ -91,11 +100,11 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
         final OpenJCEPlusProvider jce = this;
 
-        // Do java OCK initialization which includes loading native code
+        // Do java OCK and OpenSSL initialization which includes loading native code
         // Don't do this in the static initializer because it might
         // be necessary for an applet running in a browser to grant
         // access rights beforehand.
-        if (!ockInitialized) {
+        if (!ockInitialized || !opensslInitialized) {
             initializeContext();
         }
         registerAlgorithms(jce);
@@ -108,8 +117,15 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
             debug.println("OpenJCEPlus Build-Level: " + getDebugDate(this.getClass().getName()));
             debug.println("OpenJCEPlus library build date: " + OCKContext.getLibraryBuildDate());
             try {
-                debug.println("OpenJCEPlus dependent library version: " + ockContext.getOCKVersion());
-                debug.println("OpenJCEPlus dependent library path: " + ockContext.getOCKInstallPath());
+                debug.println("OpenJCEPlus OCK library version: " + ockContext.getOCKVersion());
+                debug.println("OpenJCEPlus OCK library path: " + ockContext.getOCKInstallPath());
+            } catch (Throwable t) {
+                t.printStackTrace(System.out);
+            }
+
+            try {
+                debug.println("OpenJCEPlus OpenSSL library version: " + opensslContext.getOpenSSLVersion());
+                debug.println("OpenJCEPlus OpenSSL library path: " + opensslContext.getOpenSSLInstallPath());
             } catch (Throwable t) {
                 t.printStackTrace(System.out);
             }
@@ -155,7 +171,7 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = null;
         putService(new OpenJCEPlusService(jce, "AlgorithmParameters", "OAEP",
                 "com.ibm.crypto.plus.provider.OAEPParameters", aliases));
-        
+
         aliases = null;
         putService(new OpenJCEPlusService(jce, "AlgorithmParameters", "PBEWithHmacSHA1AndAES_128",
                 "com.ibm.crypto.plus.provider.PBES2Parameters$HmacSHA1AndAES_128", aliases));
@@ -270,44 +286,44 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = new String[] {"AESWrap"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW", aliases));
-        
+
         aliases = new String[] {"AESWrapPad"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP", aliases));
 
         aliases = new String[] {"AESWrap_128",
-                                "2.16.840.1.101.3.4.1.5",
-                                "OID.2.16.840.1.101.3.4.1.5"};
+                "2.16.840.1.101.3.4.1.5",
+                "OID.2.16.840.1.101.3.4.1.5"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_128/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_128", aliases));
 
         aliases = new String[] {"AESWrapPad_128",
-                                "2.16.840.1.101.3.4.1.8",
-                                "OID.2.16.840.1.101.3.4.1.8"};
+                "2.16.840.1.101.3.4.1.8",
+                "OID.2.16.840.1.101.3.4.1.8"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_128/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_128", aliases));
-                
+
         aliases = new String[] {"AESWrap_192",
-                                "2.16.840.1.101.3.4.1.25",
-                                "OID.2.16.840.1.101.3.4.1.25"};
+                "2.16.840.1.101.3.4.1.25",
+                "OID.2.16.840.1.101.3.4.1.25"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_192/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_192", aliases));
-                
+
         aliases = new String[] {"AESWrapPad_192",
-                                "2.16.840.1.101.3.4.1.28",
-                                "OID.2.16.840.1.101.3.4.1.28"};
+                "2.16.840.1.101.3.4.1.28",
+                "OID.2.16.840.1.101.3.4.1.28"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_192/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_192", aliases));
 
         aliases = new String[] {"AESWrap_256",
-                                "2.16.840.1.101.3.4.1.45",
-                                "OID.2.16.840.1.101.3.4.1.45"};
+                "2.16.840.1.101.3.4.1.45",
+                "OID.2.16.840.1.101.3.4.1.45"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_256/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_256", aliases));
 
         aliases = new String[] {"AESWrapPad_256",
-                                "2.16.840.1.101.3.4.1.48",
-                                "OID.2.16.840.1.101.3.4.1.48"};                
+                "2.16.840.1.101.3.4.1.48",
+                "OID.2.16.840.1.101.3.4.1.48"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_256/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_256", aliases));
 
@@ -462,33 +478,33 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = new String[] {"ML_KEM_512", "MLKEM512", "OID.2.16.840.1.101.3.4.4.1", "2.16.840.1.101.3.4.4.1"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-KEM-512",
-                  "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM512", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM512", aliases));
 
         aliases = new String[] {"ML-KEM", "ML_KEM_768", "MLKEM768", "OID.2.16.840.1.101.3.4.4.2", "2.16.840.1.101.3.4.4.2"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-KEM-768",
-               "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM768", aliases));
-                
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM768", aliases));
+
         aliases = new String[] {"ML_KEM_1024", "MLKEM1024", "OID.2.16.840.1.101.3.4.4.3", "2.16.840.1.101.3.4.4.3"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-KEM-1024",
-               "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM1024", aliases));
-                        
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLKEM1024", aliases));
+
         aliases = new String[] {"ML_DSA_44", "MLDSA44", "OID.2.16.840.1.101.3.4.3.17", "2.16.840.1.101.3.4.3.17"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-DSA-44",
-               "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA44", aliases));
-                               
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA44", aliases));
+
         aliases = new String[] {"ML-DSA", "ML_DSA_65", "MLDSA65", "OID.2.16.840.1.101.3.4.3.18", "2.16.840.1.101.3.4.3.18"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-DSA-65",
-               "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA65", aliases));
-                                
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA65", aliases));
+
         aliases = new String[] {"ML_DSA_87", "MLDSA87", "OID.2.16.840.1.101.3.4.3.19", "2.16.840.1.101.3.4.3.19"};
 
         putService(new OpenJCEPlusService(jce, "KeyFactory", "ML-DSA-87",
-               "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA87", aliases));
-        
+                "com.ibm.crypto.plus.provider.PQCKeyFactory$MLDSA87", aliases));
+
         /* =======================================================================
          * Key Generator engines
          * =======================================================================
@@ -658,32 +674,32 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = new String[] {"ML_KEM_512", "MLKEM512", "OID.2.16.840.1.101.3.4.4.1", "2.16.840.1.101.3.4.4.1"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-KEM-512",
-                  "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM512", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM512", aliases));
 
         aliases = new String[] {"ML_KEM_768", "MLKEM768", "OID.2.16.840.1.101.3.4.4.2", "2.16.840.1.101.3.4.4.2"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-KEM-768",
-               "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM768", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM768", aliases));
 
         aliases = new String[] {"ML_KEM_1024", "MLKEM1024", "OID.2.16.840.1.101.3.4.4.3", "2.16.840.1.101.3.4.4.3"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-KEM-1024",
-               "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM1024", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLKEM1024", aliases));
 
         aliases = new String[] {"ML_DSA_44", "MLDSA44", "OID.2.16.840.1.101.3.4.3.17", "2.16.840.1.101.3.4.3.17"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-DSA-44",
-               "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA44", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA44", aliases));
 
         aliases = new String[] {"ML_DSA_65", "MLDSA65", "OID.2.16.840.1.101.3.4.3.18", "2.16.840.1.101.3.4.3.18"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-DSA-65",
-               "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA65", aliases));
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA65", aliases));
 
         aliases = new String[] {"ML_DSA_87", "MLDSA87", "OID.2.16.840.1.101.3.4.3.19", "2.16.840.1.101.3.4.3.19"};
 
         putService(new OpenJCEPlusService(jce, "KeyPairGenerator", "ML-DSA-87",
-               "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA87", aliases)); 
+                "com.ibm.crypto.plus.provider.PQCKeyPairGenerator$MLDSA87", aliases));
 
         /* =======================================================================
          * Message authentication engines
@@ -845,17 +861,17 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = new String[] {"ML_KEM_512", "MLKEM512", "OID.2.16.840.1.101.3.4.4.1", "2.16.840.1.101.3.4.4.1"};
 
         putService(new OpenJCEPlusService(jce, "KEM", "ML-KEM-512",
-               "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM512", aliases));
+                "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM512", aliases));
 
         aliases = new String[] {"ML-KEM", "ML_KEM_768", "MLKEM768", "OID.2.16.840.1.101.3.4.4.2", "2.16.840.1.101.3.4.4.2"};
 
         putService(new OpenJCEPlusService(jce, "KEM", "ML-KEM-768",
-               "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM768", aliases));
+                "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM768", aliases));
 
         aliases = new String[] {"ML_KEM_1024", "MLKEM1024", "OID.2.16.840.1.101.3.4.4.3", "2.16.840.1.101.3.4.4.3"};
 
         putService(new OpenJCEPlusService(jce, "KEM", "ML-KEM-1024",
-               "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM1024", aliases));
+                "com.ibm.crypto.plus.provider.MLKEMImpl$MLKEM1024", aliases));
 
         /* =======================================================================
          * Secret key factories
@@ -867,37 +883,37 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA1",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA1",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA1",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA1",
+                aliases));
 
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA224",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA224",
-                                     aliases));
-                                     
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA224",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA224",
+                aliases));
+
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA256",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA256",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA256",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA256",
+                aliases));
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA384",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA384",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA384",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA384",
+                aliases));
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA512",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA512",
-                                     aliases));
-        
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA512",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA512",
+                aliases));
+
         aliases = null;
         putService(new OpenJCEPlusService(jce,
                                      "SecretKeyFactory",
@@ -1167,33 +1183,33 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         aliases = new String[] {"ML_DSA_44", "MLDSA44", "OID.2.16.840.1.101.3.4.3.17", "2.16.840.1.101.3.4.3.17"};
 
         putService(new OpenJCEPlusService(jce, "Signature", "ML-DSA-44",
-               "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA44", aliases));
+                "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA44", aliases));
 
         aliases = new String[] {"ML-DSA", "ML_DSA_65", "MLDSA65", "OID.2.16.840.1.101.3.4.3.18", "2.16.840.1.101.3.4.3.18"};
 
         putService(new OpenJCEPlusService(jce, "Signature", "ML-DSA-65",
-               "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA65", aliases));
+                "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA65", aliases));
 
         aliases = new String[] {"ML_DSA_87", "MLDSA87", "OID.2.16.840.1.101.3.4.3.19", "2.16.840.1.101.3.4.3.19"};
 
         putService(new OpenJCEPlusService(jce, "Signature", "ML-DSA-87",
-               "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA87", aliases));
+                "com.ibm.crypto.plus.provider.PQCSignatureImpl$MLDSA87", aliases));
     }
 
     private static class OpenJCEPlusService extends Service {
 
         OpenJCEPlusService(Provider provider, String type, String algorithm, String className,
-                String[] aliases) {
+                           String[] aliases) {
             this(provider, type, algorithm, className, aliases, null);
         }
 
         OpenJCEPlusService(Provider provider, String type, String algorithm, String className,
-                String[] aliases, Map<String, String> attributes) {
+                           String[] aliases, Map<String, String> attributes) {
             super(provider, type, algorithm, className, toList(aliases), attributes);
 
             if (debug != null) {
                 debug.println("Constructing OpenJCEPlusService: " + provider + ", " + type
-                            + ", " + algorithm + ", " + className);
+                        + ", " + algorithm + ", " + className);
             }
         }
 
@@ -1332,17 +1348,28 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
         // made the method synchronizaed to ensure only one thread can execute
         // the method at a time.
         //
-        if (ockInitialized) {
+        if (ockInitialized && opensslInitialized) {
             return;
         }
 
         try {
             boolean useFIPSMode = false;
 
-            ockContext = OCKContext.createContext(useFIPSMode);
-            ockInitialized = true;
+            // Initialize OCK context
+            if (!ockInitialized) {
+                ockContext = OCKContext.createContext(useFIPSMode);
+                ockInitialized = true;
+            }
+
+            // Initialize OpenSSL context
+            if (!opensslInitialized) {
+                opensslContext = OpenSSLContext.createContext(useFIPSMode);
+                opensslInitialized = true;
+            }
         } catch (OCKException e) {
-            throw providerException("Failed to initialize OpenJCEPlus provider", e);
+            throw providerException("Failed to initialize OpenJCEPlus provider (OCK)", e);
+        } catch (OpenSSLException e) {
+            throw providerException("Failed to initialize OpenJCEPlus provider (OpenSSL)", e);
         } catch (Throwable t) {
             ProviderException exceptionToThrow = providerException(
                     "Failed to initialize OpenJCEPlus provider", t);
@@ -1399,11 +1426,31 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
         return ockContext;
     }
+    
+    public OpenSSLContext getOpenSSLContext() {
+        if (!opensslInitialized) {
+            initializeContext();
+        }
+
+        return opensslContext;
+    }
 
     ProviderException providerException(String message, Throwable ockException) {
         ProviderException providerException = new ProviderException(message, ockException);
         setOCKExceptionCause(providerException, ockException);
         return providerException;
+    }
+
+    void setOCKExceptionCause(Exception exception, Throwable ockException) {
+        if (debug != null) {
+            exception.initCause(ockException);
+        }
+    }
+
+    public void setOpenSSLExceptionCause(Exception exception, Throwable opensslException) {
+        if (debug != null) {
+            exception.initCause(opensslException);
+        }
     }
 
     // Get the date from the ImplementationVersion in the manifest file

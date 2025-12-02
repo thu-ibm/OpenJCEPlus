@@ -14,8 +14,10 @@ import java.security.ProviderException;
 import java.util.concurrent.atomic.AtomicInteger;
 import sun.security.util.Debug;
 
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+
 // Internal interface for OpenJCEPlus and OpenJCEPlus implementation classes.
-// Implemented as an abstract class rather than an interface so that 
+// Implemented as an abstract class rather than an interface so that
 // methods can be package protected, as interfaces have only public methods.
 // Code is not implemented in this class to ensure that any thread call
 // stacks show it originating in the specific provider class.
@@ -47,14 +49,14 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
         numCleaners = Integer.getInteger("openjceplus.cleaners.num", DEFAULT_NUM_CLEANERS);
         if (numCleaners < 1){
             throw new IllegalArgumentException(numCleaners + " is an invalid number of cleaner threads, must be at least 1.");
-        }
+    }
 
         cleaners = new Cleaner[numCleaners];
         for (int i = 0; i < numCleaners; i++) {
             final Cleaner cleaner = Cleaner.create();
             cleaners[i] = cleaner;
         }
-    }
+        }
 
     public void registerCleanable(Object owner, Runnable cleanAction) {
         Cleaner cleaner = cleaners[Math.abs(count.getAndIncrement() % numCleaners)];
@@ -64,10 +66,14 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
     public static Debug getDebug() {
         return debug;
     }
-    
+
     // Get OCK context for crypto operations
     //
     abstract OCKContext getOCKContext();
+
+    // Get OpenSSL context for crypto operations
+    //
+    abstract OpenSSLContext getOpenSSLContext();
 
     // Get the context associated with the provider. The context is used in
     // serialization to be able to keep track of the associated provider.
@@ -82,9 +88,17 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
             java.security.SecureRandom userSecureRandom);
 
     // Return whether the provider is FIPS. If the provider is using an OCK
-    // context in FIPS mode then it is FIPS.
+    // or OpenSSL context in FIPS mode then it is FIPS.
     //
     boolean isFIPS() {
+        try {
+            OpenSSLContext opensslContext = getOpenSSLContext();
+            if (opensslContext != null) {
+                return opensslContext.isFIPS();
+            }
+        } catch (Exception e) {
+            // Fall back to OCK
+        }
         return getOCKContext().isFIPS();
     }
 
@@ -94,11 +108,13 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
         return JAVA_VER;
     }
 
-    abstract ProviderException providerException(String message, Throwable ockException);
+    abstract ProviderException providerException(String message, Throwable exception);
 
     void setOCKExceptionCause(Exception exception, Throwable ockException) {
         if ((debug != null) && (exception != null) && (exception.getCause() == null)) {
             exception.initCause(ockException);
         }
     }
+
+    abstract void setOpenSSLExceptionCause(Exception exception, Throwable opensslException);
 }

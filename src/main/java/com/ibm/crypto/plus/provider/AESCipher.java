@@ -10,6 +10,9 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.Padding;
 import com.ibm.crypto.plus.provider.ock.SymmetricCipher;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLSymmetricCipher;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -32,6 +35,8 @@ public final class AESCipher extends CipherSpi implements AESConstants {
 
     private OpenJCEPlusProvider provider = null;
     private SymmetricCipher symmetricCipher = null;
+    private OpenSSLSymmetricCipher opensslCipher = null;
+    private boolean useOpenSSL = false;
     private String mode = "ECB";
     private Padding padding = Padding.PKCS5Padding;
     private byte[] iv = null;
@@ -66,22 +71,36 @@ public final class AESCipher extends CipherSpi implements AESConstants {
             } else {
                 return output;
             }
-        } catch (BadPaddingException ock_bpe) {
-            BadPaddingException bpe = new BadPaddingException(ock_bpe.getMessage());
-            provider.setOCKExceptionCause(bpe, ock_bpe);
+        } catch (BadPaddingException e) {
+            BadPaddingException bpe = new BadPaddingException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(bpe, e);
+            } else {
+                provider.setOCKExceptionCause(bpe, e);
+            }
             throw bpe;
-        } catch (IllegalBlockSizeException ock_ibse) {
-            IllegalBlockSizeException ibse = new IllegalBlockSizeException(ock_ibse.getMessage());
-            provider.setOCKExceptionCause(ibse, ock_ibse);
+        } catch (IllegalBlockSizeException e) {
+            IllegalBlockSizeException ibse = new IllegalBlockSizeException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(ibse, e);
+            } else {
+                provider.setOCKExceptionCause(ibse, e);
+            }
             throw ibse;
         } catch (Exception e) {
+            // Check if this is an OpenSSL bad padding error that should be converted to BadPaddingException
+            if (useOpenSSL && e instanceof OpenSSLException && e.getMessage() != null && e.getMessage().contains("Bad padding")) {
+                BadPaddingException bpe = new BadPaddingException(e.getMessage());
+                provider.setOpenSSLExceptionCause(bpe, e);
+                throw bpe;
+            }
             throw provider.providerException("Failure in engineDoFinal", e);
         }
     }
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset)
+                                int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkCipherInitialized();
 
@@ -139,21 +158,43 @@ public final class AESCipher extends CipherSpi implements AESConstants {
                 encryptedData += totalLen;
                 return encryptedData;
             } else {
-                return symmetricCipher.doFinal(input, inputOffset, inputLen, output, outputOffset);
+                if (useOpenSSL) {
+                    return opensslCipher.doFinal(input, inputOffset, inputLen, output, outputOffset);
+                } else {
+                    return symmetricCipher.doFinal(input, inputOffset, inputLen, output, outputOffset);
+                }
             }
-        } catch (BadPaddingException ock_bpe) {
-            BadPaddingException bpe = new BadPaddingException(ock_bpe.getMessage());
-            provider.setOCKExceptionCause(bpe, ock_bpe);
+        } catch (BadPaddingException e) {
+            BadPaddingException bpe = new BadPaddingException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(bpe, e);
+            } else {
+                provider.setOCKExceptionCause(bpe, e);
+            }
             throw bpe;
-        } catch (IllegalBlockSizeException ock_ibse) {
-            IllegalBlockSizeException ibse = new IllegalBlockSizeException(ock_ibse.getMessage());
-            provider.setOCKExceptionCause(ibse, ock_ibse);
+        } catch (IllegalBlockSizeException e) {
+            IllegalBlockSizeException ibse = new IllegalBlockSizeException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(ibse, e);
+            } else {
+                provider.setOCKExceptionCause(ibse, e);
+            }
             throw ibse;
-        } catch (ShortBufferException ock_sbe) {
-            ShortBufferException sbe = new ShortBufferException(ock_sbe.getMessage());
-            provider.setOCKExceptionCause(sbe, ock_sbe);
+        } catch (ShortBufferException e) {
+            ShortBufferException sbe = new ShortBufferException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(sbe, e);
+            } else {
+                provider.setOCKExceptionCause(sbe, e);
+            }
             throw sbe;
         } catch (Exception e) {
+            // Check if this is an OpenSSL bad padding error that should be converted to BadPaddingException
+            if (useOpenSSL && e instanceof OpenSSLException && e.getMessage() != null && e.getMessage().contains("Bad padding")) {
+                BadPaddingException bpe = new BadPaddingException(e.getMessage());
+                provider.setOpenSSLExceptionCause(bpe, e);
+                throw bpe;
+            }
             throw provider.providerException("Failure in engineDoFinal", e);
         }
     }
@@ -186,6 +227,8 @@ public final class AESCipher extends CipherSpi implements AESConstants {
         try {
             if (use_z_fast_command) {
                 return getOutputSizeForZ(inputLen);
+            } else if (useOpenSSL) {
+                return opensslCipher.getOutputSize(inputLen);
             } else {
                 return symmetricCipher.getOutputSize(inputLen);
             }
@@ -237,7 +280,7 @@ public final class AESCipher extends CipherSpi implements AESConstants {
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (params == null) {
             engineInit(opmode, key, random);
         } else {
@@ -294,18 +337,52 @@ public final class AESCipher extends CipherSpi implements AESConstants {
         }
 
         try {
-            if ((symmetricCipher == null) || (symmetricCipher.getKeyLength() != rawKey.length)) {
-                symmetricCipher = SymmetricCipher.getInstanceAES(provider.getOCKContext(), mode,
-                        padding, rawKey.length);
-                // Check whether used algorithm is CBC and whether hardware supports is available
-                use_z_fast_command = symmetricCipher.getHardwareSupportStatus();
-            }
+            // Try to use OpenSSL if available
+            OpenSSLContext opensslContext = provider.getOpenSSLContext();
+            useOpenSSL = (opensslContext != null);
 
             boolean isEncrypt = (opmode == Cipher.ENCRYPT_MODE) || (opmode == Cipher.WRAP_MODE);
-            if (isEncrypt) {
-                symmetricCipher.initCipherEncrypt(rawKey, iv);
-            } else {
-                symmetricCipher.initCipherDecrypt(rawKey, iv);
+
+            if (useOpenSSL) {
+                try {
+                    if ((opensslCipher == null) || (opensslCipher.getKeyLength() != rawKey.length)) {
+                        // Convert OCK padding to OpenSSL padding
+                        com.ibm.crypto.plus.provider.openssl.Padding opensslPadding;
+                        if (padding == Padding.NoPadding) {
+                            opensslPadding = com.ibm.crypto.plus.provider.openssl.Padding.NoPadding;
+                        } else {
+                            opensslPadding = com.ibm.crypto.plus.provider.openssl.Padding.PKCS5Padding;
+                        }
+
+                        opensslCipher = OpenSSLSymmetricCipher.getInstanceAES(opensslContext, mode,
+                                opensslPadding, rawKey.length);
+                    }
+
+                    if (isEncrypt) {
+                        opensslCipher.initCipherEncrypt(rawKey, iv);
+                    } else {
+                        opensslCipher.initCipherDecrypt(rawKey, iv);
+                    }
+                } catch (OpenSSLException e) {
+                    // Fall back to OCK if OpenSSL fails
+                    useOpenSSL = false;
+                }
+            }
+
+            // Fall back to OCK if OpenSSL is not available or failed
+            if (!useOpenSSL) {
+                if ((symmetricCipher == null) || (symmetricCipher.getKeyLength() != rawKey.length)) {
+                    symmetricCipher = SymmetricCipher.getInstanceAES(provider.getOCKContext(), mode,
+                            padding, rawKey.length);
+                    // Check whether used algorithm is CBC and whether hardware supports is available
+                    use_z_fast_command = symmetricCipher.getHardwareSupportStatus();
+                }
+
+                if (isEncrypt) {
+                    symmetricCipher.initCipherEncrypt(rawKey, iv);
+                } else {
+                    symmetricCipher.initCipherDecrypt(rawKey, iv);
+                }
             }
 
             this.iv = iv;
@@ -353,7 +430,11 @@ public final class AESCipher extends CipherSpi implements AESConstants {
                 outputLen = engineUpdate(input, inputOffset, inputLen, output, 0);
             } else {
                 output = new byte[engineGetOutputSize(inputLen)];
-                outputLen = symmetricCipher.update(input, inputOffset, inputLen, output, 0);
+                if (useOpenSSL) {
+                    outputLen = opensslCipher.update(input, inputOffset, inputLen, output, 0);
+                } else {
+                    outputLen = symmetricCipher.update(input, inputOffset, inputLen, output, 0);
+                }
             }
             if (outputLen < output.length) {
                 byte[] out = Arrays.copyOfRange(output, 0, outputLen);
@@ -371,7 +452,7 @@ public final class AESCipher extends CipherSpi implements AESConstants {
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         checkCipherInitialized();
 
         try {
@@ -457,11 +538,19 @@ public final class AESCipher extends CipherSpi implements AESConstants {
                 return len;
                 // return extraChecks_update(input, inputOffset, inputLen, output, outputOffset);
             } else {
-                return symmetricCipher.update(input, inputOffset, inputLen, output, outputOffset);
+                if (useOpenSSL) {
+                    return opensslCipher.update(input, inputOffset, inputLen, output, outputOffset);
+                } else {
+                    return symmetricCipher.update(input, inputOffset, inputLen, output, outputOffset);
+                }
             }
-        } catch (ShortBufferException ock_sbe) {
-            ShortBufferException sbe = new ShortBufferException(ock_sbe.getMessage());
-            provider.setOCKExceptionCause(sbe, ock_sbe);
+        } catch (ShortBufferException e) {
+            ShortBufferException sbe = new ShortBufferException(e.getMessage());
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(sbe, e);
+            } else {
+                provider.setOCKExceptionCause(sbe, e);
+            }
             throw sbe;
         } catch (Exception e) {
             throw provider.providerException("Failure in engineDoFinal", e);

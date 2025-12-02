@@ -10,6 +10,11 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.OCKContext;
 import com.ibm.crypto.plus.provider.ock.OCKException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import sun.security.util.Debug;
+
+import javax.crypto.SecretKey;
 import java.lang.reflect.Constructor;
 import java.security.InvalidParameterException;
 import java.security.Key;
@@ -22,7 +27,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.SecretKey;
 
 public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
 
@@ -61,8 +65,13 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
     // to find ourselves or run the risk of not being in the list.
     private static volatile OpenJCEPlusFIPS instance;
 
+    // User enabled debugging
+    private static Debug debug = Debug.getInstance(DEBUG_VALUE);
+
     private static boolean ockInitialized = false;
     private static OCKContext ockContext;
+    private static boolean opensslInitialized = false;
+    private static OpenSSLContext opensslContext;
 
     private static final boolean isFIPSCertifiedPlatform;
     private static final Map<String, List<String>> supportedPlatforms = new HashMap<>();
@@ -222,44 +231,44 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
         aliases = new String[] {"AESWrap"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW", aliases));
-        
+
         aliases = new String[] {"AESWrapPad"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP", aliases));
 
         aliases = new String[] {"AESWrap_128",
-                                "2.16.840.1.101.3.4.1.5",
-                                "OID.2.16.840.1.101.3.4.1.5"};
+                "2.16.840.1.101.3.4.1.5",
+                "OID.2.16.840.1.101.3.4.1.5"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_128/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_128", aliases));
 
         aliases = new String[] {"AESWrapPad_128",
-                                "2.16.840.1.101.3.4.1.8",
-                                "OID.2.16.840.1.101.3.4.1.8"};
+                "2.16.840.1.101.3.4.1.8",
+                "OID.2.16.840.1.101.3.4.1.8"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_128/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_128", aliases));
-                
+
         aliases = new String[] {"AESWrap_192",
-                                "2.16.840.1.101.3.4.1.25",
-                                "OID.2.16.840.1.101.3.4.1.25"};
+                "2.16.840.1.101.3.4.1.25",
+                "OID.2.16.840.1.101.3.4.1.25"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_192/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_192", aliases));
-                
+
         aliases = new String[] {"AESWrapPad_192",
-                                "2.16.840.1.101.3.4.1.28",
-                                "OID.2.16.840.1.101.3.4.1.28"};
+                "2.16.840.1.101.3.4.1.28",
+                "OID.2.16.840.1.101.3.4.1.28"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_192/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_192", aliases));
 
         aliases = new String[] {"AESWrap_256",
-                                "2.16.840.1.101.3.4.1.45",
-                                "OID.2.16.840.1.101.3.4.1.45"};
+                "2.16.840.1.101.3.4.1.45",
+                "OID.2.16.840.1.101.3.4.1.45"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_256/KW/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KW_256", aliases));
 
         aliases = new String[] {"AESWrapPad_256",
-                                "2.16.840.1.101.3.4.1.48",
-                                "OID.2.16.840.1.101.3.4.1.48"};                
+                "2.16.840.1.101.3.4.1.48",
+                "OID.2.16.840.1.101.3.4.1.48"};
         putService(new OpenJCEPlusService(jce, "Cipher", "AES_256/KWP/NoPadding",
                 "com.ibm.crypto.plus.provider.AESKeyWrapCipher$KWP_256", aliases));
 
@@ -557,29 +566,29 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
 
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA224",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA224",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA224",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA224",
+                aliases));
 
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA256",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA256",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA256",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA256",
+                aliases));
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA384",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA384",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA384",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA384",
+                aliases));
         aliases = null;
         putService(new OpenJCEPlusService(jce,
-                                     "SecretKeyFactory",
-                                     "PBKDF2WithHmacSHA512",
-                                     "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA512",
-                                     aliases));
+                "SecretKeyFactory",
+                "PBKDF2WithHmacSHA512",
+                "com.ibm.crypto.plus.provider.PBKDF2Core$HmacSHA512",
+                aliases));
 
         /* Not yet supported in FIPS mode 
          * aliases = null;
@@ -700,12 +709,12 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
     private static class OpenJCEPlusService extends Service {
 
         OpenJCEPlusService(Provider provider, String type, String algorithm, String className,
-                String[] aliases) {
+                           String[] aliases) {
             this(provider, type, algorithm, className, aliases, null);
         }
 
         OpenJCEPlusService(Provider provider, String type, String algorithm, String className,
-                String[] aliases, Map<String, String> attributes) {
+                           String[] aliases, Map<String, String> attributes) {
             super(provider, type, algorithm, className, toList(aliases), attributes);
 
             if (debug != null) {
@@ -735,7 +744,7 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
                     Constructor<?> constr = cls.getConstructor(parameters);
 
                     return constr.newInstance(new Object[] {provider});
-                } catch (java.lang.NoSuchMethodException e) {
+                } catch (NoSuchMethodException e) {
                 }
             } catch (Exception clex) {
                 throw new NoSuchAlgorithmException(clex);
@@ -851,7 +860,7 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
         // made the method synchronizaed to ensure only one thread can execute
         // the method at a time.
         //
-        if (ockInitialized) {
+        if (ockInitialized && opensslInitialized) {
             return;
         }
 
@@ -867,10 +876,21 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
                 useFIPSMode = false;
             }
 
-            ockContext = OCKContext.createContext(useFIPSMode);
-            ockInitialized = true;
+            // Initialize OCK context
+            if (!ockInitialized) {
+                ockContext = OCKContext.createContext(useFIPSMode);
+                ockInitialized = true;
+            }
+
+            // Initialize OpenSSL context
+            if (!opensslInitialized) {
+                opensslContext = OpenSSLContext.createContext(useFIPSMode);
+                opensslInitialized = true;
+            }
         } catch (OCKException e) {
-            throw providerException("Failed to initialize OpenJCEPlusFIPS provider", e);
+            throw providerException("Failed to initialize OpenJCEPlusFIPS provider (OCK)", e);
+        } catch (OpenSSLException e) {
+            throw providerException("Failed to initialize OpenJCEPlusFIPS provider (OpenSSL)", e);
         } catch (Throwable t) {
             ProviderException exceptionToThrow = providerException(
                     "Failed to initialize OpenJCEPlusFIPS provider", t);
@@ -884,8 +904,8 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
                 // thrown, we want to get the message from the cause of that
                 // exception.
                 //
-                if ((t instanceof java.lang.ExceptionInInitializerError)
-                        || (t instanceof java.lang.NoClassDefFoundError)) {
+                if ((t instanceof ExceptionInInitializerError)
+                        || (t instanceof NoClassDefFoundError)) {
                     Throwable cause = t.getCause();
                     if (cause != null) {
                         t = cause;
@@ -916,8 +936,8 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
     //
     OCKContext getOCKContext() {
         // May need to initialize OCK here in the case that a serialized
-        // OpenJCEPlus object, such as a HASHDRBG SecureRandom, is being 
-        // deserialized in a JVM that has not instantiated the 
+        // OpenJCEPlus object, such as a HASHDRBG SecureRandom, is being
+        // deserialized in a JVM that has not instantiated the
         // OpenJCEPlusFIPS provider yet.
         //
         if (!ockInitialized) {
@@ -926,11 +946,31 @@ public final class OpenJCEPlusFIPS extends OpenJCEPlusProvider {
 
         return ockContext;
     }
+    
+    public OpenSSLContext getOpenSSLContext() {
+        if (!opensslInitialized) {
+            initializeContext();
+        }
+
+        return opensslContext;
+    }
 
     ProviderException providerException(String message, Throwable ockException) {
         ProviderException providerException = new ProviderException(message, ockException);
         setOCKExceptionCause(providerException, ockException);
         return providerException;
+    }
+
+    void setOCKExceptionCause(Exception exception, Throwable ockException) {
+        if (debug != null) {
+            exception.initCause(ockException);
+        }
+    }
+
+    public void setOpenSSLExceptionCause(Exception exception, Throwable opensslException) {
+        if (debug != null) {
+            exception.initCause(opensslException);
+        }
     }
 
     // Get the date from the ImplementationVersion in the manifest file
