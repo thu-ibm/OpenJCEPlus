@@ -16,21 +16,20 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-// NOTE: These constants must match those defined in
-//       com.ibm.crypto.plus.provider.openssl.OpenSSLContext
-//
+// These constants must match those defined in com.ibm.crypto.plus.provider.openssl.OpenSSLContext
 #define VALUE_FIPS_APPROVED_MODE 0
 #define VALUE_OPENSSL_VERSION 1
 #define VALUE_OPENSSL_INSTALL_PATH 2
 
 // OpenSSL context structure
 typedef struct {
-    jlong id;                // Context ID
-    int isFIPS;              // Whether FIPS mode is enabled
-    OSSL_LIB_CTX *libctx;    // OpenSSL library context
-    OSSL_PROVIDER *fips;     // FIPS provider
-    OSSL_PROVIDER *defaultProv;  // Default provider 
+    jlong          id;      // Context ID
+    int            isFIPS;  
+    OSSL_LIB_CTX*  libctx;  
+    OSSL_PROVIDER* fips;    // FIPS provider
+    OSSL_PROVIDER* base;    // Base provider
+    OSSL_PROVIDER*
+        defaultProv;  // Default provider (for GCM and advanced algorithms)
 } OpenSSLContext;
 
-#endif 
-
+#endif

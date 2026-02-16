@@ -1,10 +1,18 @@
+/*
+ * Copyright IBM Corp. 2025
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms provided by IBM in the LICENSE file that accompanied
+ * this code, including the "Classpath" Exception described therein.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include "com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface.h"
-#include "OpenSSLUtils.h"
+#include "OpenSSLLogging.h"
 #include <stdint.h>
 
 /*
@@ -15,12 +23,13 @@
 JNIEXPORT jstring JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getLibraryBuildDate(
     JNIEnv* env, jclass thisObj) {
-    static const char* functionName    = "OpenSSLNativeInterface.getLibraryBuildDate";
-    const char*        buildDateString = NULL;
-    jstring            retValue        = NULL;
+    static const char* functionName =
+        "OpenSSLNativeInterface.getLibraryBuildDate";
+    const char* buildDateString = NULL;
+    jstring     retValue        = NULL;
 
     if (debug) {
-        logFunctionEntry(functionName);
+        gslogFunctionEntry(functionName);
     }
 
 #ifdef __MVS__
@@ -28,13 +37,10 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getLibraryBuild
 #endif
 
 #if defined(BUILD_DATE)
-    // Compile flag specifying the build date
     buildDateString = BUILD_DATE;
 #elif defined(__DATE__) && defined(__TIME__)
-    // Pre-processor macros
     buildDateString = __DATE__ " " __TIME__;
 #elif defined(__DATE__)
-    // Pre-processor macro
     buildDateString = __DATE__;
 #else
     buildDateString = "<UNKNOWN>";
@@ -49,7 +55,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getLibraryBuild
     }
 
     if (debug) {
-        logFunctionExit(functionName);
+        gslogFunctionExit(functionName);
     }
 
     return retValue;

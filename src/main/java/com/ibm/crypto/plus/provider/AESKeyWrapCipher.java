@@ -10,6 +10,9 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.AESKeyWrap;
 import com.ibm.crypto.plus.provider.ock.OCKException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLKeyWrapCipher;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -35,17 +38,20 @@ abstract class AESKeyWrapCipher extends CipherSpi {
     private boolean wrappering = true;
     private boolean initialized = false;
     private AESKeyWrap cipher = null;
+    private OpenSSLKeyWrapCipher opensslKeyWrapCipher = null;
+    private boolean useOpenSSL = false;
+    private byte[] keyBytes = null;
     private int setKeySize = 0;
     private byte[] buffer = null;
     private int bufSize = 0;
     private int opmode = 0;
     private boolean setPadding = false;
     static final byte[] ICV1 = {
-        (byte) 0xA6, (byte) 0xA6, (byte) 0xA6, (byte) 0xA6,
-        (byte) 0xA6, (byte) 0xA6, (byte) 0xA6, (byte) 0xA6
+            (byte) 0xA6, (byte) 0xA6, (byte) 0xA6, (byte) 0xA6,
+            (byte) 0xA6, (byte) 0xA6, (byte) 0xA6, (byte) 0xA6
     };
     static final byte[] ICV2 = {
-        (byte) 0xA6, (byte) 0x59, (byte) 0x59, (byte) 0xA6
+            (byte) 0xA6, (byte) 0x59, (byte) 0x59, (byte) 0xA6
     };
 
     public AESKeyWrapCipher(OpenJCEPlusProvider provider, boolean padding, int keySize) {
@@ -64,7 +70,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
         int remain = Integer.MAX_VALUE - bufSize - 16;  //16 bytes required by OCKC call
         if (len > remain) {
             throw new ProviderException("Buffer can only take " +
-                remain + " more bytes");
+                    remain + " more bytes");
         }
 
         if (buffer == null || buffer.length - bufSize < len) {
@@ -87,11 +93,11 @@ abstract class AESKeyWrapCipher extends CipherSpi {
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
-        
+
         byte[] out = null;
 
         if (!this.initialized) {
-            throw new IllegalStateException("Cipher has not been initialized"); 
+            throw new IllegalStateException("Cipher has not been initialized");
         }
 
         if (opmode != Cipher.ENCRYPT_MODE && opmode != Cipher.DECRYPT_MODE) {
@@ -105,13 +111,28 @@ abstract class AESKeyWrapCipher extends CipherSpi {
         add2Buffer(input, inputOffset, inputLen);
 
         try {
-            if (opmode == Cipher.ENCRYPT_MODE) {
-                out = cipher.wrap(buffer, 0, bufSize);
+            if (useOpenSSL && opensslKeyWrapCipher != null) {
+                // Use OpenSSL backend
+                byte[] data = new byte[bufSize];
+                System.arraycopy(buffer, 0, data, 0, bufSize);
+
+                if (opmode == Cipher.ENCRYPT_MODE) {
+                    out = opensslKeyWrapCipher.wrap(data, keyBytes);
+                } else {
+                    out = opensslKeyWrapCipher.unwrap(data, keyBytes);
+                }
             } else {
-                out = cipher.unwrap(buffer, 0, bufSize);
+                // Use OCK backend
+                if (opmode == Cipher.ENCRYPT_MODE) {
+                    out = cipher.wrap(buffer, 0, bufSize);
+                } else {
+                    out = cipher.unwrap(buffer, 0, bufSize);
+                }
             }
         } catch (OCKException ocke) {
             throw new ProviderException("Operation doFinal failed", ocke);
+        } catch (OpenSSLException osse) {
+            throw new ProviderException("OpenSSL KeyWrap operation failed", osse);
         }
         this.bufSize = 0;
         Arrays.fill(buffer, (byte) 0x00);
@@ -121,7 +142,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset)
+                                int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         byte[] out = null;
         int estOutLen = engineGetOutputSize(inputLen + bufSize);
@@ -132,12 +153,12 @@ abstract class AESKeyWrapCipher extends CipherSpi {
 
         try {
             out = engineDoFinal(input, inputOffset, inputLen);
-                            
+
             if (out.length > estOutLen) {
                 throw new AssertionError("Actual output length exceeds estimated length");
             }
             System.arraycopy(out, 0, output, outputOffset, out.length);
-            
+
             return out.length;
         } catch (Exception e) {
             throw e;
@@ -213,17 +234,17 @@ abstract class AESKeyWrapCipher extends CipherSpi {
         } else {
             throw new InvalidParameterException("Incorrect opmode passed in");
         }
-        
+
         this.opmode = opmode;
         internalInit(opmode, key);
     }
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (params != null) {
             throw new InvalidAlgorithmParameterException("This cipher " +
-                "does not accept any parameters");
+                    "does not accept any parameters");
         }
         engineInit(opmode, key, random);
     }
@@ -233,7 +254,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (params != null) {
             throw new InvalidAlgorithmParameterException("This cipher " +
-                "does not accept any parameters");
+                    "does not accept any parameters");
         }
         engineInit(opmode, key, random);
     }
@@ -256,12 +277,33 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             throw new InvalidKeyException("Invalid AES key length: " + rawKey.length + " bytes");
         }
 
+        // Try to use OpenSSL if available
+        OpenSSLContext opensslContext = provider.getOpenSSLContext();
+        useOpenSSL = (opensslContext != null);
+
+        if (useOpenSSL) {
+            try {
+                // Create OpenSSL cipher instance based on padding mode
+                opensslKeyWrapCipher = setPadding ?
+                        new OpenSSLKeyWrapCipher.KWP(opensslContext) :
+                        new OpenSSLKeyWrapCipher.KW(opensslContext);
+                keyBytes = rawKey.clone();
+                this.initialized = true;
+                return;
+            } catch (Exception e) {
+                // Fall back to OCK if OpenSSL fails
+                useOpenSSL = false;
+                opensslKeyWrapCipher = null;
+            }
+        }
+
+        // Use OCK backend
         try {
             this.cipher = new AESKeyWrap(provider.getOCKContext(), rawKey, setPadding);
         } catch (Exception e) {
             throw new InvalidKeyException("OCKC context null or bad key.", e);
-        } 
-        this.initialized = true;   
+        }
+        this.initialized = true;
     }
 
     @Override
@@ -281,7 +323,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
     @Override
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
         if (!this.initialized) {
-            throw new IllegalStateException("Cipher has not been initialized"); 
+            throw new IllegalStateException("Cipher has not been initialized");
         }
 
         if (opmode != Cipher.ENCRYPT_MODE && opmode != Cipher.DECRYPT_MODE) {
@@ -294,9 +336,9 @@ abstract class AESKeyWrapCipher extends CipherSpi {
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         if (!this.initialized) {
-            throw new IllegalStateException("Cipher has not been initialized"); 
+            throw new IllegalStateException("Cipher has not been initialized");
         }
 
         if (opmode != Cipher.ENCRYPT_MODE && opmode != Cipher.DECRYPT_MODE) {
@@ -320,7 +362,11 @@ abstract class AESKeyWrapCipher extends CipherSpi {
         }
 
         try {
-            return cipher.wrap(encoded, 0, encoded.length);
+            if (useOpenSSL && opensslKeyWrapCipher != null) {
+                return opensslKeyWrapCipher.wrap(encoded, keyBytes);
+            } else {
+                return cipher.wrap(encoded, 0, encoded.length);
+            }
         } catch (Exception e) {
             // should not occur
             throw new InvalidKeyException("Wrapping failed", e);
@@ -336,12 +382,17 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             throw new IllegalStateException("Cipher not initialized for unwrap");
         }
         try {
-            byte[] encoded = cipher.unwrap(wrappedKey, 0, wrappedKey.length);
+            byte[] encoded;
+            if (useOpenSSL && opensslKeyWrapCipher != null) {
+                encoded = opensslKeyWrapCipher.unwrap(wrappedKey, keyBytes);
+            } else {
+                encoded = cipher.unwrap(wrappedKey, 0, wrappedKey.length);
+            }
             return ConstructKeys.constructKey(provider, encoded, algorithm, type);
         } catch (Exception e) {
             // should not occur
             throw new InvalidKeyException("Unwrapping failed", e);
-        }    
+        }
     }
 
     private void checkCipherInitialized() throws IllegalStateException {
@@ -369,7 +420,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             super(provider, true, -1);
         }
     }
-    
+
     public static final class KW_128 extends AESKeyWrapCipher {
 
         public KW_128(OpenJCEPlusProvider provider) {
@@ -383,7 +434,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             super(provider, true, 16);
         }
     }
-        
+
     public static final class KW_192 extends AESKeyWrapCipher {
 
         public KW_192(OpenJCEPlusProvider provider) {
@@ -397,7 +448,7 @@ abstract class AESKeyWrapCipher extends CipherSpi {
             super(provider, true, 24);
         }
     }
-        
+
     public static final class KW_256 extends AESKeyWrapCipher {
 
         public KW_256(OpenJCEPlusProvider provider) {

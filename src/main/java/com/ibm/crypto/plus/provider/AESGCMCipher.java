@@ -11,6 +11,9 @@ package com.ibm.crypto.plus.provider;
 import com.ibm.crypto.plus.provider.ock.GCMCipher;
 import com.ibm.crypto.plus.provider.ock.OCKContext;
 import com.ibm.crypto.plus.provider.ock.OCKException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLGCMCipher;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
@@ -39,6 +42,9 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
     private OpenJCEPlusProvider provider = null;
     private OCKContext ockContext = null;
+    private OpenSSLGCMCipher opensslGCMCipher = null;
+    private boolean useOpenSSL = false;
+    private int opensslKeyLength = 0; // Track the key length for OpenSSL cipher
     private boolean encrypting = true;
     private boolean initialized = false;
     private int tagLenInBytes = DEFAULT_TAG_LENGTH / 8;
@@ -254,7 +260,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset)
+                                int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         //final String methodName = "engineDoFinal";
         if (!initialized) {
@@ -309,76 +315,170 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         }
 
         try {
-            if (encrypting) {
-                if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
-                    throw new ShortBufferException(
-                            "Output buffer is not long enough to contain ciphertext and tag");
-                }
+            if (useOpenSSL && opensslGCMCipher != null) {
+                // Use OpenSSL backend
+                try {
+                    if (encrypting) {
+                        if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
+                            throw new ShortBufferException(
+                                    "Output buffer is not long enough to contain ciphertext and tag.");
+                        }
 
-                /*
-                 * switch to the newly generated IV only at this point, need to keep the old IV
-                 * around since getIV() might be called up to this point
-                 */
+                        if (generateIV && newIV != null) {
+                            IV = newIV.clone();
+                            newIV = null;
+                        }
 
-                if (generateIV && newIV != null) {
-                    IV = newIV.clone();
-                    newIV = null;
-                }
-                if ((!sbeInLastFinalEncrypt) && encrypting && !initCalledInEncSeq) {
-                    boolean sameKeyIv = checkKeyAndNonce(Key, IV, lastEncKey, lastEncIv);
-                    if (sameKeyIv) {
-                        resetVars(true);
-                        throw new IllegalStateException("Cannot reuse iv for AESGCM encryption");
+                        // Set AAD if present
+                        if (authData != null) {
+                            opensslGCMCipher.setAAD(authData);
+                        }
+
+                        // Perform encryption
+                        int ret = opensslGCMCipher.doFinal(input, inputOffset, inputLen,
+                                output, outputOffset);
+                        authData = null;
+
+                        // After successful encryption, require reinitialization
+                        requireReinit = true;
+
+                        if (generateIV) {
+                            newIV = generateInternalIV(false).clone();
+                        }
+                        return ret;
+                    } else {
+                        // decrypting
+                        if ((input == null) || (input.length == 0)) {
+                            return 0;
+                        }
+
+                        if (inputLen < tagLenInBytes) {
+                            throw new AEADBadTagException("Input too short - need tag");
+                        }
+
+                        if ((output == null)
+                                || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
+                            throw new ShortBufferException("Output buffer too small");
+                        }
+
+                        // Set AAD if present
+                        if (authData != null) {
+                            opensslGCMCipher.setAAD(authData);
+                        }
+
+                        // Perform decryption
+                        int ret = opensslGCMCipher.doFinal(input, inputOffset, inputLen,
+                                output, outputOffset);
+                        authData = null;
+
+                        // After decryption, reinitialize the cipher for potential reuse
+                        // (GCM allows multiple decryptions with same key+IV)
+                        try {
+                            opensslGCMCipher.initCipherDecrypt(Key, IV);
+                        } catch (OpenSSLException e) {
+                            // If reinit fails, continue - next operation will handle it
+                        }
+
+                        return ret;
                     }
+                } catch (AEADBadTagException e) {
+                    // Re-throw AEADBadTagException as-is for proper test handling
+                    throw e;
+                } catch (OpenSSLException e) {
+                    throw new ProviderException("OpenSSL GCM operation failed", e);
                 }
-
-                int ret = GCMCipher.doGCMFinal_Encrypt(ockContext, Key, IV, tagLenInBytes, input,
-                        inputOffset, inputLen, output, outputOffset, authData);
-                authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
-
-                if (generateIV) {
-                    /*
-                     * Generate the next internal AES-GCM initialization vector per NIST SP 800-38D
-                     */
-                    newIV = generateInternalIV(false).clone();
-                }
-
-                return ret;
             } else {
-                // decrypting
-                if (inputLen < tagLenInBytes) {
-                    throw new AEADBadTagException("Input too short - need tag");
-                }
+                // Use OCK backend
+                if (encrypting) {
+                    if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
+                        throw new ShortBufferException(
+                                "Output buffer is not long enough to contain ciphertext and tag");
+                    }
 
-                if ((output == null)
-                        || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
-                    throw new ShortBufferException("Output buffer too small");
-                }
+                    /*
+                     * switch to the newly generated IV only at this point, need to keep the old IV
+                     * around since getIV() might be called up to this point
+                     */
 
-                int ret = GCMCipher.doGCMFinal_Decrypt(ockContext, Key, IV, tagLenInBytes, input,
-                        inputOffset, inputLen, output, outputOffset, authData);
-                authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
-                return ret;
+                    if (generateIV && newIV != null) {
+                        IV = newIV.clone();
+                        newIV = null;
+                    }
+                    if ((!sbeInLastFinalEncrypt) && encrypting && !initCalledInEncSeq) {
+                        boolean sameKeyIv = checkKeyAndNonce(Key, IV, lastEncKey, lastEncIv);
+                        if (sameKeyIv) {
+                            resetVars(true);
+                            throw new IllegalStateException("Cannot reuse iv for AESGCM encryption");
+                        }
+                    }
+
+                    int ret = GCMCipher.doGCMFinal_Encrypt(ockContext, Key, IV, tagLenInBytes, input,
+                            inputOffset, inputLen, output, outputOffset, authData);
+                    authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
+
+                    // After successful encryption, require reinitialization
+                    requireReinit = true;
+
+                    if (generateIV) {
+                        /*
+                         * Generate the next internal AES-GCM initialization vector per NIST SP 800-38D
+                         */
+                        newIV = generateInternalIV(false).clone();
+                    }
+
+                    return ret;
+                } else {
+                    // decrypting
+                    if (inputLen < tagLenInBytes) {
+                        throw new AEADBadTagException("Input too short - need tag");
+                    }
+
+                    if ((output == null)
+                            || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
+                        throw new ShortBufferException("Output buffer too small");
+                    }
+
+                    int ret = GCMCipher.doGCMFinal_Decrypt(ockContext, Key, IV, tagLenInBytes, input,
+                            inputOffset, inputLen, output, outputOffset, authData);
+                    authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
+                    return ret;
+                }
             }
         } catch (AEADBadTagException e) {
             resetVars(true);
             AEADBadTagException abte = new AEADBadTagException(e.getMessage());
-            provider.setOCKExceptionCause(abte, e);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(abte, e);
+            } else {
+                provider.setOCKExceptionCause(abte, e);
+            }
             throw abte;
         } catch (BadPaddingException ock_bpe) {
             resetVars(true);
             BadPaddingException bpe = new BadPaddingException(ock_bpe.getMessage());
-            provider.setOCKExceptionCause(bpe, ock_bpe);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(bpe, ock_bpe);
+            } else {
+                provider.setOCKExceptionCause(bpe, ock_bpe);
+            }
             throw bpe;
         } catch (IllegalBlockSizeException ock_ibse) {
             resetVars(true);
             IllegalBlockSizeException ibse = new IllegalBlockSizeException(ock_ibse.getMessage());
-            provider.setOCKExceptionCause(ibse, ock_ibse);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(ibse, ock_ibse);
+            } else {
+                provider.setOCKExceptionCause(ibse, ock_ibse);
+            }
             throw ibse;
         } catch (ShortBufferException ock_sbe) {
             sbeInLastFinalEncrypt = encrypting;
             ShortBufferException sbe = new ShortBufferException(ock_sbe.getMessage());
-            provider.setOCKExceptionCause(sbe, ock_sbe);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(sbe, ock_sbe);
+            } else {
+                provider.setOCKExceptionCause(sbe, ock_sbe);
+            }
             throw sbe;
         } catch (com.ibm.crypto.plus.provider.ock.OCKException ock_excp) {
             resetVars(true);
@@ -437,7 +537,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
 
     private int doFinalForUpdates(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
+                                  int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
             BadPaddingException, AEADBadTagException, IllegalStateException, OCKException {
         //final String methodName = "doFinalForUpdates";
         checkReinit();
@@ -600,7 +700,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
 
         if ((opmode == Cipher.DECRYPT_MODE) || (opmode == Cipher.UNWRAP_MODE)) {
             encrypting = false;
@@ -613,7 +713,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             throw new InvalidKeyException("No key given");
         }
         if (params != null) { // if we have a ParameterSpec, check to see if it
-                              // is GCMParameterSpec
+            // is GCMParameterSpec
             if (params instanceof GCMParameterSpec) {
                 byte[] ivTemp = ((GCMParameterSpec) params).getIV();
                 if (ivTemp.length == 0) {
@@ -737,7 +837,42 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         }
 
         try {
+            // Try to use OpenSSL if available
+            OpenSSLContext opensslContext = provider.getOpenSSLContext();
+            useOpenSSL = (opensslContext != null);
+
             boolean isEncrypt = (opmode == Cipher.ENCRYPT_MODE) || (opmode == Cipher.WRAP_MODE);
+
+            if (useOpenSSL) {
+                try {
+                    if ((opensslGCMCipher == null) || (opensslKeyLength != rawKey.length)) {
+                        opensslGCMCipher = OpenSSLGCMCipher.getInstance(opensslContext, rawKey.length);
+                        opensslKeyLength = rawKey.length;
+                    }
+
+                    // Set tag length and initialize cipher
+                    // Only set tag length if it's valid (4-16 bytes), otherwise use default
+                    if (tagLenInBytes >= 4 && tagLenInBytes <= 16) {
+                        opensslGCMCipher.setTagLen(tagLenInBytes);
+                    }
+                    if (isEncrypt) {
+                        opensslGCMCipher.initCipherEncrypt(rawKey, iv);
+                    } else {
+                        opensslGCMCipher.initCipherDecrypt(rawKey, iv);
+                    }
+                } catch (OpenSSLException e) {
+                    // Fall back to OCK if OpenSSL fails
+                    useOpenSSL = false;
+                    if (opensslGCMCipher != null) {
+                        try {
+                            opensslGCMCipher.close();
+                        } catch (Exception ex) {
+                            // Ignore cleanup errors
+                        }
+                        opensslGCMCipher = null;
+                    }
+                }
+            }
 
             this.newIV = null;
             this.Key = rawKey.clone();
@@ -870,7 +1005,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         //final String methodName = "int engineUpdate";
         if (!GCMCipher.gcmUpdateSupported()) {
             throw new ProviderException(
@@ -941,7 +1076,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
 
     protected int doUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, boolean firstUpdate)
+                           int outputOffset, boolean firstUpdate)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         //final String methodName = "int doUpdate";
         // OCKDebug.Msg(debPrefix, methodName, " 5 paramters firstUpdate=" + firstUpdate
@@ -1240,7 +1375,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
     }
 
     private int fillOutputBuffer(byte[] finalBuf, int finalOffset, byte[] output, int outOfs,
-            int finalBufLen, byte[] input) throws ShortBufferException, BadPaddingException,
+                                 int finalBufLen, byte[] input) throws ShortBufferException, BadPaddingException,
             IllegalBlockSizeException, OCKException {
         //final String methodName = "fillOutputBuffer";
         // OCKDebug.Msg(debPrefix, methodName, "Entering finalOffset = ", finalBuf);
@@ -1270,6 +1405,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
         int outLen = 0;
 
+        // Use OCK backend (OpenSSL is handled separately in engineDoFinal)
         if (!encrypting) {
             outLen = GCMCipher.do_GCM_FinalForUpdateDecrypt(ockContext, Key, IV, tagLenInBytes, in,
                     inOfs, len, out, outOfs, authData);
@@ -1333,7 +1469,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
 
     private byte[] prepareInputBuffer(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws IllegalBlockSizeException, ShortBufferException {
+                                      int outputOffset) throws IllegalBlockSizeException, ShortBufferException {
 
         //final String methodName = "prepareInputBuffer";
 
@@ -1353,7 +1489,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
          */
         if ((buffered != 0) || (encrypting)
                 || ((input == output) && (outputOffset - inputOffset < inputLen)
-                        && (inputOffset - outputOffset < buffer.length))) {
+                && (inputOffset - outputOffset < buffer.length))) {
             byte[] finalBuf;
 
             finalBuf = new byte[len];
@@ -1418,7 +1554,17 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         //final String methodName = "finalize";
         // OCKDebug.Msg (debPrefix, methodName, "finalize called");
         try {
-
+            if (opensslGCMCipher != null) {
+                try {
+                    opensslGCMCipher.close();
+                } catch (Exception e) {
+                    // Ignore cleanup errors
+                }
+                opensslGCMCipher = null;
+            }
+            if (ockContext != null) {
+                GCMCipher.doGCM_cleanup(ockContext);
+            }
             //JS00684 - Leave cleanup of internal variables to GCMCipher that caches them
             if (Key != null) {
                 Arrays.fill(Key, (byte) 0x00);
@@ -1438,7 +1584,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
 
     private boolean checkKeyAndNonce(byte[] curKeyBytes, byte[] curNonce, byte[] lastKeyBytes,
-            byte[] lastNonce) {
+                                     byte[] lastNonce) {
 
         // A new initialization must have either a different key or nonce
         // so the starting state for each block is not the same as the

@@ -45,6 +45,7 @@ final class OpenSSLNativeInterface {
 
     public static String getOsArch() {
         return osArch;
+
     }
 
     static String getOpenSSLLoadPath() {
@@ -265,7 +266,14 @@ final class OpenSSLNativeInterface {
     static public native String CTX_getValue(long opensslContextId, int valueId) throws OpenSSLException;
 
     static native long getByteBufferPointer(ByteBuffer b);
-    
+
+    // =========================================================================
+    // Basic random number generator functions
+    // =========================================================================
+
+    static public native void RAND_nextBytes(long opensslContextId, byte[] buffer) throws OpenSSLException;
+
+    static public native void RAND_setSeed(long opensslContextId, byte[] seed) throws OpenSSLException;
 
     // =========================================================================
     // Cipher functions
@@ -304,5 +312,208 @@ final class OpenSSLNativeInterface {
 
     static public native void CIPHER_delete(long opensslContextId, long cipherId) throws OpenSSLException;
 
+    // =========================================================================
+    // Digest functions
+    // =========================================================================
+
+    static public native long DIGEST_create(long opensslContextId, String digestAlgo) throws OpenSSLException;
+
+    static public native int DIGEST_update(long opensslContextId, long digestId, byte[] input,
+                                           int offset, int length) throws OpenSSLException;
+
+    static public native byte[] DIGEST_digest(long opensslContextId, long digestId) throws OpenSSLException;
+
+    static public native void DIGEST_delete(long opensslContextId, long digestId) throws OpenSSLException;
+
+    static public native int DIGEST_size(long opensslContextId, long digestId) throws OpenSSLException;
+
+    // GCM-specific functions
+    /**
+     * Initializes a GCM cipher context.
+     *
+     * @param opensslContextId the OpenSSL context ID
+     * @param cipherId the cipher context ID
+     * @param encrypt whether to encrypt (1) or decrypt (0)
+     * @param key the key
+     * @param iv the initialization vector
+     * @param tagLen the authentication tag length
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void GCM_init(long opensslContextId, long cipherId, int encrypt,
+                                       byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
+
+    /**
+     * Updates a GCM cipher context.
+     *
+     * @param opensslContextId the OpenSSL context ID
+     * @param cipherId the cipher context ID
+     * @param encrypt whether encrypting (1) or decrypting (0)
+     * @param input the input data
+     * @param inputOffset the offset into the input data
+     * @param inputLen the length of the input data
+     * @param output the output buffer
+     * @param outputOffset the offset into the output buffer
+     * @param aad the additional authenticated data (can be null)
+     * @param aadLen the length of the AAD
+     * @return the number of bytes written to the output buffer
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int GCM_update(long opensslContextId, long cipherId, int encrypt,
+                                        byte[] input, int inputOffset, int inputLen,
+                                        byte[] output, int outputOffset,
+                                        byte[] aad, int aadLen) throws OpenSSLException;
+
+    /**
+     * Finalizes a GCM cipher context.
+     * For encryption, this appends the authentication tag to the output.
+     * For decryption, this verifies the authentication tag.
+     *
+     * @param opensslContextId the OpenSSL context ID
+     * @param cipherId the cipher context ID
+     * @param encrypt whether encrypting (1) or decrypting (0)
+     * @param input the input data
+     * @param inputOffset the offset into the input data
+     * @param inputLen the length of the input data
+     * @param output the output buffer
+     * @param outputOffset the offset into the output buffer
+     * @param aad the additional authenticated data
+     * @param aadLen the length of the AAD
+     * @param tagLen the authentication tag length
+     * @return the number of bytes written to the output buffer (including tag)
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int GCM_encryptFinal(long opensslContextId, long cipherId,
+                                              byte[] input, int inputOffset, int inputLen,
+                                              byte[] output, int outputOffset,
+                                              byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    /**
+     * Finalizes a GCM decryption operation.
+     *
+     * @param opensslContextId the OpenSSL context ID (or FIPS flag: 0=non-FIPS, 1=FIPS)
+     * @param cipherId the cipher context ID
+     * @param input the input buffer containing ciphertext and authentication tag
+     * @param inputOffset the offset in the input buffer
+     * @param inputLen the length of input data (ciphertext + tag)
+     * @param output the output buffer for plaintext
+     * @param outputOffset the offset in the output buffer
+     * @param aad the additional authenticated data (AAD)
+     * @param aadLen the length of the AAD
+     * @param tagLen the authentication tag length
+     * @return the number of bytes written to the output buffer (plaintext only)
+     * @throws OpenSSLException if an OpenSSL error occurs or tag verification fails
+     */
+    static public native int GCM_decryptFinal(long opensslContextId, long cipherId,
+                                              byte[] input, int inputOffset, int inputLen,
+                                              byte[] output, int outputOffset,
+                                              byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    // CCM-specific functions
+    /**
+     * Initializes a CCM cipher context.
+     *
+     * @param opensslContextId the OpenSSL context ID (or FIPS flag: 0=non-FIPS, 1=FIPS)
+     * @param cipherId the cipher context ID
+     * @param encrypt whether to encrypt (1) or decrypt (0)
+     * @param key the key
+     * @param iv the initialization vector (nonce)
+     * @param tagLen the authentication tag length in bytes
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void CCM_init(long opensslContextId, long cipherId, int encrypt,
+                                       byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
+
+    /**
+     * Updates a CCM cipher context.
+     *
+     * @param opensslContextId the OpenSSL context ID (or FIPS flag: 0=non-FIPS, 1=FIPS)
+     * @param cipherId the cipher context ID
+     * @param encrypt whether encrypting (1) or decrypting (0)
+     * @param input the input data
+     * @param inputOffset the offset into the input data
+     * @param inputLen the length of the input data
+     * @param output the output buffer
+     * @param outputOffset the offset into the output buffer
+     * @param aad the additional authenticated data (can be null)
+     * @param aadLen the length of the AAD
+     * @return the number of bytes written to the output buffer
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int CCM_update(long opensslContextId, long cipherId, int encrypt,
+                                        byte[] input, int inputOffset, int inputLen,
+                                        byte[] output, int outputOffset,
+                                        byte[] aad, int aadLen) throws OpenSSLException;
+
+    /**
+     * Finalizes a CCM encryption operation and generates the authentication tag.
+     *
+     * @param opensslContextId the OpenSSL context ID (or FIPS flag: 0=non-FIPS, 1=FIPS)
+     * @param cipherId the cipher context ID
+     * @param input the input buffer containing plaintext
+     * @param inputOffset the offset in the input buffer
+     * @param inputLen the length of input data
+     * @param output the output buffer for ciphertext and authentication tag
+     * @param outputOffset the offset in the output buffer
+     * @param aad the additional authenticated data (AAD)
+     * @param aadLen the length of the AAD
+     * @param tagLen the authentication tag length
+     * @return the number of bytes written to the output buffer (ciphertext + tag)
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int CCM_encryptFinal(long opensslContextId, long cipherId,
+                                              byte[] input, int inputOffset, int inputLen,
+                                              byte[] output, int outputOffset,
+                                              byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    /**
+     * Finalizes a CCM decryption operation and verifies the authentication tag.
+     *
+     * @param opensslContextId the OpenSSL context ID (or FIPS flag: 0=non-FIPS, 1=FIPS)
+     * @param cipherId the cipher context ID
+     * @param input the input buffer containing ciphertext and authentication tag
+     * @param inputOffset the offset in the input buffer
+     * @param inputLen the length of input data (ciphertext + tag)
+     * @param output the output buffer for plaintext
+     * @param outputOffset the offset in the output buffer
+     * @param aad the additional authenticated data (AAD)
+     * @param aadLen the length of the AAD
+     * @param tagLen the authentication tag length
+     * @return the number of bytes written to the output buffer (plaintext only)
+     * @throws OpenSSLException if an OpenSSL error occurs or tag verification fails
+     */
+    static public native int CCM_decryptFinal(long opensslContextId, long cipherId,
+                                              byte[] input, int inputOffset, int inputLen,
+                                              byte[] output, int outputOffset,
+                                              byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    // =========================================================================
+    // Key Wrap functions
+    // =========================================================================
+
+    /**
+     * Wraps a key using AES Key Wrap algorithm (RFC 3394) or AES Key Wrap with Padding (RFC 5649).
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param plaintext the key material to wrap
+     * @param kek the key encryption key
+     * @param padding whether to use padding (true for KWP, false for KW)
+     * @return the wrapped key
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] KEYWRAP_wrap(long fipsFlag, byte[] plaintext,
+                                             byte[] kek, boolean padding) throws OpenSSLException;
+
+    /**
+     * Unwraps a key using AES Key Wrap algorithm (RFC 3394) or AES Key Wrap with Padding (RFC 5649).
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param ciphertext the wrapped key
+     * @param kek the key encryption key
+     * @param padding whether to use padding (true for KWP, false for KW)
+     * @return the unwrapped key material
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] KEYWRAP_unwrap(long fipsFlag, byte[] ciphertext,
+                                               byte[] kek, boolean padding) throws OpenSSLException;
 }
 

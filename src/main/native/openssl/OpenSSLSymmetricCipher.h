@@ -11,55 +11,117 @@
 
 #include <jni.h>
 #include <openssl/evp.h>
-#include "OpenSSLContext.h"
 
-// Cipher context structure
 typedef struct {
-    EVP_CIPHER_CTX *ctx;
-    const EVP_CIPHER *cipher;
-    int padding;
-    int encrypt;  // 1 for encrypt, 0 for decrypt
-    int blockSize;  // Cache the block size
-    unsigned char *key;
-    int keyLen;
-    unsigned char *iv;
-    int ivLen;
+    EVP_CIPHER_CTX*   ctx;
+    const EVP_CIPHER* cipher;
+    int               padding;
+    int               encrypt;
+    int               blockSize;
+    unsigned char*    key;
+    int               keyLen;
+    unsigned char*    iv;
+    int               ivLen;
+    int               tagLen;
 } CipherContext;
 
-// Function prototypes
-JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create
-  (JNIEnv *env, jclass cls, jlong contextId, jstring cipherName);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_create
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create(
+    JNIEnv* env, jclass cls, jlong contextId, jstring cipherName);
 
-JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId, jint encrypt, jint paddingId, jbyteArray key, jbyteArray iv);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_init
+ * Signature: (JJII[B[B)V
+ */
+JNIEXPORT void JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId, jint encrypt,
+    jint paddingId, jbyteArray key, jbyteArray iv);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getBlockSize
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_getBlockSize
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getBlockSize(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getKeyLength
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_getKeyLength
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getKeyLength(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getIVLength
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_getIVLength
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getIVLength(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptUpdate
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input, jint inputOffset, jint inputLen,
-   jbyteArray output, jint outputOffset, jboolean needsReinit);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_encryptUpdate
+ * Signature: (JJ[BII[BIIZ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptUpdate(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input,
+    jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
+    jboolean needsReinit);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptUpdate
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input, jint inputOffset, jint inputLen,
-   jbyteArray output, jint outputOffset, jboolean needsReinit);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_decryptUpdate
+ * Signature: (JJ[BII[BIIZ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptUpdate(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input,
+    jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
+    jboolean needsReinit);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptFinal
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input, jint inputOffset, jint inputLen,
-   jbyteArray output, jint outputOffset, jboolean needsReinit);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_encryptFinal
+ * Signature: (JJ[BII[BIIZ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptFinal(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input,
+    jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
+    jboolean needsReinit);
 
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptFinal
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input, jint inputOffset, jint inputLen,
-   jbyteArray output, jint outputOffset, jboolean needsReinit);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_decryptFinal
+ * Signature: (JJ[BII[BIIZ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptFinal(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId, jbyteArray input,
+    jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
+    jboolean needsReinit);
 
-JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1delete
-  (JNIEnv *env, jclass cls, jlong contextId, jlong cipherId);
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    CIPHER_delete
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL
+Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1delete(
+    JNIEnv* env, jclass cls, jlong contextId, jlong cipherId);
 
-#endif 
-
+#endif

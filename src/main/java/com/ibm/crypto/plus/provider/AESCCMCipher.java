@@ -10,6 +10,9 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.CCMCipher;
 import com.ibm.crypto.plus.provider.ock.OCKContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLContext;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLException;
+import com.ibm.crypto.plus.provider.openssl.OpenSSLCCMCipher;
 import ibm.security.internal.spec.CCMParameterSpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -38,6 +41,9 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
 
     private OpenJCEPlusProvider provider = null;
     private OCKContext ockContext = null;
+    private OpenSSLCCMCipher opensslCCMCipher = null;
+    private boolean useOpenSSL = false;
+    private int opensslKeyLength = 0; // Track the key length for OpenSSL cipher
     private boolean encrypting = true;
     private boolean initialized = false;
     private int tagLenInBytes = DEFAULT_AES_CCM_TAG_LENGTH / 8;
@@ -221,7 +227,7 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset)
+                                int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         //final String methodName = "engineDoFinal";
 
@@ -245,72 +251,138 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
         checkReinit();
 
         try {
-            if (encrypting) {
-                if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
-                    throw new ShortBufferException(
-                            "Output buffer is not long enough to contain ciphertext and tag.");
+            if (useOpenSSL && opensslCCMCipher != null) {
+                // Use OpenSSL backend
+                try {
+                    if (encrypting) {
+                        if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
+                            throw new ShortBufferException(
+                                    "Output buffer is not long enough to contain ciphertext and tag.");
+                        }
+
+                        if (generateIV && newIV != null) {
+                            IV = newIV.clone();
+                            newIV = null;
+                        }
+
+                        // Pass AAD directly to doFinal
+                        int ret = opensslCCMCipher.doFinal(true, input, inputOffset, inputLen,
+                                output, outputOffset, authData, tagLenInBytes);
+                        authData = null;
+
+                        if (generateIV) {
+                            newIV = generateInternalIV().clone();
+                        }
+                        return ret;
+                    } else {
+                        // decrypting
+                        if ((input == null) || (input.length == 0)) {
+                            return 0;
+                        }
+
+                        if (inputLen < tagLenInBytes) {
+                            throw new AEADBadTagException("Input too short - need tag");
+                        }
+
+                        if ((output == null)
+                                || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
+                            throw new ShortBufferException("Output buffer too small");
+                        }
+
+                        // Pass AAD directly to doFinal
+                        int ret = opensslCCMCipher.doFinal(false, input, inputOffset, inputLen,
+                                output, outputOffset, authData, tagLenInBytes);
+                        authData = null;
+                        return ret;
+                    }
+                } catch (OpenSSLException e) {
+                    throw new ProviderException("OpenSSL CCM operation failed", e);
                 }
+            } else {
+                // Use OCK backend
+                if (encrypting) {
+                    if ((output == null) || (output.length - outputOffset < inputLen + tagLenInBytes)) {
+                        throw new ShortBufferException(
+                                "Output buffer is not long enough to contain ciphertext and tag.");
+                    }
 
-                /*
-                 * switch to the newly generated IV only at this point, need to keep the old IV
-                 * around since getIV() might be called up to this point
-                 */
-                if (generateIV && newIV != null) {
-                    IV = newIV.clone();
-                    newIV = null;
-                }
-
-                int ret = CCMCipher.doCCMFinal_Encrypt(ockContext, Key, IV, tagLenInBytes, input,
-                        inputOffset, inputLen, output, outputOffset, authData);
-                authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
-
-                if (generateIV) {
                     /*
-                     * Generate the next internal AES-CCM initialization vector
+                     * switch to the newly generated IV only at this point, need to keep the old IV
+                     * around since getIV() might be called up to this point
                      */
-                    newIV = generateInternalIV().clone();
+                    if (generateIV && newIV != null) {
+                        IV = newIV.clone();
+                        newIV = null;
+                    }
+
+                    int ret = CCMCipher.doCCMFinal_Encrypt(ockContext, Key, IV, tagLenInBytes, input,
+                            inputOffset, inputLen, output, outputOffset, authData);
+                    authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
+
+                    if (generateIV) {
+                        /*
+                         * Generate the next internal AES-CCM initialization vector
+                         */
+                        newIV = generateInternalIV().clone();
+                    }
+                    return ret;
+
+                } else { // else decrypting
+
+                    if ((input == null) || (input.length == 0)) // If this doFinal( ) carries no data to be encrypted
+                    {
+                        return 0;
+                    }
+
+                    if (inputLen < tagLenInBytes) {
+                        throw new AEADBadTagException("Input too short - need tag");
+                    }
+
+                    if ((output == null)
+                            || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
+                        throw new ShortBufferException("Output buffer too small");
+                    }
+
+                    int ret = CCMCipher.doCCMFinal_Decrypt(ockContext, Key, IV, tagLenInBytes, input,
+                            inputOffset, inputLen, output, outputOffset, authData);
+                    authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
+                    return ret;
                 }
-                return ret;
-
-            } else { // else decrypting
-
-                if ((input == null) || (input.length == 0)) // If this doFinal( ) carries no data to be encrypted
-                {
-                    return 0;
-                }
-
-                if (inputLen < tagLenInBytes) {
-                    throw new AEADBadTagException("Input too short - need tag");
-                }
-
-                if ((output == null)
-                        || ((output.length - outputOffset) < (inputLen - tagLenInBytes))) {
-                    throw new ShortBufferException("Output buffer too small");
-                }
-
-                int ret = CCMCipher.doCCMFinal_Decrypt(ockContext, Key, IV, tagLenInBytes, input,
-                        inputOffset, inputLen, output, outputOffset, authData);
-                authData = null; // Before returning from doFinal(), restore AAD to uninitialized state
-                return ret;
             }
         } catch (AEADBadTagException e) {
             AEADBadTagException abte = new AEADBadTagException(e.getMessage());
-            provider.setOCKExceptionCause(abte, e);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(abte, e);
+            } else {
+                provider.setOCKExceptionCause(abte, e);
+            }
             requireReinit = true;
             throw abte;
         } catch (BadPaddingException ock_bpe) {
             BadPaddingException bpe = new BadPaddingException(ock_bpe.getMessage());
-            provider.setOCKExceptionCause(bpe, ock_bpe);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(bpe, ock_bpe);
+            } else {
+                provider.setOCKExceptionCause(bpe, ock_bpe);
+            }
             requireReinit = true;
             throw bpe;
         } catch (IllegalBlockSizeException ock_ibse) {
             IllegalBlockSizeException ibse = new IllegalBlockSizeException(ock_ibse.getMessage());
-            provider.setOCKExceptionCause(ibse, ock_ibse);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(ibse, ock_ibse);
+            } else {
+                provider.setOCKExceptionCause(ibse, ock_ibse);
+            }
             requireReinit = true;
             throw ibse;
         } catch (ShortBufferException ock_sbe) {
             ShortBufferException sbe = new ShortBufferException(ock_sbe.getMessage());
-            provider.setOCKExceptionCause(sbe, ock_sbe);
+            if (useOpenSSL) {
+                provider.setOpenSSLExceptionCause(sbe, ock_sbe);
+            } else {
+                provider.setOCKExceptionCause(sbe, ock_sbe);
+            }
             throw sbe;
         } catch (com.ibm.crypto.plus.provider.ock.OCKException ock_excp) {
             requireReinit = true;
@@ -421,8 +493,8 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
         } else {
             encrypting = true;
             generateIV = true; // Automatically generate an IV if "encrypt mode" or "wrap mode"
-                               // because no CCMParameterSpec object or CCMParameters object was
-                               // specified on this engineInit().
+            // because no CCMParameterSpec object or CCMParameters object was
+            // specified on this engineInit().
         }
 
         if (key == null) {
@@ -458,22 +530,22 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
     //     byte[] src - the initialization vector (IV)
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
 
         if ((opmode == Cipher.DECRYPT_MODE) || (opmode == Cipher.UNWRAP_MODE)) {
             encrypting = false;
         } else {
             encrypting = true;
             generateIV = false; // Do not generate an IV automatically, because
-                                // an IV (aka nonce) should have been speficied within
-                                // the CCMParameterSpec argument.
+            // an IV (aka nonce) should have been speficied within
+            // the CCMParameterSpec argument.
         }
 
         if (key == null) {
             throw new InvalidKeyException("No key given");
         }
         if (params != null) { // if we have a ParameterSpec, check to see if it
-                              // is CCMParameterSpec
+            // is CCMParameterSpec
             if (params instanceof CCMParameterSpec) {
                 byte[] ivTemp = ((CCMParameterSpec) params).getIV();
                 if (ivTemp.length == 0) {
@@ -550,8 +622,8 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
         } else {
             encrypting = true;
             generateIV = false; // Do not generate an IV automatically, because
-                                // an IV (aka nonce) should have been specified within
-                                // the CCMParameters argument.
+            // an IV (aka nonce) should have been specified within
+            // the CCMParameters argument.
         }
 
         if (key == null) {
@@ -603,7 +675,35 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
         }
 
         try {
+            // Try to use OpenSSL if available
+            OpenSSLContext opensslContext = provider.getOpenSSLContext();
+            useOpenSSL = (opensslContext != null);
+
             boolean isEncrypt = (opmode == Cipher.ENCRYPT_MODE) || (opmode == Cipher.WRAP_MODE);
+
+            if (useOpenSSL) {
+                try {
+                    if ((opensslCCMCipher == null) || (opensslKeyLength != rawKey.length)) {
+                        opensslCCMCipher = OpenSSLCCMCipher.getInstance(opensslContext, rawKey.length);
+                        opensslKeyLength = rawKey.length;
+                    }
+
+                    // Initialize cipher
+                    opensslCCMCipher.init(isEncrypt, rawKey, iv, tagLenInBytes);
+                } catch (OpenSSLException e) {
+                    // Fall back to OCK if OpenSSL fails
+                    useOpenSSL = false;
+                    if (opensslCCMCipher != null) {
+                        try {
+                            opensslCCMCipher.close();
+                        } catch (Exception ex) {
+                            // Ignore cleanup errors
+                        }
+                        opensslCCMCipher = null;
+                    }
+                }
+            }
+
             this.newIV = null;
             this.Key = rawKey.clone();
             this.IV = iv.clone();
@@ -738,6 +838,14 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
         //final String methodName = "finalize";
         // OCKDebug.Msg (debPrefix, methodName, "finalize called");
         try {
+            if (opensslCCMCipher != null) {
+                try {
+                    opensslCCMCipher.close();
+                } catch (Exception e) {
+                    // Ignore cleanup errors
+                }
+                opensslCCMCipher = null;
+            }
             if (ockContext != null) {
                 CCMCipher.doCCM_cleanup(ockContext);
             }
@@ -779,7 +887,7 @@ public final class AESCCMCipher extends CipherSpi implements AESConstants, CCMCo
 
 
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         throw new ProviderException(
                 "engineUpdate is not supported for AESCCM.  Only engineDoFinal is supported.");
     }
