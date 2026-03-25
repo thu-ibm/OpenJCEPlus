@@ -213,7 +213,7 @@ public abstract class OpenSSLKeyWrapCipher extends CipherSpi {
 
         try {
             byte[] result;
-            long fipsFlag = context.isFIPS() ? 1L : 0L;
+            int fipsFlag = context.isFIPS() ? 1 : 0;
 
             if (opmode == Cipher.WRAP_MODE || opmode == Cipher.ENCRYPT_MODE) {
                 result = OpenSSLNativeInterface.KEYWRAP_wrap(
@@ -332,7 +332,7 @@ public abstract class OpenSSLKeyWrapCipher extends CipherSpi {
             throw new IllegalArgumentException("kek is null or empty");
         }
 
-        long fipsFlag = context.isFIPS() ? 1L : 0L;
+        int fipsFlag = context.isFIPS() ? 1 : 0;
         return OpenSSLNativeInterface.KEYWRAP_wrap(fipsFlag, plaintext, kek, padding);
     }
 
@@ -352,7 +352,7 @@ public abstract class OpenSSLKeyWrapCipher extends CipherSpi {
             throw new IllegalArgumentException("kek is null or empty");
         }
 
-        long fipsFlag = context.isFIPS() ? 1L : 0L;
+        int fipsFlag = context.isFIPS() ? 1 : 0;
         return OpenSSLNativeInterface.KEYWRAP_unwrap(fipsFlag, ciphertext, kek, padding);
     }
 

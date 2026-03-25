@@ -381,6 +381,9 @@ public class BaseTestAES extends BaseTestCipher {
             assertTrue(true);
         } catch (IllegalBlockSizeException e) {
             assertTrue(true);
+        } catch (java.security.ProviderException e) {
+            // OpenSSL may throw ProviderException for bad padding
+            assertTrue(true);
         }
     }
 
@@ -722,12 +725,12 @@ public class BaseTestAES extends BaseTestCipher {
     }
 
     protected void encryptDecrypt(String algorithm, boolean requireLengthMultipleBlockSize,
-            boolean testFinalizeOnly) throws Exception {
+                                  boolean testFinalizeOnly) throws Exception {
         encryptDecrypt(algorithm, requireLengthMultipleBlockSize, null, testFinalizeOnly);
     }
 
     protected void encryptDecrypt(String algorithm, boolean requireLengthMultipleBlockSize,
-            AlgorithmParameters algParams, boolean testFinalizeOnly) throws Exception {
+                                  AlgorithmParameters algParams, boolean testFinalizeOnly) throws Exception {
         Cipher cp = Cipher.getInstance(algorithm, getProviderName());
         encryptDecrypt(algorithm, requireLengthMultipleBlockSize, algParams, plainText14,
                 testFinalizeOnly, cp);
@@ -755,7 +758,7 @@ public class BaseTestAES extends BaseTestCipher {
     }
 
     protected void encryptDecrypt(String algorithm, boolean requireLengthMultipleBlockSize,
-            AlgorithmParameters algParams, byte[] message, boolean testFinalizeOnly, Cipher cp)
+                                  AlgorithmParameters algParams, byte[] message, boolean testFinalizeOnly, Cipher cp)
             throws Exception {
         if (testFinalizeOnly) {
             encryptDecryptDoFinal(algorithm, requireLengthMultipleBlockSize, algParams, message, cp);
@@ -781,7 +784,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test using just doFinal calls
     //
     protected void encryptDecryptDoFinal(String algorithm, boolean requireLengthMultipleBlockSize,
-            AlgorithmParameters algParams, byte[] message, Cipher cp) throws Exception
+                                         AlgorithmParameters algParams, byte[] message, Cipher cp) throws Exception
 
     {
         if (algParams == null) {
@@ -823,7 +826,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test using just update, empty doFinal calls
     //
     protected void encryptDecryptUpdate(String algorithm, boolean requireLengthMultipleBlockSize,
-            AlgorithmParameters algParams, byte[] message, Cipher cp) throws Exception {
+                                        AlgorithmParameters algParams, byte[] message, Cipher cp) throws Exception {
         if (algParams == null) {
             cp.init(Cipher.ENCRYPT_MODE, key);
         } else {
@@ -867,7 +870,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test with partial update
     //
     protected void encryptDecryptPartialUpdate(String algorithm,
-            boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
+                                               boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
             throws Exception {
         if (algParams == null) {
             cp.init(Cipher.ENCRYPT_MODE, key);
@@ -913,7 +916,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test reusing cipher object
     //
     protected void encryptDecryptReuseObject(String algorithm,
-            boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
+                                             boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
             throws Exception
 
     {
@@ -959,7 +962,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test using just doFinal calls (copy-safe)
     //
     protected void encryptDecryptDoFinalCopySafe(String algorithm,
-            boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
+                                                 boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
             throws Exception
 
     {
@@ -1006,7 +1009,7 @@ public class BaseTestAES extends BaseTestCipher {
     // Run encrypt/decrypt test using just update, empty doFinal calls (copy-safe)
     //
     protected void encryptDecryptUpdateCopySafe(String algorithm,
-            boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
+                                                boolean requireLengthMultipleBlockSize, AlgorithmParameters algParams, byte[] message, Cipher cp)
             throws Exception
 
     {
@@ -1086,7 +1089,7 @@ public class BaseTestAES extends BaseTestCipher {
     }
 
     private void setDataUpdateForAES_CBC_PKCS5Padding(ByteBuffer buffer, byte[] data, int pos,
-            int len) {
+                                                      int len) {
         buffer.position(pos);
         buffer.put(data, 0, len);
 

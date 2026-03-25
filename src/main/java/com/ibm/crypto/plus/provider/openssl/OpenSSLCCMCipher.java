@@ -50,7 +50,7 @@ public final class OpenSSLCCMCipher implements AutoCloseable {
         // Create the cipher - context will be lazily initialized in native code
         synchronized (this) {
             this.cipherId = OpenSSLNativeInterface.CIPHER_create(
-                    isFIPS ? 1L : 0L,  // Pass FIPS flag instead of context ID
+                    isFIPS ? 1 : 0,  // Pass FIPS flag instead of context ID
                     algorithm
             );
 
@@ -110,7 +110,7 @@ public final class OpenSSLCCMCipher implements AutoCloseable {
         }
 
         OpenSSLNativeInterface.CCM_init(
-                isFIPS ? 1L : 0L,  // Pass FIPS flag
+                isFIPS ? 1 : 0,  // Pass FIPS flag
                 cipherId,
                 encrypt ? 1 : 0,
                 key,
@@ -145,7 +145,7 @@ public final class OpenSSLCCMCipher implements AutoCloseable {
         int aadLen = (aad != null) ? aad.length : 0;
 
         return OpenSSLNativeInterface.CCM_update(
-                isFIPS ? 1L : 0L,  // Pass FIPS flag
+                isFIPS ? 1 : 0,  // Pass FIPS flag
                 cipherId,
                 encrypt ? 1 : 0,
                 input,
@@ -183,7 +183,7 @@ public final class OpenSSLCCMCipher implements AutoCloseable {
         }
 
         int aadLen = (aad != null) ? aad.length : 0;
-        long fipsFlag = isFIPS ? 1L : 0L;
+        int fipsFlag = isFIPS ? 1 : 0;
         int result;
 
         if (encrypt) {
@@ -260,7 +260,7 @@ public final class OpenSSLCCMCipher implements AutoCloseable {
         if (cipherId != 0 && cipherId != -1) {
             try {
                 OpenSSLNativeInterface.CIPHER_delete(
-                        isFIPS ? 1L : 0L,  // Pass FIPS flag
+                        isFIPS ? 1 : 0,  // Pass FIPS flag
                         cipherId
                 );
             } catch (Exception e) {

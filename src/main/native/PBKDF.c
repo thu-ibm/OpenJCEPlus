@@ -25,16 +25,16 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PBKDF2_1derive(
-    JNIEnv *env, jclass thisObj, jlong contextId, jstring hashAlgorithm,
+    JNIEnv* env, jclass thisObj, jlong contextId, jstring hashAlgorithm,
     jbyteArray password, jbyteArray salt, jint iterations, jint keyLength) {
-    static const char *functionName       = "NativeInterface.PBKDF2_derive";
-    ICC_CTX           *ockCtx             = (ICC_CTX *)((intptr_t)contextId);
-    const char        *hashAlgorithmChars = NULL;
-    unsigned char     *saltNative         = NULL;
-    const char        *passwordNative     = NULL;
-    const ICC_EVP_MD  *messageDigest      = NULL;
-    jbyteArray         resultDerivedKey   = NULL;
-    unsigned char     *resultDerivedKeyNative = NULL;
+    static const char* functionName           = "NativeInterface.PBKDF2_derive";
+    ICC_CTX*           ockCtx                 = (ICC_CTX*)((intptr_t)contextId);
+    const char*        hashAlgorithmChars     = NULL;
+    unsigned char*     saltNative             = NULL;
+    const char*        passwordNative         = NULL;
+    const ICC_EVP_MD*  messageDigest          = NULL;
+    jbyteArray         resultDerivedKey       = NULL;
+    unsigned char*     resultDerivedKeyNative = NULL;
     jboolean           isCopy                 = 0;
     int                saltLength             = 0;
     int                passwordLength         = 0;
@@ -112,9 +112,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PBKDF2_1derive(
     }
 
     // Get pointer to result we just allocated.
-    resultDerivedKeyNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-            env, resultDerivedKey, &isCopy));
+    resultDerivedKeyNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+        env, resultDerivedKey, &isCopy));
     if (NULL == resultDerivedKeyNative) {
 #ifdef DEBUG_PBKDF_DETAIL
         if (debug) {
@@ -149,7 +148,7 @@ cleanup:
     }
     if (NULL != passwordNative) {
         (*env)->ReleasePrimitiveArrayCritical(env, password,
-                                              (void *)passwordNative, 0);
+                                              (void*)passwordNative, 0);
         passwordNative = NULL;
     }
     if (NULL != saltNative) {

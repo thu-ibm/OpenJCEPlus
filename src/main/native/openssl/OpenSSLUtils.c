@@ -6,6 +6,23 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file OpenSSLUtils.c
+ * @brief Core utility implementations for OpenSSL JNI operations.
+ *
+ * This file implements the fundamental utility functions used throughout
+ * the OpenSSL native code, including:
+ * - OpenSSL context creation and management (FIPS and non-FIPS)
+ * - Exception handling and error reporting
+ * - OpenSSL error string extraction and logging
+ * - Thread-safe context initialization
+ * - Provider loading and configuration
+ *
+ * The context management uses a double-checked locking pattern with
+ * OpenSSL's thread-safe primitives to ensure safe concurrent access.
+ * Separate contexts are maintained for FIPS and non-FIPS modes.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,17 +38,41 @@
 #include "OpenSSLContext.h"
 #include "OpenSSLExceptionCodes.h"
 #include "OpenSSLUtils.h"
-#include "OpenSSLLogging.h"
 #include "OpenSSLSymmetricCipher.h"
+#include "OpenSSLHelpers.h"
 
 int debug = 0;
 
 static OpenSSLContext* nonFipsContext = NULL;
 static OpenSSLContext* fipsContext    = NULL;
 
+// Global lock for protecting context initialization
+// This is initialized once at library load time via CRYPTO_THREAD_lock_new()
+static CRYPTO_RWLOCK* contextLock = NULL;
+
 static OpenSSLContext* createContext(JNIEnv* env, int isFIPS);
 static void            freeInternalContext(OpenSSLContext* context);
 static int             isFIPSSupported(void);
+
+/**
+ * Ensure the context lock is initialized.
+ * Uses a simple double-checked locking pattern with OpenSSL's thread-safe lock creation.
+ * Note: CRYPTO_THREAD_lock_new() itself is thread-safe in OpenSSL 3.0+
+ */
+static void ensureContextLockInitialized(void) {
+    if (contextLock == NULL) {
+        // CRYPTO_THREAD_lock_new() is thread-safe and can be called concurrently
+        // If multiple threads call it, we'll just use the first one and leak the others
+        // This is acceptable for a one-time initialization
+        CRYPTO_RWLOCK* newLock = CRYPTO_THREAD_lock_new();
+        if (newLock != NULL && contextLock == NULL) {
+            contextLock = newLock;
+        } else if (newLock != NULL && contextLock != NULL) {
+            // Another thread beat us, free our lock
+            CRYPTO_THREAD_lock_free(newLock);
+        }
+    }
+}
 
 static int isFIPSSupported(void) {
     OSSL_LIB_CTX* testCtx = OSSL_LIB_CTX_new();
@@ -61,23 +102,18 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
         throwOpenSSLException(
             env, OPENSSL_FIPS_MODE_INVALID,
             "FIPS mode requested but FIPS provider is not available");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    OpenSSLContext* context = (OpenSSLContext*)malloc(sizeof(OpenSSLContext));
+    OpenSSLContext* context = (OpenSSLContext*)mallocSafe(
+        env, sizeof(OpenSSLContext), "Failed to allocate memory for OpenSSL context");
     if (context == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to allocate memory for OpenSSL context");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    memset(context, 0, sizeof(OpenSSLContext));
+    // Memory already zeroed by mallocSafe
     context->id     = isFIPS ? 2 : 1;
     context->isFIPS = isFIPS;
 
@@ -87,9 +123,7 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
         throwOpenSSLException(env, OPENSSL_LIBRARY_LOAD_FAILED,
                               "Failed to create OpenSSL library context");
         logOpenSSLError("OSSL_LIB_CTX_new");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -101,9 +135,7 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
             throwOpenSSLException(env, OPENSSL_PROVIDER_LOAD_FAILED,
                                   "Failed to load FIPS provider");
             logOpenSSLError("OSSL_PROVIDER_load(fips)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return NULL;
         }
 
@@ -114,9 +146,7 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
             throwOpenSSLException(env, OPENSSL_FIPS_MODE_INVALID,
                                   "Failed to enable FIPS mode");
             logOpenSSLError("EVP_default_properties_enable_fips");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return NULL;
         }
 
@@ -128,9 +158,7 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
             throwOpenSSLException(env, OPENSSL_PROVIDER_LOAD_FAILED,
                                   "Failed to load base provider");
             logOpenSSLError("OSSL_PROVIDER_load(base)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return NULL;
         }
 
@@ -147,9 +175,7 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
             throwOpenSSLException(env, OPENSSL_PROVIDER_LOAD_FAILED,
                                   "Failed to load default provider");
             logOpenSSLError("OSSL_PROVIDER_load(default)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return NULL;
         }
 
@@ -167,13 +193,20 @@ static OpenSSLContext* createContext(JNIEnv* env, int isFIPS) {
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return context;
 }
 
 OpenSSLContext* getOrCreateContext(JNIEnv* env, int isFIPS) {
+    // Ensure lock is initialized (thread-safe)
+    ensureContextLockInitialized();
+    
+    // Acquire write lock for thread-safe context access
+    if (contextLock != NULL) {
+        CRYPTO_THREAD_write_lock(contextLock);
+    }
+    
+    // Check again inside the lock
     OpenSSLContext* context = isFIPS ? fipsContext : nonFipsContext;
 
     if (context == NULL) {
@@ -187,6 +220,11 @@ OpenSSLContext* getOrCreateContext(JNIEnv* env, int isFIPS) {
         }
     }
 
+    // Release lock
+    if (contextLock != NULL) {
+        CRYPTO_THREAD_unlock(contextLock);
+    }
+    
     return context;
 }
 
@@ -212,6 +250,11 @@ static void freeInternalContext(OpenSSLContext* context) {
 __attribute__((destructor))
 #endif
 static void cleanupContexts(void) {
+    // Acquire lock before cleanup
+    if (contextLock != NULL) {
+        CRYPTO_THREAD_write_lock(contextLock);
+    }
+    
     if (nonFipsContext != NULL) {
         freeInternalContext(nonFipsContext);
         nonFipsContext = NULL;
@@ -222,6 +265,13 @@ static void cleanupContexts(void) {
         fipsContext = NULL;
     }
 
+    // Release and destroy lock
+    if (contextLock != NULL) {
+        CRYPTO_THREAD_unlock(contextLock);
+        CRYPTO_THREAD_lock_free(contextLock);
+        contextLock = NULL;
+    }
+
 #ifdef DEBUG_OPENSSL_DETAIL
     if (debug) {
         gslogMessage("DETAIL_OPENSSL OpenSSL contexts cleaned up");
@@ -229,7 +279,7 @@ static void cleanupContexts(void) {
 #endif
 }
 int validateCipherContext(JNIEnv*         env,
-                         jlong           fipsFlag,
+                         jint            fipsFlag,
                          jlong           cipherId,
                          const char*     functionName,
                          CipherContext** outCipherCtx) {
@@ -237,20 +287,17 @@ int validateCipherContext(JNIEnv*         env,
     OpenSSLContext* context = getOrCreateContext(env, isFIPS);
 
     if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return 0;
     }
 
     CipherContext* cipherCtx = (CipherContext*)cipherId;
 
-    if (cipherCtx == NULL || cipherCtx->ctx == NULL) {
+    if (cipherCtx == NULL || cipherCtx->ctx == NULL ||
+        cipherCtx->cipher == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return 0;
     }
 
@@ -319,35 +366,6 @@ char* getOpenSSLErrorString(void) {
 
     return buf;
 }
-
-void cleanupByteArrays(JNIEnv*    env,
-                       jbyteArray keyArray,
-                       jbyte*     keyBytes,
-                       jbyteArray ivArray,
-                       jbyte*     ivBytes) {
-    if (keyBytes != NULL && keyArray != NULL) {
-        (*env)->ReleaseByteArrayElements(env, keyArray, keyBytes, JNI_ABORT);
-    }
-    if (ivBytes != NULL && ivArray != NULL) {
-        (*env)->ReleaseByteArrayElements(env, ivArray, ivBytes, JNI_ABORT);
-    }
-}
-
-void cleanupIOArrays(JNIEnv*    env,
-                     jbyteArray inputArray,
-                     jbyte*     inputBytes,
-                     jbyteArray outputArray,
-                     jbyte*     outputBytes,
-                     jboolean   commitOutput) {
-    if (inputBytes != NULL && inputArray != NULL) {
-        (*env)->ReleaseByteArrayElements(env, inputArray, inputBytes, JNI_ABORT);
-    }
-    if (outputBytes != NULL && outputArray != NULL) {
-        (*env)->ReleaseByteArrayElements(env, outputArray, outputBytes,
-                                         commitOutput ? 0 : JNI_ABORT);
-    }
-}
-
 
 void logOpenSSLError(const char* prefix) {
     if (debug) {

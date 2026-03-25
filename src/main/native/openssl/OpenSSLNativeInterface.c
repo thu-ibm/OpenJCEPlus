@@ -6,6 +6,23 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file OpenSSLNativeInterface.c
+ * @brief Main implementation of OpenSSL JNI context management.
+ *
+ * This file implements the core context management functionality for the
+ * OpenSSL JNI bridge, including:
+ * - Library initialization and cleanup
+ * - FIPS and non-FIPS context creation
+ * - Provider loading (FIPS, base, default)
+ * - Context lifecycle management
+ * - Debug logging initialization
+ * - JNI_OnLoad for library initialization
+ *
+ * The implementation maintains a context map to track active OpenSSL
+ * contexts and ensures proper resource cleanup on library unload.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +40,7 @@
 #include "OpenSSLContext.h"
 #include "OpenSSLExceptionCodes.h"
 #include "OpenSSLUtils.h"
-#include "OpenSSLLogging.h"
+#include "OpenSSLHelpers.h"
 
 // Next context ID
 static jlong nextContextId = 1;
@@ -113,11 +130,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 
 // JNI method implementations
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    initializeOpenSSL
- * Signature: (Z)J
- */
+//============================================================================
+// initializeOpenSSL - Initialize OpenSSL context with FIPS or non-FIPS mode
+//============================================================================
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenSSL(
     JNIEnv* env, jclass cls, jboolean isFIPS) {
@@ -127,19 +142,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenS
     // Initialize debug flag
     initializeDebug();
 
-    // Create a new OpenSSL context
-    OpenSSLContext* context = (OpenSSLContext*)malloc(sizeof(OpenSSLContext));
+    // Create a new OpenSSL context (already zeroed by mallocSafe)
+    OpenSSLContext* context = (OpenSSLContext*)mallocSafe(
+        env, sizeof(OpenSSLContext), "Failed to allocate memory for OpenSSL context");
     if (context == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to allocate memory for OpenSSL context");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
     // Initialize the context
-    memset(context, 0, sizeof(OpenSSLContext));
     context->id     = nextContextId++;
     context->isFIPS = isFIPS;
 
@@ -155,9 +166,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenS
             throwOpenSSLException(env, OPENSSL_PROVIDER_LOAD_FAILED,
                                   "Failed to load FIPS provider");
             logOpenSSLError("OSSL_PROVIDER_load(fips)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -173,9 +182,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenS
         throwOpenSSLException(env, OPENSSL_PROVIDER_LOAD_FAILED,
                               "Failed to load base provider");
         logOpenSSLError("OSSL_PROVIDER_load(base)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -185,9 +192,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenS
         freeContext(context);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to add OpenSSL context to map");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -200,17 +205,13 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_initializeOpenS
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return contextId;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    cleanupOpenSSL
- * Signature: (J)V
- */
+//============================================================================
+// cleanupOpenSSL - Cleanup OpenSSL context and free resources
+//============================================================================
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_cleanupOpenSSL(
     JNIEnv* env, jclass cls, jlong contextId) {
@@ -229,16 +230,12 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_cleanupOpenSSL(
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CTX_getValue
- * Signature: (JI)Ljava/lang/String;
- */
+//============================================================================
+// CTX_getValue - Get context value (FIPS mode, version, install path)
+//============================================================================
 JNIEXPORT jstring JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CTX_1getValue(
     JNIEnv* env, jclass cls, jlong contextId, jint valueId) {
@@ -249,9 +246,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CTX_1getValue(
     if (context == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid OpenSSL context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -277,17 +272,13 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CTX_1getValue(
             break;
     }
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return result;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    getByteBufferPointer
- * Signature: (Ljava/nio/ByteBuffer;)J
- */
+//============================================================================
+// getByteBufferPointer - Get native pointer from direct ByteBuffer
+//============================================================================
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getByteBufferPointer(
     JNIEnv* env, jclass cls, jobject buffer) {
@@ -300,8 +291,6 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getByteBufferPo
 
     void* ptr = (*env)->GetDirectBufferAddress(env, buffer);
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return (jlong)ptr;
 }

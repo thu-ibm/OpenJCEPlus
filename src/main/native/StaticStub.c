@@ -26,10 +26,10 @@
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_initializeOCK(
-    JNIEnv *env, jclass thisObj, jboolean isFIPS) {
-    static const char *functionName = "NativeInterface.initializeOCK";
+    JNIEnv* env, jclass thisObj, jboolean isFIPS) {
+    static const char* functionName = "NativeInterface.initializeOCK";
 
-    ICC_CTX   *ockCtx  = NULL;
+    ICC_CTX*   ockCtx  = NULL;
     int        retcode = ICC_OK;
     ICC_STATUS status;
 
@@ -139,10 +139,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_initializeOCK(
  */
 JNIEXPORT jstring JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_CTX_1getValue(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint valueId) {
-    static const char *functionName = "NativeInterface.CTX_getValue";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint valueId) {
+    static const char* functionName = "NativeInterface.CTX_getValue";
 
-    ICC_CTX           *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
+    ICC_CTX*           ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
     ICC_VALUE_IDS_ENUM iccValueId = 0;
     int                rc         = ICC_OSSL_SUCCESS;
     ICC_STATUS         status;
@@ -192,6 +192,6 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_CTX_1getValue(
 
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_getByteBufferPointer(
-    JNIEnv *env, jclass unusedclass, jobject obj) {
+    JNIEnv* env, jclass unusedclass, jobject obj) {
     return (jlong)((intptr_t)(*env)->GetDirectBufferAddress(env, obj));
 }

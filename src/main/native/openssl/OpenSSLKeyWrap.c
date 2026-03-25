@@ -6,6 +6,27 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file OpenSSLKeyWrap.c
+ * @brief Implementation of AES Key Wrap algorithms (RFC 3394 and RFC 5649).
+ *
+ * This file implements AES key wrapping for secure key encryption and
+ * transport. Key wrapping provides both confidentiality and integrity
+ * protection for cryptographic keys.
+ *
+ * Supported modes:
+ * - RFC 3394: AES Key Wrap (requires plaintext to be multiple of 8 bytes)
+ * - RFC 5649: AES Key Wrap with Padding (supports any plaintext length)
+ *
+ * Key wrapping is commonly used in:
+ * - Key management systems
+ * - Secure key storage
+ * - Key transport protocols (TLS, IPsec, etc.)
+ * - Hardware security modules (HSMs)
+ *
+ * The implementation uses OpenSSL's EVP interface with AES-WRAP cipher modes.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +40,7 @@
 #include "OpenSSLContext.h"
 #include "OpenSSLExceptionCodes.h"
 #include "OpenSSLUtils.h"
-#include "OpenSSLLogging.h"
+#include "OpenSSLHelpers.h"
 
 
 static void cleanupWrapResources(JNIEnv*            env,
@@ -82,14 +103,12 @@ static const EVP_CIPHER* getKeyWrapCipher(OSSL_LIB_CTX* libctx, int keyBits,
     return EVP_CIPHER_fetch(libctx, cipherName, NULL);
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    KEYWRAP_wrap
- * Signature: (J[B[BZ)[B
- */
+//============================================================================
+// KEYWRAP_wrap - Wrap (encrypt) key using AES Key Wrap (RFC 3394/5649)
+//============================================================================
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
-    JNIEnv* env, jclass thisObj, jlong fipsFlag, jbyteArray plaintext,
+    JNIEnv* env, jclass thisObj, jint fipsFlag, jbyteArray plaintext,
     jbyteArray kek, jboolean padding) {
     static const char* functionName = "OpenSSLNativeInterface.KEYWRAP_wrap";
 
@@ -109,17 +128,11 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
     int      totalLen     = 0;
     jboolean isCopy       = JNI_FALSE;
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    OpenSSLContext* context = getOrCreateContext(env, (int)fipsFlag);
-    if (context == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get OpenSSL context");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    OpenSSLContext* context = NULL;
+    if (!validateAndGetContext(env, fipsFlag, functionName, &context)) {
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -128,27 +141,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
     plaintextLen = (*env)->GetArrayLength(env, plaintext);
     kekLen       = (*env)->GetArrayLength(env, kek);
 
-    plaintextNative = (unsigned char*)(*env)->GetByteArrayElements(
-        env, plaintext, &isCopy);
+    plaintextNative = (unsigned char*)getByteArrayElementsSafe(
+        env, plaintext, functionName, "plaintext");
     if (plaintextNative == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get plaintext array");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    kekNative =
-        (unsigned char*)(*env)->GetByteArrayElements(env, kek, &isCopy);
+    kekNative = (unsigned char*)getByteArrayElementsSafe(env, kek, functionName, "KEK");
     if (kekNative == NULL) {
-        (*env)->ReleaseByteArrayElements(env, plaintext, (jbyte*)plaintextNative,
-                                         JNI_ABORT);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get KEK array");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupByteArray(env, plaintext, (jbyte*)plaintextNative, JNI_ABORT);
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -159,21 +162,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
                              plaintextNative);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Unsupported key size for key wrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    ctx = EVP_CIPHER_CTX_new();
+    ctx = createCipherCtxSafe(env, functionName, OPENSSL_UNSPECIFIED,
+                              "EVP_CIPHER_CTX_new failed");
     if (ctx == NULL) {
         cleanupWrapResources(env, NULL, cipher, NULL, kek, kekNative, plaintext,
                              plaintextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "EVP_CIPHER_CTX_new failed");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return NULL;
     }
 
@@ -182,22 +179,16 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
                              plaintextNative);
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "EVP_EncryptInit_ex failed for key wrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
     int maxOutputLen = plaintextLen + 16;
-    outputNative     = (unsigned char*)malloc(maxOutputLen);
+    outputNative = (unsigned char*)mallocSafe(env, maxOutputLen, "output buffer");
     if (outputNative == NULL) {
         cleanupWrapResources(env, ctx, cipher, NULL, kek, kekNative, plaintext,
                              plaintextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "malloc failed for output buffer");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -207,9 +198,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
                              plaintext, plaintextNative);
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "EVP_EncryptUpdate failed for key wrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -218,22 +207,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
                              plaintext, plaintextNative);
         throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                               "EVP_EncryptFinal_ex failed for key wrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
     totalLen = outputLen + finalLen;
 
-    outputArray = (*env)->NewByteArray(env, totalLen);
+    outputArray = newByteArraySafe(env, totalLen, functionName);
     if (outputArray == NULL) {
         cleanupWrapResources(env, ctx, cipher, outputNative, kek, kekNative,
                              plaintext, plaintextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED, "NewByteArray failed");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -243,20 +227,16 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap(
     cleanupWrapResources(env, ctx, cipher, outputNative, kek, kekNative,
                          plaintext, plaintextNative);
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return outputArray;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    KEYWRAP_unwrap
- * Signature: (J[B[BZ)[B
- */
+//============================================================================
+// KEYWRAP_unwrap - Unwrap (decrypt) key using AES Key Wrap (RFC 3394/5649)
+//============================================================================
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap(
-    JNIEnv* env, jclass thisObj, jlong fipsFlag, jbyteArray ciphertext,
+    JNIEnv* env, jclass thisObj, jint fipsFlag, jbyteArray ciphertext,
     jbyteArray kek, jboolean padding) {
     static const char* functionName = "OpenSSLNativeInterface.KEYWRAP_unwrap";
 
@@ -276,17 +256,11 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
     int      totalLen      = 0;
     jboolean isCopy        = JNI_FALSE;
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    OpenSSLContext* context = getOrCreateContext(env, (int)fipsFlag);
-    if (context == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get OpenSSL context");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    OpenSSLContext* context = NULL;
+    if (!validateAndGetContext(env, fipsFlag, functionName, &context)) {
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -295,27 +269,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
     ciphertextLen = (*env)->GetArrayLength(env, ciphertext);
     kekLen        = (*env)->GetArrayLength(env, kek);
 
-    ciphertextNative = (unsigned char*)(*env)->GetByteArrayElements(
-        env, ciphertext, &isCopy);
+    ciphertextNative = (unsigned char*)getByteArrayElementsSafe(
+        env, ciphertext, functionName, "ciphertext");
     if (ciphertextNative == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get ciphertext array");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    kekNative =
-        (unsigned char*)(*env)->GetByteArrayElements(env, kek, &isCopy);
+    kekNative = (unsigned char*)getByteArrayElementsSafe(env, kek, functionName, "KEK");
     if (kekNative == NULL) {
-        (*env)->ReleaseByteArrayElements(env, ciphertext, (jbyte*)ciphertextNative,
-                                         JNI_ABORT);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get KEK array");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupByteArray(env, ciphertext, (jbyte*)ciphertextNative, JNI_ABORT);
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -326,21 +290,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
                              ciphertextNative);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Unsupported key size for key unwrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    ctx = EVP_CIPHER_CTX_new();
+    ctx = createCipherCtxSafe(env, functionName, OPENSSL_UNSPECIFIED,
+                              "EVP_CIPHER_CTX_new failed");
     if (ctx == NULL) {
         cleanupWrapResources(env, NULL, cipher, NULL, kek, kekNative, ciphertext,
                              ciphertextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "EVP_CIPHER_CTX_new failed");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return NULL;
     }
 
@@ -349,21 +307,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
                              ciphertextNative);
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "EVP_DecryptInit_ex failed for key unwrap");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
-    outputNative = (unsigned char*)malloc(ciphertextLen);
+    outputNative = (unsigned char*)mallocSafe(env, ciphertextLen, "output buffer");
     if (outputNative == NULL) {
         cleanupWrapResources(env, ctx, cipher, NULL, kek, kekNative, ciphertext,
                              ciphertextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "malloc failed for output buffer");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -374,9 +326,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "EVP_DecryptUpdate failed for key unwrap - "
                               "possibly invalid wrapped key or KEK");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -386,22 +336,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
         throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                               "EVP_DecryptFinal_ex failed for key unwrap - "
                               "integrity check failed");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
     totalLen = outputLen + finalLen;
 
-    outputArray = (*env)->NewByteArray(env, totalLen);
+    outputArray = newByteArraySafe(env, totalLen, functionName);
     if (outputArray == NULL) {
         cleanupWrapResources(env, ctx, cipher, outputNative, kek, kekNative,
                              ciphertext, ciphertextNative);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED, "NewByteArray failed");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return NULL;
     }
 
@@ -411,8 +356,6 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
     cleanupWrapResources(env, ctx, cipher, outputNative, kek, kekNative,
                          ciphertext, ciphertextNative);
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
     return outputArray;
 }

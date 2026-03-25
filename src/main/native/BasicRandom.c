@@ -25,11 +25,11 @@
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1nextBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray bytes) {
-    static const char *functionName = "NativeInterface.RAND_nextbytes";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray bytes) {
+    static const char* functionName = "NativeInterface.RAND_nextbytes";
 
-    ICC_CTX       *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    unsigned char *bytesNative = NULL;
+    ICC_CTX*       ockCtx      = (ICC_CTX*)((intptr_t)ockContextId);
+    unsigned char* bytesNative = NULL;
     jboolean       isCopy;
     jint           size;
     int            rc = ICC_OK;
@@ -70,11 +70,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1nextBytes(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1setSeed(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray seed) {
-    static const char *functionName = "NativeInterface.RAND_setSeed";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray seed) {
+    static const char* functionName = "NativeInterface.RAND_setSeed";
 
-    ICC_CTX       *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
-    unsigned char *seedNative = NULL;
+    ICC_CTX*       ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
+    unsigned char* seedNative = NULL;
     jboolean       isCopy;
     jint           size;
 
@@ -111,11 +111,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1setSeed(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1generateSeed(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray seed) {
-    static const char *functionName = "NativeInterface.RAND_generateSeed";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray seed) {
+    static const char* functionName = "NativeInterface.RAND_generateSeed";
 
-    ICC_CTX       *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
-    unsigned char *seedNative = NULL;
+    ICC_CTX*       ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
+    unsigned char* seedNative = NULL;
     jboolean       isCopy;
     jint           size;
     ICC_STATUS     status;
@@ -135,7 +135,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RAND_1generateSeed(
         if (debug) {
             gslogMessage("DETAIL_RAND size=%d", (int)size);
             gslogMessagePrefix("DETAIL_RAND size =%d", (int)size);
-            gslogMessageHex((char *)seedNative, 0, (int)size, 0, 0, NULL);
+            gslogMessageHex((char*)seedNative, 0, (int)size, 0, 0, NULL);
         }
 #endif
     }

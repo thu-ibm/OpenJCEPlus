@@ -30,7 +30,7 @@ void com_ibm_crypto_plus_provider_initialize(void) {
 #if DEBUG
         /*if( getenv("JICC.debug") != NULL ) {*/
         debug = 1;  // FIXME;
-        /*}*/
+                    /*}*/
 #endif
         initialized = 1;
     }
@@ -39,14 +39,14 @@ void com_ibm_crypto_plus_provider_initialize(void) {
 //============================================================================
 //
 //
-int gslogFunctionEntry(const char *functionName) {
+int gslogFunctionEntry(const char* functionName) {
     return gslogMessage("Entering %s", functionName);
 }
 
 //============================================================================
 //
 //
-int gslogError(const char *formatString, ...) {
+int gslogError(const char* formatString, ...) {
     int         charsPrinted;
     va_list     formatArgs;
     static char printBuffer[4096];
@@ -64,7 +64,7 @@ int gslogError(const char *formatString, ...) {
 //============================================================================
 //
 //
-int gslogMessage(const char *formatString, ...) {
+int gslogMessage(const char* formatString, ...) {
     int         charsPrinted;
     va_list     formatArgs;
     static char printBuffer[4096];
@@ -82,7 +82,7 @@ int gslogMessage(const char *formatString, ...) {
 //============================================================================
 //
 //
-int gslogMessagePrefix(const char *formatString, ...) {
+int gslogMessagePrefix(const char* formatString, ...) {
     int         charsPrinted;
     va_list     formatArgs;
     static char printBuffer[4096];
@@ -101,7 +101,7 @@ int gslogMessagePrefix(const char *formatString, ...) {
 //
 //
 int gslogMessageHex(char bytes[], int offset, int length, int spaceAfter,
-                    int newlineAfter, char *newlinePrefix) {
+                    int newlineAfter, char* newlinePrefix) {
     int index;
     int charsPrinted = 0;
 
@@ -126,19 +126,19 @@ int gslogMessageHex(char bytes[], int offset, int length, int spaceAfter,
 //============================================================================
 //
 //
-int gslogFunctionExit(const char *functionName) {
+int gslogFunctionExit(const char* functionName) {
     return gslogMessage("Exiting %s", functionName);
 }
 
 //============================================================================
 //
 //
-void ockCheckStatus(ICC_CTX *ctx) {
+void ockCheckStatus(ICC_CTX* ctx) {
     if (debug) {
         unsigned long errCode;
 
         while ((errCode = ICC_ERR_get_error(ctx)) == 1) {
-            char *err;
+            char* err;
             // gslogMessage("Generating error message");
             err = ICC_ERR_error_string(ctx, errCode, NULL);
             gslogMessage("%s", err);
@@ -149,22 +149,22 @@ void ockCheckStatus(ICC_CTX *ctx) {
 //============================================================================
 //
 //
-void throwOCKException(JNIEnv *env, int code, const char *msg) {
+void throwOCKException(JNIEnv* env, int code, const char* msg) {
 #define EXCEPTION_CLASS "com/ibm/crypto/plus/provider/ock/OCKException"
-    static const char *exceptionClass = EXCEPTION_CLASS;
+    static const char* exceptionClass = EXCEPTION_CLASS;
 #ifdef __MVS__
 #pragma convert("ISO8859-1")
-    static const char *exceptionClass_local = EXCEPTION_CLASS;
+    static const char* exceptionClass_local = EXCEPTION_CLASS;
 #pragma convert(pop)
 #else
-    static const char *exceptionClass_local = EXCEPTION_CLASS;
+    static const char* exceptionClass_local = EXCEPTION_CLASS;
 #endif
 
     jclass    clazz;
     jstring   str = NULL;
     jmethodID mid;
     jobject   obj     = NULL;
-    char     *msgCopy = NULL;
+    char*     msgCopy = NULL;
 
     /* return immediately if an exception is already pending */
     if ((*env)->ExceptionOccurred(env)) {
@@ -182,9 +182,9 @@ void throwOCKException(JNIEnv *env, int code, const char *msg) {
     }
 
     if (msg) {
-        msgCopy = (char *)malloc(
-            strlen(msg) + 1); /* for some reason strdup just throws segvs when
-                                 used against msg, so brute force. */
+        msgCopy = (char*)malloc(strlen(msg) +
+                                1); /* for some reason strdup just throws segvs
+                                       when used against msg, so brute force. */
         if (msgCopy) {
             strcpy(msgCopy, msg);
 #ifdef __MVS__

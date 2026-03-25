@@ -24,11 +24,11 @@
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__JI(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint numBits) {
-    static const char *functionName = "NativeInterface.DSAKEY_generate(size)";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint numBits) {
+    static const char* functionName = "NativeInterface.DSAKEY_generate(size)";
 
-    ICC_CTX *ockCtx   = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA *ockDSA   = NULL;
+    ICC_CTX* ockCtx   = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA* ockDSA   = NULL;
     jlong    dsaKeyId = 0;
     int      rc       = -1;
 
@@ -110,14 +110,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__JI(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generateParameters(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint numBits) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint numBits) {
+    static const char* functionName =
         "NativeInterface.DSAKEY_generateParameters";
 
-    ICC_CTX       *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA          = NULL;
+    ICC_CTX*       ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA          = NULL;
     jbyteArray     parmBytes       = NULL;
-    unsigned char *parmBytesNative = NULL;
+    unsigned char* parmBytesNative = NULL;
     jboolean       isCopy          = 0;
     jbyteArray     retParmBytes    = NULL;
     int            size            = -1;
@@ -176,7 +176,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generateParameters
                 throwOCKException(env, 0, "NewByteArray failed");
             } else {
                 parmBytesNative =
-                    (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                    (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                         env, parmBytes, &isCopy));
                 if (parmBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
@@ -189,7 +189,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generateParameters
                     throwOCKException(env, 0,
                                       "NULL from GetPrimitiveArrayCritical");
                 } else {
-                    unsigned char *pBytes = (unsigned char *)parmBytesNative;
+                    unsigned char* pBytes = (unsigned char*)parmBytesNative;
 
                     size = ICC_i2d_DSAparams(ockCtx, ockDSA, &pBytes);
 #ifdef DEBUG_DSA_DETAIL
@@ -212,8 +212,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generateParameters
 #ifdef DEBUG_DSA_DATA
                         if (debug) {
                             gslogMessagePrefix("DATA_DSA Parameter Bytes : ");
-                            gslogMessageHex((char *)pBytes, 0, size, 0, 0,
-                                            NULL);
+                            gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
                         }
 #endif
                     }
@@ -251,17 +250,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generateParameters
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__J_3B(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray parmBytes) {
-    static const char *functionName = "NativeInterface.DSAKEY_generate(parms)";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray parmBytes) {
+    static const char* functionName = "NativeInterface.DSAKEY_generate(parms)";
 
-    ICC_CTX             *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    unsigned char       *parmBytesNative = NULL;
+    ICC_CTX*             ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    unsigned char*       parmBytesNative = NULL;
     jboolean             isCopy          = 0;
-    ICC_DSA             *ockDSA          = NULL;
+    ICC_DSA*             ockDSA          = NULL;
     jlong                dsaKeyId        = 0;
     int                  rc              = 0;
     jint                 size            = 0;
-    const unsigned char *pBytes          = NULL;
+    const unsigned char* pBytes          = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -276,7 +275,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__J_3B(
         }
         return dsaKeyId;
     }
-    parmBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    parmBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, parmBytes, &isCopy));
     if (parmBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
@@ -289,12 +288,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__J_3B(
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
         size   = (*env)->GetArrayLength(env, parmBytes);
-        pBytes = (const unsigned char *)parmBytesNative;
+        pBytes = (const unsigned char*)parmBytesNative;
 #ifdef DEBUG_DSA_DATA
         if (debug) {
             gslogMessage("DATA_DSA Parameter Bytes size %d=", (int)size);
             gslogMessagePrefix("DATA_DSA Parameter Bytes : ");
-            gslogMessageHex((char *)parmBytesNative, 0, (int)size, 0, 0, NULL);
+            gslogMessageHex((char*)parmBytesNative, 0, (int)size, 0, 0, NULL);
         }
 #endif
 
@@ -364,13 +363,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1generate__J_3B(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPrivateKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId,
     jbyteArray privateKeyBytes) {
-    static const char *functionName = "NativeInterface.DSAKEY_createPrivateKey";
+    static const char* functionName = "NativeInterface.DSAKEY_createPrivateKey";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA         = NULL;
-    unsigned char *keyBytesNative = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA         = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     jlong          dsaKeyId       = 0;
 
@@ -385,7 +384,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPrivateKey(
         }
         return dsaKeyId;
     }
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, privateKeyBytes, &isCopy));
     if (keyBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
@@ -395,13 +394,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPrivateKey(
 #endif
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
-        const unsigned char *pBytes = (const unsigned char *)keyBytesNative;
+        const unsigned char* pBytes = (const unsigned char*)keyBytesNative;
         jint size = (*env)->GetArrayLength(env, privateKeyBytes);
 #ifdef DEBUG_DSA_DATA
         if (debug) {
             gslogMessage("DATA_DSA privateKeyBytes size=%d", (int)size);
             gslogMessagePrefix("DATA_DSA PrivateKeyBytes : ");
-            gslogMessageHex((char *)pBytes, 0, (int)size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, (int)size, 0, 0, NULL);
         }
 #endif
 
@@ -444,13 +443,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPrivateKey(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPublicKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId,
     jbyteArray publicKeyBytes) {
-    static const char *functionName = "NativeInterface.DSAKEY_createPublicKey";
+    static const char* functionName = "NativeInterface.DSAKEY_createPublicKey";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA         = NULL;
-    unsigned char *keyBytesNative = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA         = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     jlong          dsaKeyId       = 0;
 
@@ -466,7 +465,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPublicKey(
         }
         return dsaKeyId;
     }
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, publicKeyBytes, &isCopy));
     if (keyBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
@@ -476,13 +475,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPublicKey(
 #endif
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
-        const unsigned char *pBytes = (const unsigned char *)keyBytesNative;
+        const unsigned char* pBytes = (const unsigned char*)keyBytesNative;
         jint                 size = (*env)->GetArrayLength(env, publicKeyBytes);
 #ifdef DEBUG_DSA_DATA
         if (debug) {
             gslogMessage("DATA_DSA publicKeyBytes size=%d", (int)size);
             gslogMessagePrefix("DATA_DSA PublicKeyBytes : ");
-            gslogMessageHex((char *)pBytes, 0, (int)size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, (int)size, 0, 0, NULL);
         }
 #endif
 
@@ -525,13 +524,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPublicKey(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getParameters(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
-    static const char *functionName = "NativeInterface.DSAKEY_getParameters";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
+    static const char* functionName = "NativeInterface.DSAKEY_getParameters";
 
-    ICC_CTX       *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA          = (ICC_DSA *)((intptr_t)dsaKeyId);
+    ICC_CTX*       ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA          = (ICC_DSA*)((intptr_t)dsaKeyId);
     jbyteArray     parmBytes       = NULL;
-    unsigned char *parmBytesNative = NULL;
+    unsigned char* parmBytesNative = NULL;
     jboolean       isCopy          = 0;
     int            size            = 0;
     jbyteArray     retParmBytes    = NULL;
@@ -573,7 +572,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getParameters(
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
             parmBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, parmBytes, &isCopy));
             if (parmBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
@@ -584,14 +583,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getParameters(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                unsigned char *pBytes = (unsigned char *)parmBytesNative;
+                unsigned char* pBytes = (unsigned char*)parmBytesNative;
 
                 size = ICC_i2d_DSAparams(ockCtx, ockDSA, &pBytes);
 #ifdef DEBUG_DSA_DATA
                 if (debug) {
                     gslogMessage("DATA_DSA size=%d", (int)size);
                     gslogMessagePrefix("Parameter Bytes : ");
-                    gslogMessageHex((char *)pBytes, 0, (int)size, 0, 0, NULL);
+                    gslogMessageHex((char*)pBytes, 0, (int)size, 0, 0, NULL);
                 }
 #endif
                 if (size <= 0) {
@@ -633,14 +632,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getParameters(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPrivateKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
+    static const char* functionName =
         "NativeInterface.DSAKEY_getPrivateKeyBytes";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA         = (ICC_DSA *)((intptr_t)dsaKeyId);
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA         = (ICC_DSA*)((intptr_t)dsaKeyId);
     jbyteArray     keyBytes       = NULL;
-    unsigned char *keyBytesNative = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            size;
     jbyteArray     retKeyBytes = NULL;
@@ -687,9 +686,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPrivateKeyBytes
 #endif
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
-            keyBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-                    env, keyBytes, &isCopy));
+            keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+                env, keyBytes, &isCopy));
             if (keyBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
                 if (debug) {
@@ -699,7 +697,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPrivateKeyBytes
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                unsigned char *pBytes = (unsigned char *)keyBytesNative;
+                unsigned char* pBytes = (unsigned char*)keyBytesNative;
 
                 size = ICC_i2d_DSAPrivateKey(ockCtx, ockDSA, &pBytes);
 #ifdef DEBUG_DSA_DATA
@@ -707,7 +705,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPrivateKeyBytes
                     gslogMessage("DATA_DSA private key bytes size=%d",
                                  (int)size);
                     gslogMessagePrefix("DSA_DATA PrivateKey Bytes : ");
-                    gslogMessageHex((char *)pBytes, 0, (int)size, 0, 0, NULL);
+                    gslogMessageHex((char*)pBytes, 0, (int)size, 0, 0, NULL);
                 }
 #endif
                 if (size <= 0) {
@@ -749,14 +747,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPrivateKeyBytes
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPublicKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
+    static const char* functionName =
         "NativeInterface.DSAKEY_getPublicKeyBytes";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA         = (ICC_DSA *)((intptr_t)dsaKeyId);
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA         = (ICC_DSA*)((intptr_t)dsaKeyId);
     jbyteArray     keyBytes       = NULL;
-    unsigned char *keyBytesNative = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            size;
     jbyteArray     retKeyBytes = NULL;
@@ -803,9 +801,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPublicKeyBytes(
 #endif
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
-            keyBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-                    env, keyBytes, &isCopy));
+            keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+                env, keyBytes, &isCopy));
             if (keyBytesNative == NULL) {
 #ifdef DEBUG_DSA_DETAIL
                 if (debug) {
@@ -815,7 +812,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPublicKeyBytes(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                unsigned char *pBytes = (unsigned char *)keyBytesNative;
+                unsigned char* pBytes = (unsigned char*)keyBytesNative;
 
                 size = ICC_i2d_DSAPublicKey(ockCtx, ockDSA, &pBytes);
                 if (size <= 0) {
@@ -833,7 +830,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPublicKeyBytes(
                     if (debug) {
                         gslogMessage("size=%d", (int)size);
                         gslogMessagePrefix("Public Key bytes : ");
-                        gslogMessageHex((char *)pBytes, 0, (int)size, 0, 0,
+                        gslogMessageHex((char*)pBytes, 0, (int)size, 0, 0,
                                         NULL);
                     }
 #endif
@@ -865,12 +862,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1getPublicKeyBytes(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
-    static const char *functionName = "NativeInterface.DSAKEY_createPKey";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
+    static const char* functionName = "NativeInterface.DSAKEY_createPKey";
 
-    ICC_CTX      *ockCtx  = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA      *ockDSA  = (ICC_DSA *)((intptr_t)dsaKeyId);
-    ICC_EVP_PKEY *ockPKey = NULL;
+    ICC_CTX*      ockCtx  = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*      ockDSA  = (ICC_DSA*)((intptr_t)dsaKeyId);
+    ICC_EVP_PKEY* ockPKey = NULL;
     jlong         pkeyId  = 0;
 
     if (debug) {
@@ -942,11 +939,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1createPKey(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSAKEY_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
-    static const char *functionName = "NativeInterface.DSAKEY_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong dsaKeyId) {
+    static const char* functionName = "NativeInterface.DSAKEY_delete";
 
-    ICC_CTX *ockCtx = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA *ockDSA = (ICC_DSA *)((intptr_t)dsaKeyId);
+    ICC_CTX* ockCtx = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA* ockDSA = (ICC_DSA*)((intptr_t)dsaKeyId);
 
     if (debug) {
         gslogFunctionEntry(functionName);

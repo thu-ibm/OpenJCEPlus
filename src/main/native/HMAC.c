@@ -27,8 +27,8 @@
 #define JNI_TRUE 1
 
 typedef struct OCKHMAC {
-    ICC_HMAC_CTX     *hmacCtx;
-    const ICC_EVP_MD *md;
+    ICC_HMAC_CTX*     hmacCtx;
+    const ICC_EVP_MD* md;
 } OCKHMAC;
 
 /*
@@ -38,12 +38,12 @@ typedef struct OCKHMAC {
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1create(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring digestAlgo) {
-    static const char *functionName = "NativeInterface.HMAC_create";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring digestAlgo) {
+    static const char* functionName = "NativeInterface.HMAC_create";
 
-    ICC_CTX    *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC    *ockHMAC         = (OCKHMAC *)malloc(sizeof(OCKHMAC));
-    const char *digestAlgoChars = NULL;
+    ICC_CTX*    ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC*    ockHMAC         = (OCKHMAC*)malloc(sizeof(OCKHMAC));
+    const char* digestAlgoChars = NULL;
     jlong       hmacId          = 0;
 
     if (debug) {
@@ -136,10 +136,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1create(
 
 /* init internal function */
 
-int HMAC_init_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
-                       unsigned char *keyNative, int keySize) {
+int HMAC_init_internal(ICC_CTX* ockCtx, OCKHMAC* ockHMAC,
+                       unsigned char* keyNative, int keySize) {
     int                rc           = ICC_OSSL_SUCCESS;
-    static const char *functionName = "NativeInterface.HMAC_init_internal";
+    static const char* functionName = "NativeInterface.HMAC_init_internal";
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -195,13 +195,13 @@ int HMAC_init_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
  * It is called by method HMAC_update and HMAC_doFinal when an object have not
  * been initialized.
  */
-int HMAC_init(JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId,
+int HMAC_init(JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hmacId,
               jbyteArray key, jint keySize) {
-    static const char *functionName = "NativeInterface.HMAC_init";
+    static const char* functionName = "NativeInterface.HMAC_init";
 
-    ICC_CTX       *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC       *ockHMAC   = (OCKHMAC *)((intptr_t)hmacId);
-    unsigned char *keyNative = NULL;
+    ICC_CTX*       ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC*       ockHMAC   = (OCKHMAC*)((intptr_t)hmacId);
+    unsigned char* keyNative = NULL;
     jboolean       isCopy    = 0;
     int            result    = HMAC_INTERNAL_SUCCESS;
 
@@ -228,7 +228,7 @@ int HMAC_init(JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId,
         return FAIL_HMAC_INTERNAL_INIT;
     }
     keyNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
     if (NULL == keyNative) {
 #ifdef DEBUG_HMAC_DETAIL
         if (debug) {
@@ -251,13 +251,13 @@ int HMAC_init(JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId,
 }
 
 /* update internal */
-JNIEXPORT int HMAC_update_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
-                                   unsigned char *keyNative, int keySize,
-                                   unsigned char *inputNative, int inputLen,
+JNIEXPORT int HMAC_update_internal(ICC_CTX* ockCtx, OCKHMAC* ockHMAC,
+                                   unsigned char* keyNative, int keySize,
+                                   unsigned char* inputNative, int inputLen,
                                    bool needInit) {
     int                result       = HMAC_INTERNAL_SUCCESS;
     int                rc           = ICC_OSSL_SUCCESS;
-    static const char *functionName = "NativeInterface.HAMC_update_internal";
+    static const char* functionName = "NativeInterface.HAMC_update_internal";
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -282,7 +282,7 @@ JNIEXPORT int HMAC_update_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
 #ifdef DEBUG_HMAC_DATA
     if (debug) {
         gslogMessagePrefix("DATA_HMAC %d bytes to update : ", (int)inputLen);
-        gslogMessageHex((char *)inputNative, 0, (int)inputLen, 0, 0, NULL);
+        gslogMessageHex((char*)inputNative, 0, (int)inputLen, 0, 0, NULL);
     }
 #endif
 
@@ -328,15 +328,15 @@ JNIEXPORT int HMAC_update_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1update(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hmacId,
     jbyteArray key, jint keyLength, jbyteArray input, jint inputOffset,
     jint inputLen, jboolean needInit) {
-    static const char *functionName = "NativeInterface.HMAC_update";
+    static const char* functionName = "NativeInterface.HMAC_update";
 
-    ICC_CTX       *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC       *ockHMAC     = (OCKHMAC *)((intptr_t)hmacId);
-    unsigned char *inputNative = NULL;
-    unsigned char *keyNative   = NULL;
+    ICC_CTX*       ockCtx      = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC*       ockHMAC     = (OCKHMAC*)((intptr_t)hmacId);
+    unsigned char* inputNative = NULL;
+    unsigned char* keyNative   = NULL;
     jboolean       isCopy      = 0;
     int            result      = HMAC_INTERNAL_SUCCESS;
 
@@ -358,10 +358,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1update(
                      (long)hmacId, (int)inputLen, inputOffset);
     }
 #endif
-    inputNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-        env, input, &isCopy));
+    inputNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, input,
+                                                                     &isCopy));
     keyNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
     if (NULL == inputNative || NULL == keyNative) {
 #ifdef DEBUG_HMAC_DETAIL
         if (debug) {
@@ -392,10 +392,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1update(
     return result;
 }
 
-JNIEXPORT int HMAC_doFinal_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
-                                    unsigned char *keyNative, int keySize,
-                                    unsigned char *hmac, bool needInit) {
-    static const char *functionName = "NativeInterface.HMAC_doFinal_internal";
+JNIEXPORT int HMAC_doFinal_internal(ICC_CTX* ockCtx, OCKHMAC* ockHMAC,
+                                    unsigned char* keyNative, int keySize,
+                                    unsigned char* hmac, bool needInit) {
+    static const char* functionName = "NativeInterface.HMAC_doFinal_internal";
 
     unsigned int hmacLen = 0;
     int          rc      = ICC_OSSL_SUCCESS;
@@ -448,17 +448,17 @@ JNIEXPORT int HMAC_doFinal_internal(ICC_CTX *ockCtx, OCKHMAC *ockHMAC,
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1doFinal(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hmacId,
     jbyteArray key, jint keyLength, jbyteArray hmac, jboolean needInit) {
-    static const char *functionName = "NativeInterface.HMAC_doFinal";
+    static const char* functionName = "NativeInterface.HMAC_doFinal";
 
-    ICC_CTX *ockCtx  = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC *ockHMAC = (OCKHMAC *)((intptr_t)hmacId);
+    ICC_CTX* ockCtx  = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC* ockHMAC = (OCKHMAC*)((intptr_t)hmacId);
 
-    unsigned char *keyNative = NULL;
+    unsigned char* keyNative = NULL;
 
     jboolean       isCopy     = 0;
-    unsigned char *hmacNative = NULL;
+    unsigned char* hmacNative = NULL;
 
     int result = HMAC_INTERNAL_SUCCESS;
 
@@ -475,7 +475,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1doFinal(
         return FAIL_HMAC_INTERNAL_DOFINAL;
     }
     keyNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
     if (NULL == keyNative) {
 #ifdef DEBUG_HMAC_DETAIL
         if (debug) {
@@ -489,8 +489,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1doFinal(
         return FAIL_HMAC_INTERNAL_DOFINAL;
     }
 
-    hmacNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, hmac,
-                                                                     &isCopy));
+    hmacNative =
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, hmac, &isCopy));
     if (hmacNative == NULL) {
 #ifdef DEBUG_HMAC_DETAIL
         if (debug) {
@@ -524,11 +524,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1doFinal(
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1size(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId) {
-    static const char *functionName = "NativeInterface.HMAC_size";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hmacId) {
+    static const char* functionName = "NativeInterface.HMAC_size";
 
-    ICC_CTX *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC *ockHMAC   = (OCKHMAC *)((intptr_t)hmacId);
+    ICC_CTX* ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC* ockHMAC   = (OCKHMAC*)((intptr_t)hmacId);
     int      digestLen = 0;
 
     if (debug) {
@@ -575,11 +575,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1size(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HMAC_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hmacId) {
-    static const char *functionName = "NativeInterface.HMAC_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hmacId) {
+    static const char* functionName = "NativeInterface.HMAC_delete";
 
-    ICC_CTX *ockCtx  = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHMAC *ockHMAC = (OCKHMAC *)((intptr_t)hmacId);
+    ICC_CTX* ockCtx  = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHMAC* ockHMAC = (OCKHMAC*)((intptr_t)hmacId);
 
     if (debug) {
         gslogFunctionEntry(functionName);

@@ -91,7 +91,7 @@ public final class OpenSSLSymmetricCipher {
         this.isFIPS = isFIPS;
         this.padding = padding;
         // Pass FIPS flag (0=non-FIPS, 1=FIPS)
-        long fipsFlag = isFIPS ? 1L : 0L;
+        int fipsFlag = isFIPS ? 1 : 0;
         this.opensslCipherId = OpenSSLNativeInterface.CIPHER_create(fipsFlag, cipherName);
     }
 
@@ -118,7 +118,7 @@ public final class OpenSSLSymmetricCipher {
             throw new OpenSSLException(badIdMsg);
         }
 
-        long fipsFlag = isFIPS ? 1L : 0L;
+        int fipsFlag = isFIPS ? 1 : 0;
         OpenSSLNativeInterface.CIPHER_init(fipsFlag, opensslCipherId, isEncrypt ? 1 : 0,
                 padding.getId(), key, iv);
 
@@ -171,7 +171,7 @@ public final class OpenSSLSymmetricCipher {
         if (blockSize == 0) {
             if (opensslCipherId == 0L)
                 throw new OpenSSLException(badIdMsg);
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             blockSize = OpenSSLNativeInterface.CIPHER_getBlockSize(fipsFlag, opensslCipherId);
         }
         return blockSize;
@@ -182,7 +182,7 @@ public final class OpenSSLSymmetricCipher {
             if (opensslCipherId == 0L) {
                 throw new OpenSSLException(badIdMsg);
             }
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             keyLength = OpenSSLNativeInterface.CIPHER_getKeyLength(fipsFlag, opensslCipherId);
         }
         return keyLength;
@@ -192,7 +192,7 @@ public final class OpenSSLSymmetricCipher {
         if (ivLength == 0) {
             if (opensslCipherId == 0L)
                 throw new OpenSSLException(badIdMsg);
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             ivLength = OpenSSLNativeInterface.CIPHER_getIVLength(fipsFlag, opensslCipherId);
         }
         return ivLength;
@@ -251,7 +251,7 @@ public final class OpenSSLSymmetricCipher {
             if (opensslCipherId == 0L) {
                 throw new OpenSSLException(badIdMsg);
             }
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             if (encrypting) {
                 outLen = OpenSSLNativeInterface.CIPHER_encryptUpdate(fipsFlag, opensslCipherId,
                         input, inputOffset, inputLen, output, outputOffset, needsReinit);
@@ -355,7 +355,7 @@ public final class OpenSSLSymmetricCipher {
             if (opensslCipherId == 0L) {
                 throw new OpenSSLException(badIdMsg);
             }
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             if (encrypting) {
                 outLen = OpenSSLNativeInterface.CIPHER_encryptFinal(fipsFlag, opensslCipherId, input,
                         inputOffset, inputLen, output, outputOffset, needsReinit);
@@ -393,7 +393,7 @@ public final class OpenSSLSymmetricCipher {
     protected synchronized void finalize() throws Throwable {
         try {
             if (opensslCipherId != 0) {
-                long fipsFlag = isFIPS ? 1L : 0L;
+                int fipsFlag = isFIPS ? 1 : 0;
                 OpenSSLNativeInterface.CIPHER_delete(fipsFlag, opensslCipherId);
                 opensslCipherId = 0;
             }

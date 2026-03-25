@@ -24,16 +24,15 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1sign(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray data) {
-
-    ICC_CTX          *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY     *ockPKey        = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    ICC_EVP_PKEY_CTX *skc            = NULL;
-    unsigned char    *sigBytesLocal  = NULL;
+    ICC_CTX*          ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*     ockPKey        = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    ICC_EVP_PKEY_CTX* skc            = NULL;
+    unsigned char*    sigBytesLocal  = NULL;
     jbyteArray        sigBytes       = NULL;
-    unsigned char    *sigBytesNative = NULL;
-    unsigned char    *dataNative     = NULL;
+    unsigned char*    sigBytesNative = NULL;
+    unsigned char*    dataNative     = NULL;
     jboolean          isCopy         = 0;
     size_t            sigLen         = 0;
     size_t            datalen        = 0;
@@ -71,8 +70,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1sign(
         return retSigBytes;
     }
 
-    dataNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, data,
-                                                                     &isCopy));
+    dataNative =
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, data, &isCopy));
     if (NULL == dataNative) {
         throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
         return retSigBytes;
@@ -90,7 +89,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1sign(
         ockCheckStatus(ockCtx);
         throwOCKException(env, 0, "Getting signature size failed");
     } else {
-        sigBytesLocal = (unsigned char *)malloc(sigLen);
+        sigBytesLocal = (unsigned char*)malloc(sigLen);
         if (sigBytesLocal == NULL) {
             throwOCKException(env, 0, "malloc failed");
         } else {
@@ -105,7 +104,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1sign(
                     throwOCKException(env, 0, "NewByteArray failed");
                 } else {
                     sigBytesNative =
-                        (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                        (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                             env, sigBytes, &isCopy));
                     if (sigBytesNative == NULL) {
                         throwOCKException(
@@ -147,14 +146,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1sign(
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1verify(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray sigBytes, jbyteArray data) {
-
-    ICC_CTX          *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY     *ockPKey        = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    ICC_EVP_PKEY_CTX *evp_pk         = NULL;
-    unsigned char    *sigBytesNative = NULL;
-    unsigned char    *dataNative     = NULL;
+    ICC_CTX*          ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*     ockPKey        = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    ICC_EVP_PKEY_CTX* evp_pk         = NULL;
+    unsigned char*    sigBytesNative = NULL;
+    unsigned char*    dataNative     = NULL;
     jboolean          isCopy         = 0;
     int               rc             = ICC_OSSL_SUCCESS;
     size_t            sigsize        = 0;
@@ -168,18 +166,19 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PQC_1SIGNATURE_1verify(
         return verified;
     }
 
-    sigBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, sigBytes, &isCopy));
     if (sigBytesNative == NULL) {
         throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
     } else {
         sigsize = (*env)->GetArrayLength(env, sigBytes);
 
-        dataNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        dataNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, data, &isCopy));
 
         if (dataNative == NULL) {
-            (*env)->ReleasePrimitiveArrayCritical(env, data, dataNative, JNI_ABORT);
+            (*env)->ReleasePrimitiveArrayCritical(env, data, dataNative,
+                                                  JNI_ABORT);
             throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
             return verified;
         }

@@ -26,16 +26,16 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong iccMDId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong iccMDId,
     jlong ockPKeyId, jboolean convert) {
-    static const char *functionName = "NativeInterface.SIGNATURE_sign";
+    static const char* functionName = "NativeInterface.SIGNATURE_sign";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKDigest     *ockDigest      = (OCKDigest *)((intptr_t)iccMDId);
-    ICC_EVP_PKEY  *ockPKey        = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    unsigned char *sigBytesLocal  = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKDigest*     ockDigest      = (OCKDigest*)((intptr_t)iccMDId);
+    ICC_EVP_PKEY*  ockPKey        = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    unsigned char* sigBytesLocal  = NULL;
     jbyteArray     sigBytes       = NULL;
-    unsigned char *sigBytesNative = NULL;
+    unsigned char* sigBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            sigLen         = 0;
     unsigned int   outLen         = 0;
@@ -86,7 +86,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
         ockCheckStatus(ockCtx);
         throwOCKException(env, 0, "ICC_EVP_PKEY_size failed");
     } else {
-        sigBytesLocal = (unsigned char *)malloc(sigLen);
+        sigBytesLocal = (unsigned char*)malloc(sigLen);
         if (sigBytesLocal == NULL) {
 #ifdef DEBUG_SIGNATURE_DETAIL
             if (debug) {
@@ -103,7 +103,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
 
             // Only convert key if it is a plain RSA
             if (convert) {
-                ICC_RSA *rsaKeyPtr = ICC_EVP_PKEY_get1_RSA(ockCtx, ockPKey);
+                ICC_RSA* rsaKeyPtr = ICC_EVP_PKEY_get1_RSA(ockCtx, ockPKey);
                 ICC_RSA_FixEncodingZeros(ockCtx, rsaKeyPtr, NULL, 0);
             }
 
@@ -121,7 +121,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
             } else {
 #ifdef DEBUG_SIGNATURE_DETAIL
                 gslogMessagePrefix("DETAIL_SIGNATURE - %d bytes\n", outLen);
-                gslogMessageHex((char *)sigBytesLocal, 0, outLen, 0, 0, NULL);
+                gslogMessageHex((char*)sigBytesLocal, 0, outLen, 0, 0, NULL);
 #endif
                 sigBytes = (*env)->NewByteArray(env, outLen);
                 if (sigBytes == NULL) {
@@ -133,7 +133,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
                     throwOCKException(env, 0, "NewByteArray failed");
                 } else {
                     sigBytesNative =
-                        (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                        (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                             env, sigBytes, &isCopy));
                     if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DETAIL
@@ -180,14 +180,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1sign(
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1verify(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong iccMDId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong iccMDId,
     jlong ockPKeyId, jbyteArray sigBytes) {
-    static const char *functionName = "NativeInterface.SIGNATURE_verify";
+    static const char* functionName = "NativeInterface.SIGNATURE_verify";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKDigest     *ockDigest      = (OCKDigest *)((intptr_t)iccMDId);
-    ICC_EVP_PKEY  *ockPKey        = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    unsigned char *sigBytesNative = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKDigest*     ockDigest      = (OCKDigest*)((intptr_t)iccMDId);
+    ICC_EVP_PKEY*  ockPKey        = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    unsigned char* sigBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            rc             = ICC_OSSL_SUCCESS;
     jboolean       verified       = 0;
@@ -205,7 +205,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1verify(
         return verified;
     }
 
-    sigBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, sigBytes, &isCopy));
     if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DETAIL
@@ -221,7 +221,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATURE_1verify(
             gslogMessage("DETAIL_SIGNATURE ockPKeyId=%lx", (long)ockPKeyId);
             gslogMessagePrefix("DETAIL_SIGNATURE to verify %d bytes:\n",
                                (int)size);
-            gslogMessageHex((char *)sigBytesNative, 0, (int)size, 0, 0, NULL);
+            gslogMessageHex((char*)sigBytesNative, 0, (int)size, 0, 0, NULL);
             if (ockDigest != NULL) {
                 gslogMessage("DETAIL_SIGNATURE ockDigest->mdCtx %lx",
                              ockDigest->mdCtx);

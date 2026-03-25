@@ -25,11 +25,11 @@
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_PKEY_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong pkeyId) {
-    static const char *functionName = "NativeInterface.PKEY_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong pkeyId) {
+    static const char* functionName = "NativeInterface.PKEY_delete";
 
-    ICC_CTX      *ockCtx  = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY *ockPKey = (ICC_EVP_PKEY *)((intptr_t)pkeyId);
+    ICC_CTX*      ockCtx  = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY* ockPKey = (ICC_EVP_PKEY*)((intptr_t)pkeyId);
 
     if (debug) {
         gslogFunctionEntry(functionName);

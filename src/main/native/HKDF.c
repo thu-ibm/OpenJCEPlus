@@ -19,8 +19,8 @@
 #include <stdint.h>
 
 typedef struct OCKHKDF {
-    ICC_EVP_PKEY_CTX *pctx;
-    const ICC_EVP_MD *md;
+    ICC_EVP_PKEY_CTX* pctx;
+    const ICC_EVP_MD* md;
 } OCKHKDF;
 
 //============================================================================
@@ -31,12 +31,12 @@ typedef struct OCKHKDF {
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1create(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring digestAlgo) {
-    static const char *functionName = "NativeInterface.HKDF_create";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring digestAlgo) {
+    static const char* functionName = "NativeInterface.HKDF_create";
 
-    ICC_CTX    *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF    *ockHKDF         = NULL;
-    const char *digestAlgoChars = NULL;
+    ICC_CTX*    ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF*    ockHKDF         = NULL;
+    const char* digestAlgoChars = NULL;
     jlong       hkdfId          = 0;
 #ifdef DEBUG_HKDF_DETAIL
     int nid = 0;
@@ -53,7 +53,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1create(
         }
         return hkdfId;
     }
-    ockHKDF = (OCKHKDF *)malloc(sizeof(OCKHKDF));
+    ockHKDF = (OCKHKDF*)malloc(sizeof(OCKHKDF));
     if (ockHKDF == NULL) {
         throwOCKException(env, 0, "Error allocating OCKHKDF");
         if (debug) {
@@ -141,14 +141,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1create(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hkdfId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hkdfId,
     jbyteArray salt, jlong saltLenl, jbyteArray inKey, jlong inKeyLenl) {
-    static const char *functionName = "NativeInterface.HKDF_extract";
+    static const char* functionName = "NativeInterface.HKDF_extract";
 
-    ICC_CTX       *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF       *ockHKDF     = (OCKHKDF *)((intptr_t)hkdfId);
-    unsigned char *saltNative  = NULL;
-    unsigned char *inKeyNative = NULL;
+    ICC_CTX*       ockCtx      = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF*       ockHKDF     = (OCKHKDF*)((intptr_t)hkdfId);
+    unsigned char* saltNative  = NULL;
+    unsigned char* inKeyNative = NULL;
     jboolean       isCopy      = 0;
 
     unsigned char prkLocal[ICC_EVP_MAX_MD_SIZE];
@@ -157,7 +157,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
     size_t        inKeyLen = (size_t)inKeyLenl;
 
     jbyteArray     prk       = NULL;
-    unsigned char *prkNative = NULL;
+    unsigned char* prkNative = NULL;
     jbyteArray     retPrk    = NULL;
 
     if (debug) {
@@ -180,8 +180,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
     }
 #endif
 
-    saltNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, salt,
-                                                                     &isCopy));
+    saltNative =
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, salt, &isCopy));
     if (NULL == saltNative) {
 #ifdef DEBUG_HKDF_DETAIL
         if (debug) {
@@ -190,7 +190,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
 #endif
         throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
     } else {
-        inKeyNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        inKeyNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, inKey, &isCopy));
         if (NULL == inKeyNative) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -204,12 +204,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
             if (debug) {
                 gslogMessagePrefix("DATA_HKDF %d inKey bytes length  : ",
                                    (int)inKeyLen);
-                gslogMessageHex((char *)inKeyNative, 0, (int)inKeyLen, 0, 0,
+                gslogMessageHex((char*)inKeyNative, 0, (int)inKeyLen, 0, 0,
                                 NULL);
                 gslogMessagePrefix("DATA_HKDF %d salt bytes length  : ",
                                    (int)saltLen);
-                gslogMessageHex((char *)saltNative, 0, (int)saltLen, 0, 0,
-                                NULL);
+                gslogMessageHex((char*)saltNative, 0, (int)saltLen, 0, 0, NULL);
             }
 #endif
 
@@ -229,7 +228,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
             if (debug) {
                 gslogMessage("DATA_HKDF Extract prkLen : %d ", prkLen);
                 gslogMessagePrefix("DATA_HKDF Extracted Bytes : ");
-                gslogMessageHex((char *)prkLocal, 0, prkLen, 0, 0, NULL);
+                gslogMessageHex((char*)prkLocal, 0, prkLen, 0, 0, NULL);
             }
 #endif
             prk = (*env)->NewByteArray(env, prkLen);
@@ -241,7 +240,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
 #endif
                 throwOCKException(env, 0, "NewByteArray failed");
             } else {
-                prkNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                prkNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, prk, &isCopy));
                 if (prkNative == NULL) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -298,23 +297,23 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1extract(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hkdfId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hkdfId,
     jbyteArray prk, jlong prkLenl, jbyteArray info, jlong infoLenl,
     jlong okmLenl) {
-    static const char *functionName = "NativeInterface.HKDF_expand";
+    static const char* functionName = "NativeInterface.HKDF_expand";
 
-    ICC_CTX       *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF       *ockHKDF    = (OCKHKDF *)((intptr_t)hkdfId);
-    unsigned char *prkNative  = NULL;
-    unsigned char *infoNative = NULL;
+    ICC_CTX*       ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF*       ockHKDF    = (OCKHKDF*)((intptr_t)hkdfId);
+    unsigned char* prkNative  = NULL;
+    unsigned char* infoNative = NULL;
     jboolean       isCopy     = 0;
-    unsigned char *ptr        = NULL;
+    unsigned char* ptr        = NULL;
 
-    unsigned char *okmLocal  = NULL;
+    unsigned char* okmLocal  = NULL;
     size_t         infoLen   = (size_t)infoLenl;
     size_t         prkLen    = (size_t)prkLenl;
     size_t         okmLen    = (size_t)okmLenl;
-    unsigned char *okmNative = NULL;
+    unsigned char* okmNative = NULL;
     jbyteArray     okm       = NULL;
     jbyteArray     retOkm    = NULL;
 
@@ -339,7 +338,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
 #endif
 
     prkNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, prk, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, prk, &isCopy));
     if (NULL == prkNative) {
 #ifdef DEBUG_HKDF_DETAIL
         if (debug) {
@@ -348,7 +347,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
 #endif
         throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
     } else {
-        infoNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        infoNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, info, &isCopy));
         if (NULL == infoNative) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -362,11 +361,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
             if (debug) {
                 gslogMessagePrefix("DATA_HKDF %ld info bytes length  : ",
                                    (long)infoLen);
-                gslogMessageHex((char *)infoNative, 0, (long)infoLen, 0, 0,
+                gslogMessageHex((char*)infoNative, 0, (long)infoLen, 0, 0,
                                 NULL);
                 gslogMessagePrefix("DATA_HKDF %ld prk bytes length  : ",
                                    (long)prkLen);
-                gslogMessageHex((char *)prkNative, 0, (long)prkLen, 0, 0, NULL);
+                gslogMessageHex((char*)prkNative, 0, (long)prkLen, 0, 0, NULL);
             }
 #endif
 
@@ -382,7 +381,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
 
             okmLocal = calloc(1, okmLen);
 
-            ptr = (unsigned char *)ICC_HKDF_Expand(
+            ptr = (unsigned char*)ICC_HKDF_Expand(
                 ockCtx, ockHKDF->md, prkNative, (int)prkLen, infoNative,
                 infoLen, okmLocal, okmLen);
             if (ptr == NULL) {
@@ -392,7 +391,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
                 if (debug) {
                     gslogMessage("DATA_HKDF Expand okmLen : %d ", okmLen);
                     gslogMessagePrefix("DATA_HKDF Expanded Bytes : ");
-                    gslogMessageHex((char *)okmLocal, 0, okmLen, 0, 0, NULL);
+                    gslogMessageHex((char*)okmLocal, 0, okmLen, 0, 0, NULL);
                 }
 #endif
                 okm = (*env)->NewByteArray(env, okmLen);
@@ -406,7 +405,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
                     throwOCKException(env, 0, "NewByteArray failed");
                 } else {
                     okmNative =
-                        (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                        (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                             env, okm, &isCopy));
                     if (okmNative == NULL) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -466,22 +465,22 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1expand(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hkdfId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hkdfId,
     jbyteArray salt, jlong saltLenl, jbyteArray inKey, jlong inKeyLenl,
     jbyteArray info, jlong infoLenl, jlong resKeyLenl) {
-    static const char *functionName = "NativeInterface.HKDF_1derive";
+    static const char* functionName = "NativeInterface.HKDF_1derive";
 
-    ICC_CTX       *ockCtx       = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF       *ockHKDF      = (OCKHKDF *)((intptr_t)hkdfId);
-    unsigned char *saltNative   = NULL;
-    unsigned char *inKeyNative  = NULL;
-    unsigned char *infoNative   = NULL;
+    ICC_CTX*       ockCtx       = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF*       ockHKDF      = (OCKHKDF*)((intptr_t)hkdfId);
+    unsigned char* saltNative   = NULL;
+    unsigned char* inKeyNative  = NULL;
+    unsigned char* infoNative   = NULL;
     jboolean       isCopy       = 0;
-    unsigned char *ptr          = NULL;
+    unsigned char* ptr          = NULL;
     jbyteArray     resKey       = NULL;
-    unsigned char *resKeyNative = NULL;
+    unsigned char* resKeyNative = NULL;
     jbyteArray     retResKey    = NULL;
-    unsigned char *resKeyLocal  = NULL;
+    unsigned char* resKeyLocal  = NULL;
     size_t         saltLen      = (size_t)saltLenl;
     size_t         inKeyLen     = (size_t)inKeyLenl;
     size_t         infoLen      = (size_t)infoLenl;
@@ -509,8 +508,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
     }
 #endif
 
-    saltNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, salt,
-                                                                     &isCopy));
+    saltNative =
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, salt, &isCopy));
     if (NULL == saltNative) {
 #ifdef DEBUG_HKDF_DETAIL
         if (debug) {
@@ -519,7 +518,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
 #endif
         throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
     } else {
-        inKeyNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        inKeyNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, inKey, &isCopy));
         if (NULL == inKeyNative) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -529,7 +528,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
 #endif
             throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
         } else {
-            infoNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+            infoNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                 env, info, &isCopy));
             if (NULL == infoNative) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -543,15 +542,15 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
                 if (debug) {
                     gslogMessagePrefix("DATA_HKDF %d inKey bytes length  : ",
                                        (int)inKeyLen);
-                    gslogMessageHex((char *)inKeyNative, 0, (int)inKeyLen, 0, 0,
+                    gslogMessageHex((char*)inKeyNative, 0, (int)inKeyLen, 0, 0,
                                     NULL);
                     gslogMessagePrefix("DATA_HKDF %d salt bytes length  : ",
                                        (int)saltLen);
-                    gslogMessageHex((char *)saltNative, 0, (int)saltLen, 0, 0,
+                    gslogMessageHex((char*)saltNative, 0, (int)saltLen, 0, 0,
                                     NULL);
                     gslogMessagePrefix("DATA_HKDF %d info bytes length  : ",
                                        (int)infoLen);
-                    gslogMessageHex((char *)infoNative, 0, (int)infoLen, 0, 0,
+                    gslogMessageHex((char*)infoNative, 0, (int)infoLen, 0, 0,
                                     NULL);
                 }
 #endif
@@ -577,7 +576,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
                         gslogMessage("DATA_HKDF Derived resKeyLen : %ld ",
                                      (long)resKeyLen);
                         gslogMessagePrefix("DATA_HKDF Extracted Bytes : ");
-                        gslogMessageHex((char *)resKeyLocal, 0, resKeyLen, 0, 0,
+                        gslogMessageHex((char*)resKeyLocal, 0, resKeyLen, 0, 0,
                                         NULL);
                     }
 #endif
@@ -592,7 +591,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
                         throwOCKException(env, 0, "NewByteArray failed");
                     } else {
                         resKeyNative =
-                            (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                            (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                                 env, resKey, &isCopy));
                         if (resKeyNative == NULL) {
 #ifdef DEBUG_HKDF_DETAIL
@@ -661,11 +660,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1derive(
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1size(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hkdfId) {
-    static const char *functionName = "NativeInterface.Hkdf_size";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hkdfId) {
+    static const char* functionName = "NativeInterface.Hkdf_size";
 
-    ICC_CTX *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF *ockHKDF   = (OCKHKDF *)((intptr_t)hkdfId);
+    ICC_CTX* ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF* ockHKDF   = (OCKHKDF*)((intptr_t)hkdfId);
     int      digestLen = 0;
 
     if (debug) {
@@ -710,11 +709,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1size(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_HKDF_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong hkdfId) {
-    static const char *functionName = "NativeInterface.HKDF_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong hkdfId) {
+    static const char* functionName = "NativeInterface.HKDF_delete";
 
-    ICC_CTX *ockCtx  = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKHKDF *ockHKDF = (OCKHKDF *)((intptr_t)hkdfId);
+    ICC_CTX* ockCtx  = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKHKDF* ockHKDF = (OCKHKDF*)((intptr_t)hkdfId);
 
     if (debug) {
         gslogFunctionEntry(functionName);

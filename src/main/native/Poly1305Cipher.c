@@ -20,8 +20,8 @@
 #include <stdint.h>
 
 typedef struct OCKCipher {
-    const ICC_EVP_CIPHER *cipher;
-    ICC_EVP_CIPHER_CTX   *cipherCtx;
+    const ICC_EVP_CIPHER* cipher;
+    ICC_EVP_CIPHER_CTX*   cipherCtx;
 } OCKCipher;
 
 //============================================================================
@@ -32,12 +32,12 @@ typedef struct OCKCipher {
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1create(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring cipherName) {
-    static const char *functionName = "NativeInterface.POLY1305CIPHER_create";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring cipherName) {
+    static const char* functionName = "NativeInterface.POLY1305CIPHER_create";
 
-    ICC_CTX    *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher  *ockCipher       = NULL;
-    const char *cipherNameChars = NULL;
+    ICC_CTX*    ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*  ockCipher       = NULL;
+    const char* cipherNameChars = NULL;
     jlong       retCipher       = 0;
 
     if (debug) {
@@ -50,7 +50,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1create(
         }
         return retCipher;
     }
-    ockCipher = (OCKCipher *)malloc(sizeof(OCKCipher));
+    ockCipher = (OCKCipher*)malloc(sizeof(OCKCipher));
     if (ockCipher == NULL) {
         throwOCKException(env, 0, "Error allocating OCKCipher");
         if (debug) {
@@ -114,14 +114,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1create(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1init(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jint isEncrypt, jbyteArray key, jbyteArray iv) {
-    static const char *functionName = "NativeInterface.POLY1305CIPHER_init";
+    static const char* functionName = "NativeInterface.POLY1305CIPHER_init";
 
-    ICC_CTX       *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher     *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
-    unsigned char *keyNative = NULL;
-    unsigned char *ivNative  = NULL;
+    ICC_CTX*       ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*     ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
+    unsigned char* keyNative = NULL;
+    unsigned char* ivNative  = NULL;
     int            rc        = ICC_OSSL_SUCCESS;
     jboolean       isCopy    = 0;
 
@@ -140,11 +140,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1init(
     /* Convert the key and iv to c array*/
     // iv can be null for ECB
     if (NULL != iv) {
-        ivNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-            env, iv, &isCopy));
+        ivNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, iv,
+                                                                      &isCopy));
     }
     keyNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, key, &isCopy));
 
     if (NULL == keyNative) {
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
@@ -181,11 +181,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1init(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1clean(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName = "NativeInterface.POLY1305CIPHER_clean";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName = "NativeInterface.POLY1305CIPHER_clean";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        rc        = ICC_OSSL_SUCCESS;
 
     if (debug) {
@@ -217,13 +217,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1clean(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1setPadding(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jint paddingId) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_setPadding";
 
-    ICC_CTX   *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher  = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher  = (OCKCipher*)((intptr_t)ockCipherId);
     int        rc         = ICC_OSSL_SUCCESS;
     int        ockPadType = 0;
 
@@ -280,12 +280,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1setPadding
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getBlockSize(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_getBlockSize";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        blockSize = 0;
 
     if (debug) {
@@ -310,12 +310,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getBlockSi
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getKeyLength(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_getKeyLength";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        keyLength = 0;
 
     if (debug) {
@@ -340,12 +340,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getKeyLeng
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getIVLength(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_getIVLength";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        ivLength  = 0;
 
     if (debug) {
@@ -370,11 +370,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getIVLengt
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getOID(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName = "NativeInterface.POLY1305CIPHER_getOID";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName = "NativeInterface.POLY1305CIPHER_getOID";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        oid       = 0;
 
     if (debug) {
@@ -399,16 +399,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1getOID(
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptUpdate(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jbyteArray plaintext, jint plaintextOffset, jint plaintextLen,
     jbyteArray ciphertext, jint ciphertextOffset) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_encryptUpdate";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher     *ockCipher        = (OCKCipher *)((intptr_t)ockCipherId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*     ockCipher        = (OCKCipher*)((intptr_t)ockCipherId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     int            rc               = ICC_OSSL_SUCCESS;
     jboolean       isCopy           = 0;
@@ -426,12 +426,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptUpd
         return (jint)outLen;
     }
     /* Convert the jbytearray plaintext and ciphertext to c array*/
-    plaintextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
 
     // Cipher text output is null for AAD update
     if (NULL != ciphertext) {
-        ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, ciphertext, &isCopy));
     }
 
@@ -441,7 +441,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptUpd
 #ifdef DEBUG_CIPHER_DATA
         if (debug) {
             gslogMessagePrefix("PlainText : ");
-            gslogMessageHex((char *)plaintextNative, plaintextOffset,
+            gslogMessageHex((char*)plaintextNative, plaintextOffset,
                             plaintextLen, 0, 0, NULL);
         }
 #endif
@@ -467,11 +467,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptUpd
             if (debug) {
                 if (NULL != ciphertextNative) {
                     gslogMessagePrefix("CipherText : ");
-                    gslogMessageHex((char *)ciphertextNative, ciphertextOffset,
+                    gslogMessageHex((char*)ciphertextNative, ciphertextOffset,
                                     outLen, 0, 0, NULL);
                 } else {
                     gslogMessagePrefix("AAD : ");
-                    gslogMessageHex((char *)plaintextNative, plaintextOffset,
+                    gslogMessageHex((char*)plaintextNative, plaintextOffset,
                                     outLen, 0, 0, NULL);
                 }
             }
@@ -504,17 +504,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptUpd
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFinal(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jbyteArray plaintext, jint plaintextOffset, jint plaintextLen,
     jbyteArray ciphertext, jint ciphertextOffset, jbyteArray tag) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_encryptFinal";
 
-    ICC_CTX         *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher       *ockCipher        = (OCKCipher *)((intptr_t)ockCipherId);
-    unsigned char   *plaintextNative  = NULL;
-    unsigned char   *ciphertextNative = NULL;
-    unsigned char   *tagNative        = NULL;
+    ICC_CTX*         ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*       ockCipher        = (OCKCipher*)((intptr_t)ockCipherId);
+    unsigned char*   plaintextNative  = NULL;
+    unsigned char*   ciphertextNative = NULL;
+    unsigned char*   tagNative        = NULL;
     static const int EVP_CTRL_AEAD_GET_TAG = 0x10;
     static const int POLY1305_TAG_SIZE     = 16;
     int              updateOutlen          = 0;
@@ -536,14 +536,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
     }
     /* Convert the jbytearray plaintext and ciphertext to c array*/
     if (plaintextLen > 0) {
-        plaintextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        plaintextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, plaintext, &isCopy));
     }
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
 
     tagNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, tag, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, tag, &isCopy));
 
     if ((NULL == ciphertextNative) ||
         ((plaintextLen > 0) && (plaintextNative == NULL)) ||
@@ -554,7 +554,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
 #ifdef DEBUG_CIPHER_DATA
             if (debug) {
                 gslogMessagePrefix("PlainText : ");
-                gslogMessageHex((char *)plaintextNative, plaintextOffset,
+                gslogMessageHex((char*)plaintextNative, plaintextOffset,
                                 plaintextLen, 0, 0, NULL);
             }
 #endif
@@ -570,7 +570,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
 #ifdef DEBUG_CIPHER_DATA
                 if (debug) {
                     gslogMessagePrefix("CipherText [update] : ");
-                    gslogMessageHex((char *)ciphertextNative, ciphertextOffset,
+                    gslogMessageHex((char*)ciphertextNative, ciphertextOffset,
                                     updateOutlen, 0, 0, NULL);
                 }
 #endif
@@ -589,12 +589,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
 #ifdef DEBUG_CIPHER_DATA
                 if (debug) {
                     gslogMessagePrefix("CipherText [final] : ");
-                    gslogMessageHex((char *)ciphertextNative,
+                    gslogMessageHex((char*)ciphertextNative,
                                     ciphertextOffset + updateOutlen,
                                     finalOutlen, 0, 0, NULL);
 
                     gslogMessagePrefix("CipherText : ");
-                    gslogMessageHex((char *)ciphertextNative, ciphertextOffset,
+                    gslogMessageHex((char*)ciphertextNative, ciphertextOffset,
                                     updateOutlen + finalOutlen, 0, 0, NULL);
                 }
 #endif
@@ -614,8 +614,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
 #ifdef DEBUG_CIPHER_DATA
         if (debug) {
             gslogMessagePrefix("Cipher Tag : ");
-            gslogMessageHex((char *)tagNative, 0, POLY1305_TAG_SIZE, 0, 0,
-                            NULL);
+            gslogMessageHex((char*)tagNative, 0, POLY1305_TAG_SIZE, 0, 0, NULL);
         }
 #endif
     }
@@ -649,16 +648,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1encryptFin
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptUpdate(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jbyteArray ciphertext, jint ciphertextOffset, jint ciphertextLen,
     jbyteArray plaintext, jint plaintextOffset) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_decryptUpdate";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher     *ockCipher        = (OCKCipher *)((intptr_t)ockCipherId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*     ockCipher        = (OCKCipher*)((intptr_t)ockCipherId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     int            rc               = ICC_OSSL_SUCCESS;
     jboolean       isCopy           = 0;
@@ -676,12 +675,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptUpd
         return (jint)outLen;
     }
     /* Convert the jbytearray plaintext and ciphertext to c array*/
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
 
     // Plain text output is null for AAD update
     if (NULL != plaintext) {
-        plaintextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        plaintextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, plaintext, &isCopy));
     }
 
@@ -691,7 +690,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptUpd
 #ifdef DEBUG_CIPHER_DATA
         if (debug) {
             gslogMessagePrefix("CipherText : ");
-            gslogMessageHex((char *)ciphertextNative, ciphertextOffset,
+            gslogMessageHex((char*)ciphertextNative, ciphertextOffset,
                             ciphertextLen, 0, 0, NULL);
         }
 #endif
@@ -717,7 +716,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptUpd
             if (debug) {
                 gslogMessagePrefix("PlainText : ");
                 if (NULL != plaintextNative) {
-                    gslogMessageHex((char *)plaintextNative, plaintextOffset,
+                    gslogMessageHex((char*)plaintextNative, plaintextOffset,
                                     outLen, 0, 0, NULL);
                 }
             }
@@ -750,17 +749,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptUpd
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFinal(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId,
     jbyteArray ciphertext, jint ciphertextOffset, jint ciphertextLen,
     jbyteArray plaintext, jint plaintextOffset, jbyteArray tag) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.POLY1305CIPHER_decryptFinal";
 
-    ICC_CTX         *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher       *ockCipher        = (OCKCipher *)((intptr_t)ockCipherId);
-    unsigned char   *plaintextNative  = NULL;
-    unsigned char   *ciphertextNative = NULL;
-    unsigned char   *tagNative        = NULL;
+    ICC_CTX*         ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher*       ockCipher        = (OCKCipher*)((intptr_t)ockCipherId);
+    unsigned char*   plaintextNative  = NULL;
+    unsigned char*   ciphertextNative = NULL;
+    unsigned char*   tagNative        = NULL;
     static const int EVP_CTRL_AEAD_SET_TAG = 0x11;
     static const int POLY1305_TAG_SIZE     = 16;
     int              updateOutlen          = 0;
@@ -768,9 +767,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
     int              rc                    = ICC_OSSL_SUCCESS;
     jboolean         isCopy                = 0;
     unsigned long    errCode               = 0;
-    const char      *errStr                = NULL;
+    const char*      errStr                = NULL;
     int              exceptionCode         = 0;
-    const char      *exceptionMsg          = NULL;
+    const char*      exceptionMsg          = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -787,14 +786,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
     }
     /* Convert the jbytearray plaintext and ciphertext to c array*/
     if (ciphertextLen > 0) {
-        ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, ciphertext, &isCopy));
     }
-    plaintextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
 
     tagNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, tag, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, tag, &isCopy));
 
     if ((NULL == plaintextNative) ||
         ((ciphertextLen > 0) && (ciphertextNative == NULL)) ||
@@ -805,7 +804,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
 #ifdef DEBUG_CIPHER_DATA
             if (debug) {
                 gslogMessagePrefix("CipherText : ");
-                gslogMessageHex((char *)ciphertextNative, ciphertextOffset,
+                gslogMessageHex((char*)ciphertextNative, ciphertextOffset,
                                 ciphertextLen, 0, 0, NULL);
             }
 #endif
@@ -822,7 +821,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
 #ifdef DEBUG_CIPHER_DATA
                 if (debug) {
                     gslogMessagePrefix("PlainText [update] : ");
-                    gslogMessageHex((char *)plaintextNative, plaintextOffset,
+                    gslogMessageHex((char*)plaintextNative, plaintextOffset,
                                     updateOutlen, 0, 0, NULL);
                 }
 #endif
@@ -842,7 +841,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
 #ifdef DEBUG_CIPHER_DATA
             if (debug) {
                 gslogMessagePrefix("Cipher Tag : ");
-                gslogMessageHex((char *)tagNative, 0, POLY1305_TAG_SIZE, 0, 0,
+                gslogMessageHex((char*)tagNative, 0, POLY1305_TAG_SIZE, 0, 0,
                                 NULL);
             }
 #endif
@@ -892,12 +891,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
                     gslogMessage("finalOutlen:     %i", finalOutlen);
 
                     gslogMessagePrefix("PlainText [final] : ");
-                    gslogMessageHex((char *)plaintextNative,
+                    gslogMessageHex((char*)plaintextNative,
                                     plaintextOffset + updateOutlen, finalOutlen,
                                     0, 0, NULL);
 
                     gslogMessagePrefix("PlainText : ");
-                    gslogMessageHex((char *)plaintextNative, plaintextOffset,
+                    gslogMessageHex((char*)plaintextNative, plaintextOffset,
                                     updateOutlen + finalOutlen, 0, 0, NULL);
                 }
 #endif
@@ -934,11 +933,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1decryptFin
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_POLY1305CIPHER_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
-    static const char *functionName = "NativeInterface.POLY1305CIPHER_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockCipherId) {
+    static const char* functionName = "NativeInterface.POLY1305CIPHER_delete";
 
-    ICC_CTX   *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    OCKCipher *ockCipher = (OCKCipher *)((intptr_t)ockCipherId);
+    ICC_CTX*   ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    OCKCipher* ockCipher = (OCKCipher*)((intptr_t)ockCipherId);
     int        rc        = ICC_OSSL_SUCCESS;
 
     if (debug) {

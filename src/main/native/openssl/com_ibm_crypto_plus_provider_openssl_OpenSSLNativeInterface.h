@@ -139,46 +139,6 @@ JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeIn
 
 /*
  * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    DIGEST_create
- * Signature: (JLjava/lang/String;)J
- */
-JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1create
-  (JNIEnv *, jclass, jlong, jstring);
-
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    DIGEST_update
- * Signature: (JJ[BII)I
- */
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1update
-  (JNIEnv *, jclass, jlong, jlong, jbyteArray, jint, jint);
-
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    DIGEST_digest
- * Signature: (JJ)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1digest
-  (JNIEnv *, jclass, jlong, jlong);
-
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    DIGEST_delete
- * Signature: (JJ)V
- */
-JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1delete
-  (JNIEnv *, jclass, jlong, jlong);
-
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    DIGEST_size
- * Signature: (JJ)I
- */
-JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1size
-  (JNIEnv *, jclass, jlong, jlong);
-
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
  * Method:    GCM_init
  * Signature: (JJI[B[BI)V
  */
@@ -243,19 +203,171 @@ JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeIn
 
 /*
  * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_create
+ * Signature: (ILjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1create
+  (JNIEnv *, jclass, jint, jstring);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_copy
+ * Signature: (IJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1copy
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_update
+ * Signature: (IJ[BII)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1update
+  (JNIEnv *, jclass, jint, jlong, jbyteArray, jint, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_digest
+ * Signature: (IJ)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1digest
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_digest_and_reset
+ * Signature: (IJ[B)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1digest_1and_1reset
+  (JNIEnv *, jclass, jint, jlong, jbyteArray);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_size
+ * Signature: (IJ)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1size
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_reset
+ * Signature: (IJ)V
+ */
+JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1reset
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    DIGEST_delete
+ * Signature: (IJ)V
+ */
+JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_DIGEST_1delete
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_create
+ * Signature: (ILjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1create
+  (JNIEnv *, jclass, jint, jstring);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_init
+ * Signature: (IJ[BI)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1init
+  (JNIEnv *, jclass, jint, jlong, jbyteArray, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_update
+ * Signature: (IJ[BII)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1update
+  (JNIEnv *, jclass, jint, jlong, jbyteArray, jint, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_doFinal
+ * Signature: (IJ[B)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1doFinal
+  (JNIEnv *, jclass, jint, jlong, jbyteArray);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_size
+ * Signature: (IJ)I
+ */
+JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1size
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_reset
+ * Signature: (IJ)V
+ */
+JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1reset
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HMAC_delete
+ * Signature: (IJ)V
+ */
+JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HMAC_1delete
+  (JNIEnv *, jclass, jint, jlong);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    PBKDF2_derive
+ * Signature: (ILjava/lang/String;[B[BII)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_PBKDF2_1derive
+  (JNIEnv *, jclass, jint, jstring, jbyteArray, jbyteArray, jint, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HKDF_extract
+ * Signature: (ILjava/lang/String;[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HKDF_1extract
+  (JNIEnv *, jclass, jint, jstring, jbyteArray, jbyteArray);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HKDF_expand
+ * Signature: (ILjava/lang/String;[B[BI)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HKDF_1expand
+  (JNIEnv *, jclass, jint, jstring, jbyteArray, jbyteArray, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
+ * Method:    HKDF_derive
+ * Signature: (ILjava/lang/String;[B[B[BI)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_HKDF_1derive
+  (JNIEnv *, jclass, jint, jstring, jbyteArray, jbyteArray, jbyteArray, jint);
+
+/*
+ * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
  * Method:    KEYWRAP_wrap
- * Signature: (J[B[BZ)[B
+ * Signature: (I[B[BZ)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1wrap
-  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jboolean);
+  (JNIEnv *, jclass, jint, jbyteArray, jbyteArray, jboolean);
 
 /*
  * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
  * Method:    KEYWRAP_unwrap
- * Signature: (J[B[BZ)[B
+ * Signature: (I[B[BZ)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_KEYWRAP_1unwrap
-  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jboolean);
+  (JNIEnv *, jclass, jint, jbyteArray, jbyteArray, jboolean);
 
 #ifdef __cplusplus
 }

@@ -73,7 +73,7 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
 
     // Get OpenSSL context for crypto operations
     //
-    abstract OpenSSLContext getOpenSSLContext();
+    public abstract OpenSSLContext getOpenSSLContext();
 
     // Get the context associated with the provider. The context is used in
     // serialization to be able to keep track of the associated provider.
@@ -90,7 +90,7 @@ public abstract class OpenJCEPlusProvider extends java.security.Provider {
     // Return whether the provider is FIPS. If the provider is using an OCK
     // or OpenSSL context in FIPS mode then it is FIPS.
     //
-    boolean isFIPS() {
+    public boolean isFIPS() {
         try {
             OpenSSLContext opensslContext = getOpenSSLContext();
             if (opensslContext != null) {

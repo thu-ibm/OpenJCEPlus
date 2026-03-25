@@ -312,20 +312,6 @@ final class OpenSSLNativeInterface {
 
     static public native void CIPHER_delete(long opensslContextId, long cipherId) throws OpenSSLException;
 
-    // =========================================================================
-    // Digest functions
-    // =========================================================================
-
-    static public native long DIGEST_create(long opensslContextId, String digestAlgo) throws OpenSSLException;
-
-    static public native int DIGEST_update(long opensslContextId, long digestId, byte[] input,
-                                           int offset, int length) throws OpenSSLException;
-
-    static public native byte[] DIGEST_digest(long opensslContextId, long digestId) throws OpenSSLException;
-
-    static public native void DIGEST_delete(long opensslContextId, long digestId) throws OpenSSLException;
-
-    static public native int DIGEST_size(long opensslContextId, long digestId) throws OpenSSLException;
 
     // GCM-specific functions
     /**
@@ -370,7 +356,6 @@ final class OpenSSLNativeInterface {
      *
      * @param opensslContextId the OpenSSL context ID
      * @param cipherId the cipher context ID
-     * @param encrypt whether encrypting (1) or decrypting (0)
      * @param input the input data
      * @param inputOffset the offset into the input data
      * @param inputLen the length of the input data
@@ -487,6 +472,242 @@ final class OpenSSLNativeInterface {
                                               byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
 
     // =========================================================================
+    // Digest (Message Digest/Hash) functions
+    // =========================================================================
+
+    /**
+     * Creates a new digest context for the specified algorithm.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA-256", "SHA3-512")
+     * @return the digest context ID
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native long DIGEST_create(int fipsFlag, String digestAlgo) throws OpenSSLException;
+
+    /**
+     * Creates a copy of an existing digest context.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the source digest context ID
+     * @return the new digest context ID (copy)
+     * @throws OpenSSLException if an OpenSSLError occurs
+     */
+    static public native long DIGEST_copy(int fipsFlag, long digestId) throws OpenSSLException;
+
+    /**
+     * Updates the digest with additional data.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID
+     * @param data the input data to hash
+     * @param offset the offset in the data array
+     * @param dataLen the length of data to process
+     * @return 1 on success, negative error code on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int DIGEST_update(int fipsFlag, long digestId,
+                                           byte[] data, int offset, int dataLen) throws OpenSSLException;
+
+    /**
+     * Finalizes the digest and returns the hash value.
+     * The digest context is automatically reset after this operation.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID
+     * @return the digest hash as a byte array
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] DIGEST_digest(int fipsFlag, long digestId) throws OpenSSLException;
+
+    /**
+     * Finalizes the digest, stores result in provided array, and resets for reuse.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID
+     * @param output the output array to store the digest
+     * @return 1 on success, negative error code on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int DIGEST_digest_and_reset(int fipsFlag, long digestId,
+                                                     byte[] output) throws OpenSSLException;
+
+    /**
+     * Gets the size of the digest output in bytes.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID
+     * @return the digest size in bytes
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int DIGEST_size(int fipsFlag, long digestId) throws OpenSSLException;
+
+    /**
+     * Resets the digest context to its initial state.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void DIGEST_reset(int fipsFlag, long digestId) throws OpenSSLException;
+
+    /**
+     * Deletes the digest context and frees associated resources.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestId the digest context ID to delete
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void DIGEST_delete(int fipsFlag, long digestId) throws OpenSSLException;
+
+    // =========================================================================
+    // HMAC functions
+    // =========================================================================
+
+    /**
+     * Creates a new HMAC context for the specified digest algorithm.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA-256", "SHA-512")
+     * @return HMAC context ID, or 0 on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native long HMAC_create(int fipsFlag, String digestAlgo) throws OpenSSLException;
+
+    /**
+     * Initializes HMAC context with a secret key.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID
+     * @param key the secret key
+     * @param keyLen length of the key
+     * @return 1 on success, negative error code on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int HMAC_init(int fipsFlag, long hmacId,
+                                       byte[] key, int keyLen) throws OpenSSLException;
+
+    /**
+     * Updates the HMAC with additional data.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID
+     * @param data input data to process
+     * @param offset offset in the data array
+     * @param dataLen length of data to process
+     * @return 1 on success, negative error code on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int HMAC_update(int fipsFlag, long hmacId,
+                                         byte[] data, int offset, int dataLen) throws OpenSSLException;
+
+    /**
+     * Finalizes the HMAC, stores result in provided array, and resets for reuse.
+     * This matches the OCK pattern and OpenSSL's native API design.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID
+     * @param output pre-allocated output array to store the HMAC (must be at least macSize bytes)
+     * @return 1 on success, -1 on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int HMAC_doFinal(int fipsFlag, long hmacId, byte[] output) throws OpenSSLException;
+
+    /**
+     * Gets the size of the HMAC output in bytes.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID
+     * @return size of HMAC in bytes, or negative error code on failure
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native int HMAC_size(int fipsFlag, long hmacId) throws OpenSSLException;
+
+    /**
+     * Resets the HMAC context to its initial state.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void HMAC_reset(int fipsFlag, long hmacId) throws OpenSSLException;
+
+    /**
+     * Deletes the HMAC context and frees associated resources.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param hmacId HMAC context ID to delete
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native void HMAC_delete(int fipsFlag, long hmacId) throws OpenSSLException;
+
+    // =========================================================================
+    // PBKDF2 functions
+    // =========================================================================
+
+    /**
+     * Derives a key using PBKDF2 (Password-Based Key Derivation Function 2).
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA256", "SHA512")
+     * @param password the password bytes
+     * @param salt the salt bytes
+     * @param iterations the iteration count
+     * @param keyLength the desired key length in bytes
+     * @return the derived key bytes
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] PBKDF2_derive(int fipsFlag, String digestAlgo,
+                                              byte[] password, byte[] salt,
+                                              int iterations, int keyLength) throws OpenSSLException;
+
+    // =========================================================================
+    // HKDF functions
+    // =========================================================================
+
+    /**
+     * Extracts a pseudorandom key from input keying material using HKDF-Extract.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA256", "SHA512")
+     * @param salt the optional salt value (can be null)
+     * @param ikm the input keying material
+     * @return the pseudorandom key (PRK)
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] HKDF_extract(int fipsFlag, String digestAlgo,
+                                             byte[] salt, byte[] ikm) throws OpenSSLException;
+
+    /**
+     * Expands a pseudorandom key to the desired length using HKDF-Expand.
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA256", "SHA512")
+     * @param prk the pseudorandom key from HKDF-Extract
+     * @param info the optional context and application specific information (can be null)
+     * @param length the desired output length in bytes
+     * @return the output keying material (OKM)
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] HKDF_expand(int fipsFlag, String digestAlgo,
+                                            byte[] prk, byte[] info, int length) throws OpenSSLException;
+
+    /**
+     * Derives key material using HKDF (combined extract and expand).
+     *
+     * @param fipsFlag FIPS mode flag (0=non-FIPS, 1=FIPS)
+     * @param digestAlgo the digest algorithm name (e.g., "SHA256", "SHA512")
+     * @param salt the optional salt value (can be null)
+     * @param ikm the input keying material
+     * @param info the optional context and application specific information (can be null)
+     * @param length the desired output length in bytes
+     * @return the output keying material (OKM)
+     * @throws OpenSSLException if an OpenSSL error occurs
+     */
+    static public native byte[] HKDF_derive(int fipsFlag, String digestAlgo,
+                                            byte[] salt, byte[] ikm, byte[] info, int length) throws OpenSSLException;
+
+    // =========================================================================
     // Key Wrap functions
     // =========================================================================
 
@@ -500,7 +721,7 @@ final class OpenSSLNativeInterface {
      * @return the wrapped key
      * @throws OpenSSLException if an OpenSSL error occurs
      */
-    static public native byte[] KEYWRAP_wrap(long fipsFlag, byte[] plaintext,
+    static public native byte[] KEYWRAP_wrap(int fipsFlag, byte[] plaintext,
                                              byte[] kek, boolean padding) throws OpenSSLException;
 
     /**
@@ -513,7 +734,7 @@ final class OpenSSLNativeInterface {
      * @return the unwrapped key material
      * @throws OpenSSLException if an OpenSSL error occurs
      */
-    static public native byte[] KEYWRAP_unwrap(long fipsFlag, byte[] ciphertext,
+    static public native byte[] KEYWRAP_unwrap(int fipsFlag, byte[] ciphertext,
                                                byte[] kek, boolean padding) throws OpenSSLException;
 }
 

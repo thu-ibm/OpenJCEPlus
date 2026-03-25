@@ -23,7 +23,15 @@ JAVACLASSDIR = $(TOPDIR)\target\classes
 OBJS= \
 	OpenSSLNativeInterface.obj \
 	OpenSSLSymmetricCipher.obj \
+	OpenSSLGCM.obj \
+	OpenSSLCCM.obj \
+	OpenSSLKeyWrap.obj \
+	OpenSSLDigest.obj \
+	OpenSSLHMAC.obj \
+	OpenSSLPBKDF2.obj \
+	OpenSSLHKDF.obj \
 	OpenSSLUtils.obj \
+	OpenSSLHelpers.obj \
 	BuildDate.obj
 
 TARGET = libjgskit_openssl_64.dll
@@ -45,7 +53,7 @@ $(TARGET) : $(OBJS) $(JGSKIT_RC_OBJ)
 $(JGSKIT_RC_OBJ) : $(JGSKIT_RC_SRC)
 	rc $(BUILD_CFLAGS) -Fo$@ $(JGSKIT_RC_SRC)
 
-OpenSSLNativeInterface.obj : openssl\OpenSSLNativeInterface.c
+OpenSSLNativeInterface.obj : openssl\OpenSSLNativeInterface.c openssl\OpenSSLHelpers.h
 	cl \
 		$(DEBUG_FLAGS) \
 		$(CFLAGS) \
@@ -56,7 +64,7 @@ OpenSSLNativeInterface.obj : openssl\OpenSSLNativeInterface.c
 		-Iopenssl \
 		openssl\OpenSSLNativeInterface.c
 
-OpenSSLSymmetricCipher.obj : openssl\OpenSSLSymmetricCipher.c
+OpenSSLSymmetricCipher.obj : openssl\OpenSSLSymmetricCipher.c openssl\OpenSSLHelpers.h
 	cl \
 		$(DEBUG_FLAGS) \
 		$(CFLAGS) \
@@ -66,6 +74,90 @@ OpenSSLSymmetricCipher.obj : openssl\OpenSSLSymmetricCipher.c
 		-I"$(JAVA_HOME)\include\win32" \
 		-Iopenssl \
 		openssl\OpenSSLSymmetricCipher.c
+
+OpenSSLGCM.obj : openssl\OpenSSLGCM.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-I..\include \
+		-Iopenssl \
+		openssl\OpenSSLGCM.c
+		
+OpenSSLCCM.obj : openssl\OpenSSLCCM.c openssl\OpenSSLHelpers.h
+    cl \
+        $(DEBUG_FLAGS) \
+        $(CFLAGS) \
+        -c \
+        -I"$(OPENSSL_HOME)\include" \
+        -I"$(JAVA_HOME)\include" \
+        -I"$(JAVA_HOME)\include\win32" \
+        -I..\include \
+        -Iopenssl \
+        openssl\OpenSSLCCM.c
+
+OpenSSLKeyWrap.obj : openssl\OpenSSLKeyWrap.c openssl\OpenSSLHelpers.h
+    cl \
+        $(DEBUG_FLAGS) \
+        $(CFLAGS) \
+        -c \
+        -I"$(OPENSSL_HOME)\include" \
+        -I"$(JAVA_HOME)\include" \
+        -I"$(JAVA_HOME)\include\win32" \
+        -I..\include \
+        -Iopenssl \
+        openssl\OpenSSLKeyWrap.c
+                		
+OpenSSLDigest.obj : openssl\OpenSSLDigest.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-I..\include \
+		-Iopenssl \
+		openssl\OpenSSLDigest.c
+
+OpenSSLHMAC.obj : openssl\OpenSSLHMAC.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-I..\include \
+		-Iopenssl \
+		openssl\OpenSSLHMAC.c
+
+OpenSSLPBKDF2.obj : openssl\OpenSSLPBKDF2.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-I..\include \
+		-Iopenssl \
+		openssl\OpenSSLPBKDF2.c
+
+OpenSSLHKDF.obj : openssl\OpenSSLHKDF.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-I..\include \
+		-Iopenssl \
+		openssl\OpenSSLHKDF.c
 
 OpenSSLUtils.obj : openssl\OpenSSLUtils.c
 	cl \
@@ -77,6 +169,17 @@ OpenSSLUtils.obj : openssl\OpenSSLUtils.c
 		-I"$(JAVA_HOME)\include\win32" \
 		-Iopenssl \
 		openssl\OpenSSLUtils.c
+
+OpenSSLHelpers.obj : openssl\OpenSSLHelpers.c openssl\OpenSSLHelpers.h
+	cl \
+		$(DEBUG_FLAGS) \
+		$(CFLAGS) \
+		-c \
+		-I"$(OPENSSL_HOME)\include" \
+		-I"$(JAVA_HOME)\include" \
+		-I"$(JAVA_HOME)\include\win32" \
+		-Iopenssl \
+		openssl\OpenSSLHelpers.c
 
 BuildDate.obj : openssl\BuildDate.c FORCE
 	cl \
@@ -100,7 +203,7 @@ headers :
 		--add-exports java.base/sun.security.util=ALL-UNNAMED \
 		-d $(JAVACLASSDIR) \
 		-h $(TOPDIR)\src\main\native\openssl\ \
-		$(TOPDIR)\src\main\java\com\ibm\crypto\plus\provider\openssl\OpenSSLNativeInterface.java
+		$(TOPDIR)\src\main\java\com\ibm\crypto\plus\provider\openssl\*.java
 
 clean :
 	-@if exist $(HOSTOUT)\*.obj del $(HOSTOUT)\*.obj

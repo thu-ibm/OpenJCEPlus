@@ -38,16 +38,16 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digest,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digest,
     jlong rsaKeyId) {
-    static const char *functionName = "NativeInterface.RSASSL_SIGNATURE_sign";
+    static const char* functionName = "NativeInterface.RSASSL_SIGNATURE_sign";
 
-    ICC_CTX       *ockCtx            = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA            = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *digestBytesNative = NULL;
-    unsigned char *sigBytesLocal     = NULL;
+    ICC_CTX*       ockCtx            = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA            = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* digestBytesNative = NULL;
+    unsigned char* sigBytesLocal     = NULL;
     jbyteArray     sigBytes          = NULL;
-    unsigned char *sigBytesNative    = NULL;
+    unsigned char* sigBytesNative    = NULL;
     jboolean       isCopy            = 0;
     int            sigLen            = 0;
     unsigned int   outLen            = 0;
@@ -82,7 +82,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
     }
 #endif
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digest, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_RSASSL_DETAIL
@@ -110,7 +110,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
             ockCheckStatus(ockCtx);
             throwOCKException(env, 0, "ICC_RSA_size failed");
         } else {
-            sigBytesLocal = (unsigned char *)malloc(sigLen);
+            sigBytesLocal = (unsigned char*)malloc(sigLen);
             if (sigBytesLocal == NULL) {
                 throwOCKException(env, 0, "malloc failed");
             } else {
@@ -138,12 +138,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
                         gslogMessagePrefix(
                             "DETAIL_SIG_RSASSL Digest - %d bytes\n",
                             digestLength);
-                        gslogMessageHex((char *)digestBytesNative, 0,
+                        gslogMessageHex((char*)digestBytesNative, 0,
                                         digestLength, 0, 0, NULL);
 
                         gslogMessagePrefix(
                             "DETAIL_SIG_RSASSL Signature - %d bytes\n", outLen);
-                        gslogMessageHex((char *)sigBytesLocal, 0, outLen, 0, 0,
+                        gslogMessageHex((char*)sigBytesLocal, 0, outLen, 0, 0,
                                         NULL);
                     }
 #endif
@@ -157,7 +157,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
                         throwOCKException(env, 0, "NewByteArray failed");
                     } else {
                         sigBytesNative =
-                            (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                            (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                                 env, sigBytes, &isCopy));
                         if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_RSASSL_DETAIL
@@ -207,14 +207,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1sign(
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1verify(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digest,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digest,
     jlong rsaKeyId, jbyteArray sigBytes, jboolean convert) {
-    static const char *functionName = "NativeInterface.RSASSL_SIGNATURE_verify";
+    static const char* functionName = "NativeInterface.RSASSL_SIGNATURE_verify";
 
-    ICC_CTX       *ockCtx            = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA            = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *digestBytesNative = NULL;
-    unsigned char *sigBytesNative    = NULL;
+    ICC_CTX*       ockCtx            = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA            = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* digestBytesNative = NULL;
+    unsigned char* sigBytesNative    = NULL;
     jboolean       isCopy            = 0;
 
     int      rc       = ICC_OSSL_SUCCESS;
@@ -249,7 +249,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1verify(
     }
 #endif
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digest, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_RSASSL_DETAIL
@@ -267,7 +267,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1verify(
         }
 #endif
 
-        sigBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, sigBytes, &isCopy));
         if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_RSASSL_DETAIL
@@ -283,7 +283,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSASSL_1SIGNATURE_1verify(
                 gslogMessagePrefix(
                     "DETAIL_SIG_RSASSL Signature to verify %d bytes:\n",
                     (int)size);
-                gslogMessageHex((char *)sigBytesNative, 0, size, 0, 0, NULL);
+                gslogMessageHex((char*)sigBytesNative, 0, size, 0, 0, NULL);
             }
 #endif
 

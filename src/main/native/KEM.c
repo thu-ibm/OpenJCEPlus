@@ -26,17 +26,16 @@
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1encapsulate(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray wrappedKey, jbyteArray randomKey) {
+    ICC_CTX*          ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY_CTX* evp_pk          = NULL;
+    ICC_EVP_PKEY*     pa              = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    size_t            wrappedkeylen   = 0;
+    size_t            genkeylen       = 0;
+    unsigned char*    wrappedKeyLocal = NULL;
+    unsigned char*    genkeylocal     = NULL;
 
-    ICC_CTX          *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY_CTX *evp_pk           = NULL;
-    ICC_EVP_PKEY     *pa               = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    size_t            wrappedkeylen    = 0;
-    size_t            genkeylen        = 0;
-    unsigned char    *wrappedKeyLocal  = NULL;
-    unsigned char    *genkeylocal      = NULL;
- 
     evp_pk = ICC_EVP_PKEY_CTX_new_from_pkey(ockCtx, NULL, pa, NULL);
     if (!evp_pk) {
         throwOCKException(env, 0, "ICC_EVP_PKEY_CTX_new_from_pkey failed");
@@ -61,8 +60,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1encapsulate(
         return;
     }
 
-    wrappedKeyLocal = (unsigned char *)malloc(wrappedkeylen);
-    genkeylocal     = (unsigned char *)malloc(genkeylen);
+    wrappedKeyLocal = (unsigned char*)malloc(wrappedkeylen);
+    genkeylocal     = (unsigned char*)malloc(genkeylen);
     if (wrappedKeyLocal == NULL || genkeylocal == NULL) {
         if (wrappedKeyLocal != NULL) {
             free(wrappedKeyLocal);
@@ -91,7 +90,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1encapsulate(
 
         ICC_EVP_PKEY_CTX_free(ockCtx, evp_pk);
 
-        jbyte *bytes = (*env)->GetByteArrayElements(env, wrappedKey, NULL);
+        jbyte* bytes = (*env)->GetByteArrayElements(env, wrappedKey, NULL);
         memcpy(bytes, wrappedKeyLocal, wrappedkeylen);
         (*env)->ReleaseByteArrayElements(env, wrappedKey, bytes, 0);
 
@@ -115,21 +114,20 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1encapsulate(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1decapsulate(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray wrappedKey) {
-
-    ICC_CTX                 *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY            *ockPKey   = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    ICC_EVP_PKEY_CTX        *evp_pk    = NULL;
-    int                      rc        = -1;
-    jboolean                 isCopy    = 0;
-    jbyteArray               randomKey = NULL;
-    jbyteArray               retRndKeyBytes   = NULL;
-    size_t                   wrappedkeylen    = 0;
-    size_t                   genkeylen        = 0;
-    unsigned char           *wrappedKeyNative = NULL;
-    unsigned char           *genkeylocal      = NULL;
-    unsigned char           *genKeyNative     = NULL;
+    ICC_CTX*          ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*     ockPKey          = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    ICC_EVP_PKEY_CTX* evp_pk           = NULL;
+    int               rc               = -1;
+    jboolean          isCopy           = 0;
+    jbyteArray        randomKey        = NULL;
+    jbyteArray        retRndKeyBytes   = NULL;
+    size_t            wrappedkeylen    = 0;
+    size_t            genkeylen        = 0;
+    unsigned char*    wrappedKeyNative = NULL;
+    unsigned char*    genkeylocal      = NULL;
+    unsigned char*    genKeyNative     = NULL;
 
     evp_pk = ICC_EVP_PKEY_CTX_new(ockCtx, ockPKey, NULL);
     if (!evp_pk) {
@@ -145,7 +143,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1decapsulate(
         throwOCKException(env, 0, "ICC_EVP_PKEY_decapsulate_init failed");
         return retRndKeyBytes;
     }
-    wrappedKeyNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    wrappedKeyNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, wrappedKey, &isCopy));
 
     if (NULL == wrappedKeyNative) {
@@ -168,7 +166,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1decapsulate(
         return retRndKeyBytes;
     }
 
-    genkeylocal = (unsigned char *)malloc(genkeylen);
+    genkeylocal = (unsigned char*)malloc(genkeylen);
     if (genkeylocal == NULL) {
         throwOCKException(env, 0, "malloc failed");
     } else {
@@ -189,7 +187,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_KEM_1decapsulate(
         if (randomKey == NULL) {
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
-            genKeyNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+            genKeyNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                 env, randomKey, &isCopy));
 
             if (genKeyNative == NULL) {

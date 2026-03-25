@@ -42,12 +42,12 @@
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JI(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint numBits) {
-    static const char *functionName = "NativeInterface.ECKEY_generate(size)";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint numBits) {
+    static const char* functionName = "NativeInterface.ECKEY_generate(size)";
 #ifdef __MVS__
 #pragma convert("ISO8859-1")
 #endif
-    static char *curveOids[] = {
+    static char* curveOids[] = {
         "1.2.840.10045.3.1.1", /* P-192 */
         "1.3.132.0.33",        /* P-224 */
         "1.2.840.10045.3.1.7", /* P-256 */
@@ -61,10 +61,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JI(
     jlong               ecKeyId    = 0;
     int                 nid        = 0;
     int                 rc         = 0;
-    const ICC_EC_GROUP *ockECGroup = NULL;
+    const ICC_EC_GROUP* ockECGroup = NULL;
 
-    ICC_CTX    *ockCtx   = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY *ockECKey = NULL;
+    ICC_CTX*    ockCtx   = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY* ockECKey = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -154,7 +154,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JI(
 #endif
                 if (ockECGroup != NULL) {
                     ICC_EC_GROUP_set_asn1_flag(ockCtx,
-                                               (ICC_EC_GROUP *)ockECGroup, 1);
+                                               (ICC_EC_GROUP*)ockECGroup, 1);
                 }
                 ecKeyId = (jlong)((intptr_t)ockECKey);
 #ifdef DEBUG_EC_DETAIL
@@ -213,17 +213,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JI(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JLjava_lang_String_2(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring soid) {
-    static const char  *functionName = "NativeInterface.ECKEY_generate(soid)";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring soid) {
+    static const char*  functionName = "NativeInterface.ECKEY_generate(soid)";
     jlong               ecKeyId      = 0;
     int                 nid          = 0;
     int                 rc           = 0;
-    const ICC_EC_GROUP *ockECGroup   = NULL;
+    const ICC_EC_GROUP* ockECGroup   = NULL;
 
-    ICC_CTX    *ockCtx   = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY *ockECKey = NULL;
+    ICC_CTX*    ockCtx   = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY* ockECKey = NULL;
     /* const jbyte *nativeSoid=NULL;*/
-    const char *nativeSoid = NULL;
+    const char* nativeSoid = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -252,7 +252,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JLjava_la
             gslogMessage("DETAIL_EC soid=%s", nativeSoid);
         }
 #endif
-        nid = ICC_OBJ_txt2nid(ockCtx, (char *)nativeSoid);
+        nid = ICC_OBJ_txt2nid(ockCtx, (char*)nativeSoid);
         if (nid <= 0) {
             (*env)->ReleaseStringUTFChars(env, soid, nativeSoid);
             ockCheckStatus(ockCtx);
@@ -317,7 +317,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JLjava_la
                         }
 #endif
                         ICC_EC_GROUP_set_asn1_flag(
-                            ockCtx, (ICC_EC_GROUP *)ockECGroup, 1);
+                            ockCtx, (ICC_EC_GROUP*)ockECGroup, 1);
                     } else {
 #ifdef DEBUG_EC_DETAIL
                         if (debug) {
@@ -382,8 +382,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__JLjava_la
 }
 
 // helper fuction for XECKEY_generate
-int getPublicKey(ICC_CTX *ockCtx, JNIEnv *env, ICC_EVP_PKEY *key,
-                 unsigned char *buffer) {
+int getPublicKey(ICC_CTX* ockCtx, JNIEnv* env, ICC_EVP_PKEY* key,
+                 unsigned char* buffer) {
     size_t pub_size;
     int    rc;
 
@@ -395,9 +395,9 @@ int getPublicKey(ICC_CTX *ockCtx, JNIEnv *env, ICC_EVP_PKEY *key,
 }
 
 // helper fuction for XECKEY_generate
-int getDERPublicKey(ICC_CTX *ockCtx, JNIEnv *env, ICC_EVP_PKEY *key,
-                    unsigned char *buffer) {
-    unsigned char *p  = NULL;
+int getDERPublicKey(ICC_CTX* ockCtx, JNIEnv* env, ICC_EVP_PKEY* key,
+                    unsigned char* buffer) {
+    unsigned char* p  = NULL;
     int            rc = 0;
 
     p  = buffer;
@@ -431,7 +431,7 @@ int getOption(int option) {
 }
 
 // helper fuction for XECKEY_generate
-char *getFFDHOption(int option) {
+char* getFFDHOption(int option) {
 #ifdef __MVS__
 #pragma convert("ISO8859-1")
 #endif
@@ -461,13 +461,13 @@ char *getFFDHOption(int option) {
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1generate(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint option,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint option,
     jlong bufferPtr) {
-    static const char *functionName    = "XECKEY_generate";
-    ICC_CTX           *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY      *key             = NULL;
-    char              *secondaryOption = NULL;
-    ICC_EVP_PKEY_CTX  *pctx            = NULL;
+    static const char* functionName    = "XECKEY_generate";
+    ICC_CTX*           ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*      key             = NULL;
+    char*              secondaryOption = NULL;
+    ICC_EVP_PKEY_CTX*  pctx            = NULL;
     int                rc              = 0;
     int                mainOption      = 0;
 
@@ -475,7 +475,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1generate(
         gslogFunctionEntry(functionName);
     }
 
-    if ((unsigned char *)bufferPtr == NULL) {
+    if ((unsigned char*)bufferPtr == NULL) {
         throwOCKException(
             env, 0,
             "XECKEY generate The specified input parameters are not correct.");
@@ -512,10 +512,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1generate(
                 if (rc == 1) {
                     if (mainOption == NID_ffdh) {
                         rc = getDERPublicKey(ockCtx, env, key,
-                                             (unsigned char *)bufferPtr);
+                                             (unsigned char*)bufferPtr);
                     } else {
                         rc = getPublicKey(ockCtx, env, key,
-                                          (unsigned char *)bufferPtr);
+                                          (unsigned char*)bufferPtr);
                     }
                     if (rc > 0) {
                         if (debug) {
@@ -551,22 +551,22 @@ errorCode:
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters__JI(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jint numBits) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jint numBits) {
+    static const char* functionName =
         "NativeInterface.ECKEY_1generateParameters";
 
-    ICC_CTX       *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY    *ockECKey        = NULL;
+    ICC_CTX*       ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*    ockECKey        = NULL;
     jbyteArray     parmBytes       = NULL;
-    unsigned char *parmBytesNative = NULL;
+    unsigned char* parmBytesNative = NULL;
     jboolean       isCopy          = 0;
     jbyteArray     retParmBytes    = NULL;
-    unsigned char *pBytes          = NULL;
+    unsigned char* pBytes          = NULL;
 
 #ifdef __MVS__
 #pragma convert("ISO8859-1")
 #endif
-    static char *curveNames[] = {"prime192v1", "prime224v1", "prime256v1",
+    static char* curveNames[] = {"prime192v1", "prime224v1", "prime256v1",
                                  "prime384v1", "prime581v1"};
 #ifdef __MVS__
 #pragma convert(pop)
@@ -668,7 +668,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
                     throwOCKException(env, 0, "NewByteArray failed");
                 } else {
                     parmBytesNative =
-                        (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                        (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                             env, parmBytes, &isCopy));
                     if (parmBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -679,7 +679,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
                         throwOCKException(
                             env, 0, "NULL from GetPrimitiveArrayCritical");
                     } else {
-                        pBytes = (unsigned char *)parmBytesNative;
+                        pBytes = (unsigned char*)parmBytesNative;
 
                         size = ICC_i2d_ECParameters(ockCtx, ockECKey, &pBytes);
                         if (size <= 0) {
@@ -702,8 +702,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
                                     "=%d",
                                     size);
                                 gslogMessagePrefix("DATA_EC parmBytes : ");
-                                gslogMessageHex((char *)parmBytes, 0, size, 0,
-                                                0, NULL);
+                                gslogMessageHex((char*)parmBytes, 0, size, 0, 0,
+                                                NULL);
                             }
 #endif
                         }
@@ -742,18 +742,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters__JLjava_lang_String_2(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring soid) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring soid) {
+    static const char* functionName =
         "ECKEY_1generateParameters__JLjava_lang_String_2";
 
-    ICC_CTX       *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY    *ockECKey        = NULL;
+    ICC_CTX*       ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*    ockECKey        = NULL;
     jbyteArray     parmBytes       = NULL;
-    unsigned char *parmBytesNative = NULL;
+    unsigned char* parmBytesNative = NULL;
     jboolean       isCopy          = 0;
     jbyteArray     retParmBytes    = NULL;
     /*const jbyte *nativeSoid=NULL;*/
-    const char *nativeSoid = NULL;
+    const char* nativeSoid = NULL;
     int         size       = 0;
     int         nid;
 
@@ -787,7 +787,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
             gslogMessage("DETAIL_EC soid=%s", nativeSoid);
         }
 #endif
-        nid = ICC_OBJ_txt2nid(ockCtx, (char *)nativeSoid);
+        nid = ICC_OBJ_txt2nid(ockCtx, (char*)nativeSoid);
 #ifdef DEBUG_EC_DETAIL
         if (debug) {
             gslogMessage("DETAIL_EC nid=%d", nid);
@@ -846,7 +846,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
                         throwOCKException(env, 0, "NewByteArray failed");
                     } else {
                         parmBytesNative =
-                            (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                            (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                                 env, parmBytes, &isCopy));
                         if (parmBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -858,8 +858,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
                             throwOCKException(
                                 env, 0, "NULL from GetPrimitiveArrayCritical");
                         } else {
-                            unsigned char *pBytes =
-                                (unsigned char *)parmBytesNative;
+                            unsigned char* pBytes =
+                                (unsigned char*)parmBytesNative;
 
                             size =
                                 ICC_i2d_ECParameters(ockCtx, ockECKey, &pBytes);
@@ -890,7 +890,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
 #ifdef DEBUG_EC_DATA
                                 if (debug) {
                                     gslogMessagePrefix("DATA_EC parmBytes : ");
-                                    gslogMessageHex((char *)parmBytes, 0, size,
+                                    gslogMessageHex((char*)parmBytes, 0, size,
                                                     0, 0, NULL);
                                     gslogFunctionExit(functionName);
                                 }
@@ -934,18 +934,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generateParameters_
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__J_3B(
-    JNIEnv *env, jclass thisObj, jlong ockContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId,
     jbyteArray parameterBytes) {
-    static const char *functionName = "NativeInterface.ECKEY_generate__J_3B";
+    static const char* functionName = "NativeInterface.ECKEY_generate__J_3B";
 
-    ICC_CTX             *ockCtx = (ICC_CTX *)((intptr_t)ockContextId);
-    unsigned char       *parameterBytesNative = NULL;
+    ICC_CTX*             ockCtx = (ICC_CTX*)((intptr_t)ockContextId);
+    unsigned char*       parameterBytesNative = NULL;
     jboolean             isCopy               = 0;
-    ICC_EC_KEY          *ockECKey             = NULL;
+    ICC_EC_KEY*          ockECKey             = NULL;
     jlong                ecKeyId              = 0;
     int                  rc                   = 0;
     jint                 size;
-    const unsigned char *pBytes;
+    const unsigned char* pBytes;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -959,7 +959,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__J_3B(
         }
         return ecKeyId;
     }
-    parameterBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    parameterBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, parameterBytes, &isCopy));
     if (parameterBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -970,12 +970,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__J_3B(
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
         size   = (*env)->GetArrayLength(env, parameterBytes);
-        pBytes = (const unsigned char *)parameterBytesNative;
+        pBytes = (const unsigned char*)parameterBytesNative;
 #ifdef DEBUG_EC_DATA
         if (debug) {
             gslogMessage("DATA_EC parameter size %d\n", (int)size);
             gslogMessagePrefix("DATA_EC parameterBytes : ");
-            gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
         }
 #endif
         ockECKey = ICC_EC_KEY_new(ockCtx);
@@ -1059,16 +1059,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1generate__J_3B(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPrivateKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId,
     jbyteArray privateKeyBytes) {
-    static const char *functionName = "NativeInterface.ECKEY_createPrivateKey";
+    static const char* functionName = "NativeInterface.ECKEY_createPrivateKey";
 
-    ICC_CTX             *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY          *ockECKey       = NULL;
-    unsigned char       *keyBytesNative = NULL;
+    ICC_CTX*             ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*          ockECKey       = NULL;
+    unsigned char*       keyBytesNative = NULL;
     jboolean             isCopy         = 0;
     jlong                ecKeyId        = 0;
-    const unsigned char *pBytes;
+    const unsigned char* pBytes;
     jint                 size;
 
     if (debug) {
@@ -1084,7 +1084,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPrivateKey(
         }
         return ecKeyId;
     }
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, privateKeyBytes, &isCopy));
     if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1094,13 +1094,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPrivateKey(
 #endif
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
-        pBytes = (const unsigned char *)keyBytesNative;
+        pBytes = (const unsigned char*)keyBytesNative;
         size   = (*env)->GetArrayLength(env, privateKeyBytes);
 #ifdef DEBUG_EC_DATA
         if (debug) {
             gslogMessage("DATA_EC size=%d", (int)size);
             gslogMessagePrefix("DATA_EC privateKeyBytes : ");
-            gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
         }
 #endif
 
@@ -1156,14 +1156,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPrivateKey(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray privateKeyBytes,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray privateKeyBytes,
     jlong bufferPtr) {
-    static const char *functionName = "NativeInterface.XECKEY_createPrivateKey";
+    static const char* functionName = "NativeInterface.XECKEY_createPrivateKey";
 
-    ICC_CTX             *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY        *ockEVPKey      = NULL;
-    unsigned char       *keyBytesNative = NULL;
-    const unsigned char *pBytes         = NULL;
+    ICC_CTX*             ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*        ockEVPKey      = NULL;
+    unsigned char*       keyBytesNative = NULL;
+    const unsigned char* pBytes         = NULL;
     jboolean             isCopy         = 0;
     jlong                xecKeyId       = 0;
     size_t               size;
@@ -1172,7 +1172,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
         gslogFunctionEntry(functionName);
     }
 
-    if ((privateKeyBytes == NULL) || ((unsigned char *)bufferPtr == NULL)) {
+    if ((privateKeyBytes == NULL) || ((unsigned char*)bufferPtr == NULL)) {
         throwOCKException(env, 0,
                           "Creating XEC Private Key failed. The specified "
                           "input parameters are incorrect.");
@@ -1181,7 +1181,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
         }
         return xecKeyId;
     }
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, privateKeyBytes, &isCopy));
 
     if (keyBytesNative == NULL) {
@@ -1192,13 +1192,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
 #endif
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
-        pBytes = (unsigned char *)keyBytesNative;
+        pBytes = (unsigned char*)keyBytesNative;
         size   = (size_t)(*env)->GetArrayLength(env, privateKeyBytes);
 #ifdef DEBUG_EC_DATA
         if (debug) {
             gslogMessage("DATA_XEC size=%d", (int)size);
             gslogMessagePrefix("DATA_EC privateKeyBytes : ");
-            gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
         }
 #endif
         ICC_d2i_PrivateKey(ockCtx, ICC_EVP_PKEY_EC, &ockEVPKey, &pBytes,
@@ -1224,7 +1224,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
             }
 #endif
             ICC_EVP_PKEY_get_raw_public_key(ockCtx, ockEVPKey,
-                                            (unsigned char *)bufferPtr, &size);
+                                            (unsigned char*)bufferPtr, &size);
         }
     }
 
@@ -1246,18 +1246,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPrivateKey(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPublicKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray publicKeyBytes,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray publicKeyBytes,
     jbyteArray parameterBytes) {
-    static const char *functionName = "NativeInterface.ECKEY_createPublicKey";
+    static const char* functionName = "NativeInterface.ECKEY_createPublicKey";
 
-    ICC_CTX             *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY          *ockECKey       = NULL;
-    unsigned char       *keyBytesNative = NULL;
-    unsigned char       *parameterBytesNative = NULL;
+    ICC_CTX*             ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*          ockECKey       = NULL;
+    unsigned char*       keyBytesNative = NULL;
+    unsigned char*       parameterBytesNative = NULL;
     jboolean             isCopy               = 0;
     jlong                ecKeyId              = 0;
-    const unsigned char *pKeyBytes            = NULL;
-    unsigned char       *pParamBytes          = NULL;
+    const unsigned char* pKeyBytes            = NULL;
+    unsigned char*       pParamBytes          = NULL;
     jint                 size                 = 0;
     jint                 paramsize            = 0;
 
@@ -1275,7 +1275,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPublicKey(
         return ecKeyId;
     }
 
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, publicKeyBytes, &isCopy));
     if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1286,7 +1286,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPublicKey(
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
         parameterBytesNative =
-            (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+            (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                 env, parameterBytes, &isCopy));
         if (parameterBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1296,21 +1296,21 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPublicKey(
 #endif
             throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
         } else {
-            pKeyBytes   = (unsigned char *)keyBytesNative;
+            pKeyBytes   = (unsigned char*)keyBytesNative;
             size        = (*env)->GetArrayLength(env, publicKeyBytes);
-            pParamBytes = (unsigned char *)parameterBytesNative;
+            pParamBytes = (unsigned char*)parameterBytesNative;
             paramsize   = (*env)->GetArrayLength(env, parameterBytes);
 #ifdef DEBUG_EC_DATA
             if (debug) {
                 gslogMessage("DATA_EC size=%d", (int)size);
                 gslogMessagePrefix("DATA_EC publicKeyBytes : ");
-                gslogMessageHex((char *)pKeyBytes, 0, size, 0, 0, NULL);
+                gslogMessageHex((char*)pKeyBytes, 0, size, 0, 0, NULL);
             }
 #endif
 
-            ockECKey = ICC_d2i_ECParameters(
-                ockCtx, &ockECKey, (const unsigned char **)&pParamBytes,
-                (long)paramsize);
+            ockECKey = ICC_d2i_ECParameters(ockCtx, &ockECKey,
+                                            (const unsigned char**)&pParamBytes,
+                                            (long)paramsize);
 #ifdef DEBUG_EC_DETAIL
             if (debug) {
                 gslogMessage("DETAIL_EC ockECKey from ICC_d2i_ECParameters=%lx",
@@ -1380,17 +1380,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPublicKey(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPublicKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId,
     jbyteArray publicKeyBytes) {
-    static const char *functionName = "NativeInterface.XECKEY_createPublicKey";
+    static const char* functionName = "NativeInterface.XECKEY_createPublicKey";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY  *ockEVPKey      = NULL;
-    unsigned char *keyBytesNative = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*  ockEVPKey      = NULL;
+    unsigned char* keyBytesNative = NULL;
 #ifdef DEBUG_EC_DATA
-    unsigned char *pBytes = NULL;
+    unsigned char* pBytes = NULL;
 #endif
-    unsigned char *ptr      = NULL;
+    unsigned char* ptr      = NULL;
     jboolean       isCopy   = 0;
     jlong          xecKeyId = 0;
     jint           size;
@@ -1409,7 +1409,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPublicKey(
         return xecKeyId;
     }
 
-    keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, publicKeyBytes, &isCopy));
     if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1421,14 +1421,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPublicKey(
     } else {
         size = (*env)->GetArrayLength(env, publicKeyBytes);
 #ifdef DEBUG_EC_DATA
-        pBytes = (unsigned char *)keyBytesNative;
+        pBytes = (unsigned char*)keyBytesNative;
         if (debug) {
             gslogMessagePrefix("DATA_XEC publicKeyBytes : ");
-            gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+            gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
         }
 #endif
         ptr = keyBytesNative;
-        ICC_d2i_PUBKEY(ockCtx, &ockEVPKey, (const unsigned char **)&ptr, size);
+        ICC_d2i_PUBKEY(ockCtx, &ockEVPKey, (const unsigned char**)&ptr, size);
 #ifdef DEBUG_EC_DETAIL
         if (debug) {
             gslogMessage("DETAIL_XEC ockEVPKey from ICC_d2i_PUBKEY=%lx",
@@ -1472,14 +1472,14 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1createPublicKey(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getParameters(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
-    static const char *functionName = "NativeInterface.ECKEY_getParameters";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
+    static const char* functionName = "NativeInterface.ECKEY_getParameters";
 
-    ICC_CTX       *ockCtx          = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY    *ockECKey        = (ICC_EC_KEY *)((intptr_t)ecKeyId);
+    ICC_CTX*       ockCtx          = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*    ockECKey        = (ICC_EC_KEY*)((intptr_t)ecKeyId);
     jbyteArray     parmBytes       = NULL;
-    unsigned char *parmBytesNative = NULL;
-    unsigned char *pBytes          = NULL;
+    unsigned char* parmBytesNative = NULL;
+    unsigned char* pBytes          = NULL;
     jboolean       isCopy          = 0;
     int            size            = 0;
     jbyteArray     retParmBytes    = NULL;
@@ -1528,7 +1528,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getParameters(
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
             parmBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, parmBytes, &isCopy));
             if (parmBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1539,7 +1539,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getParameters(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                pBytes = (unsigned char *)parmBytesNative;
+                pBytes = (unsigned char*)parmBytesNative;
 
                 size = ICC_i2d_ECParameters(ockCtx, ockECKey, &pBytes);
 #ifdef DEBUG_EC_DETAIL
@@ -1562,7 +1562,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getParameters(
 #ifdef DEBUG_EC_DATA
                     if (debug) {
                         gslogMessagePrefix("DATA_EC Parameter bytes : ");
-                        gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+                        gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
                     }
 #endif
                 }
@@ -1593,18 +1593,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getParameters(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPrivateKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
+    static const char* functionName =
         "NativeInterface.ECKEY_getPrivateKeyBytes";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY    *ockECKey       = (ICC_EC_KEY *)((intptr_t)ecKeyId);
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*    ockECKey       = (ICC_EC_KEY*)((intptr_t)ecKeyId);
     jbyteArray     keyBytes       = NULL;
-    unsigned char *keyBytesNative = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            size;
     jbyteArray     retKeyBytes = NULL;
-    unsigned char *pBytes      = NULL;
+    unsigned char* pBytes      = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -1645,9 +1645,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPrivateKeyBytes(
 
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
-            keyBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-                    env, keyBytes, &isCopy));
+            keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+                env, keyBytes, &isCopy));
             if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
@@ -1657,7 +1656,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPrivateKeyBytes(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                pBytes = (unsigned char *)keyBytesNative;
+                pBytes = (unsigned char*)keyBytesNative;
 
                 size = ICC_i2d_ECPrivateKey(ockCtx, ockECKey, &pBytes);
                 if (size <= 0) {
@@ -1678,7 +1677,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPrivateKeyBytes(
                             "DATA_EC size from ICC_i2d_ECPrivateKey %d",
                             (int)size);
                         gslogMessagePrefix("DATA_EC keyBytes : ");
-                        gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+                        gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
                     }
 #endif
                 }
@@ -1708,16 +1707,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPrivateKeyBytes(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPrivateKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
-    static const char *functionName =
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
+    static const char* functionName =
         "NativeInterface.XECKEY_getPrivateKeyBytes";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY  *ockEVPKey      = (ICC_EVP_PKEY *)((intptr_t)xecKeyId);
-    unsigned char *keyBytesNative = NULL;
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*  ockEVPKey      = (ICC_EVP_PKEY*)((intptr_t)xecKeyId);
+    unsigned char* keyBytesNative = NULL;
     jbyteArray     keyBytes       = NULL;
     jbyteArray     retKeyBytes    = NULL;
-    unsigned char *pBytes         = NULL;
+    unsigned char* pBytes         = NULL;
     int            size;
     jboolean       isCopy = 0;
 
@@ -1733,10 +1732,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPrivateKeyBytes
     size     = ICC_i2d_PrivateKey(ockCtx, ockEVPKey, NULL);
     keyBytes = (*env)->NewByteArray(env, size);
     if (keyBytes != NULL) {
-        keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, keyBytes, &isCopy));
         if (keyBytesNative != NULL) {
-            pBytes      = (unsigned char *)keyBytesNative;
+            pBytes      = (unsigned char*)keyBytesNative;
             size        = ICC_i2d_PrivateKey(ockCtx, ockEVPKey, &pBytes);
             retKeyBytes = keyBytes;
             (*env)->ReleasePrimitiveArrayCritical(env, keyBytes, keyBytesNative,
@@ -1756,17 +1755,17 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPrivateKeyBytes
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPublicKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
-    static const char *functionName = "NativeInterface.ECKEY_getPublicKeyBytes";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
+    static const char* functionName = "NativeInterface.ECKEY_getPublicKeyBytes";
 
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY    *ockECKey       = (ICC_EC_KEY *)((intptr_t)ecKeyId);
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*    ockECKey       = (ICC_EC_KEY*)((intptr_t)ecKeyId);
     jbyteArray     keyBytes       = NULL;
-    unsigned char *keyBytesNative = NULL;
+    unsigned char* keyBytesNative = NULL;
     jboolean       isCopy         = 0;
     int            size;
     jbyteArray     retKeyBytes = NULL;
-    unsigned char *pBytes      = NULL;
+    unsigned char* pBytes      = NULL;
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -1802,9 +1801,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPublicKeyBytes(
 #endif
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
-            keyBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-                    env, keyBytes, &isCopy));
+            keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+                env, keyBytes, &isCopy));
             if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
@@ -1814,7 +1812,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPublicKeyBytes(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                pBytes = (unsigned char *)keyBytesNative;
+                pBytes = (unsigned char*)keyBytesNative;
 
                 size = ICC_i2o_ECPublicKey(ockCtx, ockECKey, &pBytes);
 #ifdef DEBUG_EC_DETAIL
@@ -1835,7 +1833,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPublicKeyBytes(
 #ifdef DEBUG_EC_DATA
                     if (debug) {
                         gslogMessagePrefix("DATA_EC Public keyBytes : ");
-                        gslogMessageHex((char *)pBytes, 0, size, 0, 0, NULL);
+                        gslogMessageHex((char*)pBytes, 0, size, 0, 0, NULL);
                     }
 #endif
                     retKeyBytes = keyBytes;
@@ -1868,10 +1866,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1getPublicKeyBytes(
 
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPublicKeyBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
-    ICC_CTX       *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY  *ockEVPKey      = (ICC_EVP_PKEY *)xecKeyId;
-    unsigned char *keyBytesNative = NULL;
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
+    ICC_CTX*       ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*  ockEVPKey      = (ICC_EVP_PKEY*)xecKeyId;
+    unsigned char* keyBytesNative = NULL;
     jbyteArray     keyBytes       = NULL;
     size_t         size;
     jboolean       isCopy = 0;
@@ -1886,7 +1884,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPublicKeyBytes(
 #endif
         throwOCKException(env, 0, "NewByteArray failed");
     } else {
-        keyBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        keyBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, keyBytes, &isCopy));
         if (keyBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -1918,12 +1916,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1getPublicKeyBytes(
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPKey(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
-    static const char *functionName = "NativeInterface.ECKEY_createPKey";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
+    static const char* functionName = "NativeInterface.ECKEY_createPKey";
 
-    ICC_CTX      *ockCtx   = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY   *ockECKey = (ICC_EC_KEY *)((intptr_t)ecKeyId);
-    ICC_EVP_PKEY *ockPKey  = NULL;
+    ICC_CTX*      ockCtx   = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*   ockECKey = (ICC_EC_KEY*)((intptr_t)ecKeyId);
+    ICC_EVP_PKEY* ockPKey  = NULL;
     jlong         pkeyId   = 0;
     int           rc       = 0;
 
@@ -1991,11 +1989,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1createPKey(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
-    static const char *functionName = "NativeInterface.ECKEY_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ecKeyId) {
+    static const char* functionName = "NativeInterface.ECKEY_delete";
 
-    ICC_CTX    *ockCtx   = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY *ockECKey = (ICC_EC_KEY *)((intptr_t)ecKeyId);
+    ICC_CTX*    ockCtx   = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY* ockECKey = (ICC_EC_KEY*)((intptr_t)ecKeyId);
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -2024,11 +2022,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1delete(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
-    static const char *functionName = "NativeInterface.XECKEY_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong xecKeyId) {
+    static const char* functionName = "NativeInterface.XECKEY_delete";
 
-    ICC_CTX      *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY *ockEVPKey = (ICC_EVP_PKEY *)((intptr_t)xecKeyId);
+    ICC_CTX*      ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY* ockEVPKey = (ICC_EVP_PKEY*)((intptr_t)xecKeyId);
 
     if (debug) {
         gslogFunctionEntry(functionName);
@@ -2057,19 +2055,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1delete(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong pubEcKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong pubEcKeyId,
     jlong privEcKeyId) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface_ECKEY_1computeECDHSecret";
 
-    ICC_CTX          *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY       *ockPubEcKey = (ICC_EC_KEY *)((intptr_t)pubEcKeyId);
-    const ICC_EC_KEY *ockPrivEcKey =
-        (const ICC_EC_KEY *)((intptr_t)privEcKeyId);
-    const ICC_EC_POINT *ockEcPoint;
-    const ICC_EC_GROUP *ockEcGroup;
+    ICC_CTX*          ockCtx       = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*       ockPubEcKey  = (ICC_EC_KEY*)((intptr_t)pubEcKeyId);
+    const ICC_EC_KEY* ockPrivEcKey = (const ICC_EC_KEY*)((intptr_t)privEcKeyId);
+    const ICC_EC_POINT* ockEcPoint;
+    const ICC_EC_GROUP* ockEcGroup;
     jbyteArray          secretBytes       = NULL;
-    unsigned char      *secretBytesNative = NULL;
+    unsigned char*      secretBytesNative = NULL;
     jboolean            isCopy            = 0;
     jbyteArray          retSecretBytes    = NULL;
     int                 size              = 32;  // by default
@@ -2103,7 +2100,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
         throwOCKException(env, 0, "ICC_EC_KEY_get0_public_key failed");
     } else {
         ockEcGroup =
-            ICC_EC_KEY_get0_group(ockCtx, (const ICC_EC_KEY *)ockPrivEcKey);
+            ICC_EC_KEY_get0_group(ockCtx, (const ICC_EC_KEY*)ockPrivEcKey);
         if (ockEcGroup == NULL) {
             size = 32;
 #ifdef DEBUG_EC_DETAIL
@@ -2130,7 +2127,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
             secretBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, secretBytes, &isCopy));
 #ifdef DEBUG_EC_DETAIL
             if (debug) {
@@ -2146,7 +2143,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical");
             } else {
-                unsigned char *pBytes = (unsigned char *)secretBytesNative;
+                unsigned char* pBytes = (unsigned char*)secretBytesNative;
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
                     gslogMessage("DETAIL_EC ockEcPoint=%ld ockPrivEcKey %x",
@@ -2155,7 +2152,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
 #endif
 
                 lena = ICC_ECDH_compute_key(ockCtx, pBytes, size, ockEcPoint,
-                                            (ICC_EC_KEY *)ockPrivEcKey, NULL);
+                                            (ICC_EC_KEY*)ockPrivEcKey, NULL);
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
                     gslogMessage("DETAIL_EC lena=%d", lena);
@@ -2176,7 +2173,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
 #ifdef DEBUG_EC_DATA
                     if (debug) {
                         gslogMessagePrefix("DATA_EC computed secretBytes : ");
-                        gslogMessageHex((char *)pBytes, 0, lena, 0, 0, NULL);
+                        gslogMessageHex((char*)pBytes, 0, lena, 0, 0, NULL);
                     }
 #endif
                     retSecretBytes = secretBytes;
@@ -2226,18 +2223,18 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1computeECDHSecret(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1computeECDHSecret(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong genCtx,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong genCtx,
     jlong pubXecKeyId, jlong privXecKeyId, jint secretBufferSize) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface_XECKEY_1computeECDHSecret";
 
-    ICC_CTX            *ockCtx       = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY       *ockPubXecKey = (ICC_EVP_PKEY *)((intptr_t)pubXecKeyId);
-    const ICC_EVP_PKEY *ockPrivXecKey =
-        (const ICC_EVP_PKEY *)((intptr_t)privXecKeyId);
-    ICC_EVP_PKEY_CTX *gen_ctx           = NULL;
+    ICC_CTX*            ockCtx       = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*       ockPubXecKey = (ICC_EVP_PKEY*)((intptr_t)pubXecKeyId);
+    const ICC_EVP_PKEY* ockPrivXecKey =
+        (const ICC_EVP_PKEY*)((intptr_t)privXecKeyId);
+    ICC_EVP_PKEY_CTX* gen_ctx           = NULL;
     jbyteArray        secretBytes       = NULL;
-    unsigned char    *secretBytesNative = NULL;
+    unsigned char*    secretBytesNative = NULL;
     jboolean          isCopy            = 0;
     size_t            secret_key_len    = 0;
     int               rc                = 0;
@@ -2246,7 +2243,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1computeECDHSecret(
         gslogFunctionEntry(functionName);
     }
 
-    gen_ctx = ICC_EVP_PKEY_CTX_new(ockCtx, (ICC_EVP_PKEY *)ockPrivXecKey,
+    gen_ctx = ICC_EVP_PKEY_CTX_new(ockCtx, (ICC_EVP_PKEY*)ockPrivXecKey,
                                    NULL); /* Set private key */
     if (NULL == gen_ctx) {
         throwOCKException(env, 0, "NULL from ICC_EVP_PKEY_CTX_new");
@@ -2266,7 +2263,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1computeECDHSecret(
             throwOCKException(env, 0, "NewByteArray failed");
         } else {
             secretBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, secretBytes, &isCopy));
             if (NULL == secretBytesNative) {
                 throwOCKException(env, 0,
@@ -2317,22 +2314,22 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_XECKEY_1computeECDHSecret(
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1signDatawithECDSA(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digestBytes,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digestBytes,
     jint digestBytesLen, jlong privEcKeyId) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface_ECKEY_1signDatawithECDSA";
 
-    ICC_CTX             *ockCtx       = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY          *ockPrivEcKey = (ICC_EC_KEY *)((intptr_t)privEcKeyId);
-    unsigned char       *digestBytesNative = NULL;
+    ICC_CTX*             ockCtx       = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*          ockPrivEcKey = (ICC_EC_KEY*)((intptr_t)privEcKeyId);
+    unsigned char*       digestBytesNative = NULL;
     jbyteArray           sigBytes          = NULL;
-    unsigned char       *sigBytesNative    = NULL;
+    unsigned char*       sigBytesNative    = NULL;
     jboolean             isCopy            = 0;
     jbyteArray           retSigBytes       = NULL;
     int                  retSigBytesLen    = 0;
     int                  type              = 0;
-    const unsigned char *pBytesDigest      = NULL;
-    unsigned char       *pBytesSig         = NULL;
+    const unsigned char* pBytesDigest      = NULL;
+    unsigned char*       pBytesSig         = NULL;
     jint                 size              = 0;
     int                  rc                = 0;
 
@@ -2347,7 +2344,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1signDatawithECDSA(
     }
 #endif
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digestBytes, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -2401,9 +2398,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1signDatawithECDSA(
                 throwOCKException(env, 0, "NewByteArray(sigBytes) failed");
             } else {
                 sigBytesNative =
-                    (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                    (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                         env, sigBytes, &isCopy));
-                pBytesSig = (unsigned char *)sigBytesNative;
+                pBytesSig = (unsigned char*)sigBytesNative;
                 if (sigBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
                     if (debug) {
@@ -2414,16 +2411,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1signDatawithECDSA(
                         env, 0,
                         "NULL from GetPrimitiveArrayCritical for sigBytes");
                 } else {
-                    pBytesSig = (unsigned char *)sigBytesNative;
+                    pBytesSig = (unsigned char*)sigBytesNative;
                     rc        = ICC_ECDSA_sign(
                         ockCtx, type, pBytesDigest, size, pBytesSig,
-                        (unsigned int *)&retSigBytesLen, ockPrivEcKey);
+                        (unsigned int*)&retSigBytesLen, ockPrivEcKey);
 #ifdef DEBUG_EC_DATA
                     if (debug) {
                         gslogMessage("DATA_EC ICC_ECDSA_sign rc=%d", rc);
                         gslogMessagePrefix("DATA_EC sigBytes length =%d",
                                            retSigBytesLen);
-                        gslogMessageHex((char *)pBytesSig, 0,
+                        gslogMessageHex((char*)pBytesSig, 0,
                                         (int)retSigBytesLen, 0, 0, NULL);
                     }
 #endif
@@ -2497,30 +2494,30 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1signDatawithECDSA(
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1verifyDatawithECDSA(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digestBytes,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digestBytes,
     jint digestBytesLen, jbyteArray sigBytes, jint sigBytesLen,
     jlong pubEcKeyId)
 
 {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface_ECKEY_1verifyDatawithECDSA";
 
-    ICC_CTX             *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EC_KEY          *ockPubEcKey = (ICC_EC_KEY *)((intptr_t)pubEcKeyId);
-    unsigned char       *digestBytesNative = NULL;
-    unsigned char       *sigBytesNative    = NULL;
+    ICC_CTX*             ockCtx      = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EC_KEY*          ockPubEcKey = (ICC_EC_KEY*)((intptr_t)pubEcKeyId);
+    unsigned char*       digestBytesNative = NULL;
+    unsigned char*       sigBytesNative    = NULL;
     jboolean             isCopy            = 0;
     int                  verified          = 0;
     int                  type              = 0;
-    const unsigned char *pBytesDigest      = NULL;
-    const unsigned char *pBytesSig         = NULL;
+    const unsigned char* pBytesDigest      = NULL;
+    const unsigned char* pBytesSig         = NULL;
     jint                 size              = 0;
 
     if (debug) {
         gslogFunctionEntry(functionName);
     }
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digestBytes, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
@@ -2530,7 +2527,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1verifyDatawithECDSA
 #endif
         throwOCKException(env, 0, "NULL from GetPrimitiveArrayCritical!");
     } else {
-        pBytesDigest = (const unsigned char *)digestBytesNative;
+        pBytesDigest = (const unsigned char*)digestBytesNative;
         size         = (*env)->GetArrayLength(env, digestBytes);
 #ifdef DEBUG_EC_DETAIL
         if (debug) {
@@ -2550,9 +2547,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1verifyDatawithECDSA
                               "Internal inconsistency while validating the "
                               "digest length parameter");
         } else {
-            sigBytesNative =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-                    env, sigBytes, &isCopy));
+            sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
+                env, sigBytes, &isCopy));
             if (sigBytesNative == NULL) {
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
@@ -2562,11 +2558,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_ECKEY_1verifyDatawithECDSA
                 throwOCKException(env, 0,
                                   "NULL from GetPrimitiveArrayCritical!");
             } else {
-                pBytesSig = (unsigned char *)sigBytesNative;
+                pBytesSig = (unsigned char*)sigBytesNative;
 #ifdef DEBUG_EC_DETAIL
                 if (debug) {
                     gslogMessagePrefix("DETAIL_EC Signature Bytes : ");
-                    gslogMessageHex((char *)pBytesSig, 0, size, 0, 0, NULL);
+                    gslogMessageHex((char*)pBytesSig, 0, size, 0, 0, NULL);
                 }
 #endif
 

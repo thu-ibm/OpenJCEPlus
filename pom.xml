@@ -271,7 +271,7 @@
                       --add-exports=openjceplus/ibm.jceplus.junit.openjceplusfips.integration=ALL-UNNAMED
                       --add-exports=openjceplus/ibm.jceplus.junit.openjceplusfips.multithread=ALL-UNNAMED
                       --add-opens=openjceplus/ibm.jceplus.junit.base=ALL-UNNAMED
-                      --patch-module openjceplus="target${file.separator}classes${path.separator}target${file.separator}test-classes"
+<!--                      &#45;&#45;patch-module openjceplus="target${file.separator}classes${path.separator}target${file.separator}test-classes"-->
                     </argLine>
                     <trimStackTrace>false</trimStackTrace>
                     <systemPropertyVariables>

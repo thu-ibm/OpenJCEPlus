@@ -6,6 +6,29 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file OpenSSLCCM.c
+ * @brief Implementation of CCM (Counter with CBC-MAC) authenticated encryption.
+ *
+ * This file implements AES-CCM mode operations using OpenSSL's EVP interface.
+ * CCM mode combines CTR mode encryption with CBC-MAC authentication to provide
+ * both confidentiality and authenticity in a single operation.
+ *
+ * Key features:
+ * - Supports AES-128, AES-192, and AES-256
+ * - Configurable tag lengths (4-16 bytes, must be even)
+ * - Configurable nonce/IV lengths (7-13 bytes)
+ * - Additional Authenticated Data (AAD) support
+ * - Streaming and single-shot operations
+ *
+ * CCM mode is specified in NIST SP 800-38C and is commonly used in
+ * protocols like IEEE 802.15.4, Bluetooth LE, and IPsec.
+ *
+ * @note CCM requires the plaintext length to be known before processing AAD,
+ *       which is handled automatically in the encryptFinal and decryptFinal
+ *       functions.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,15 +43,14 @@
 #include "OpenSSLExceptionCodes.h"
 #include "OpenSSLUtils.h"
 #include "OpenSSLLogging.h"
+#include "OpenSSLHelpers.h"
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CCM_init
- * Signature: (JJII[B[BI)V
- */
+//============================================================================
+// CCM_init - Initialize CCM cipher with key, IV, and tag length
+//============================================================================
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jint encrypt,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jint encrypt,
     jbyteArray key, jbyteArray iv, jint tagLen) {
     static const char* functionName = "OpenSSLNativeInterface.CCM_init";
 
@@ -36,14 +58,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
         gslogFunctionEntry(functionName);
     }
 
-    if (tagLen < MIN_CCM_TAG_SIZE || tagLen > MAX_CCM_TAG_SIZE ||
-        tagLen % 2 != 0) {
-        throwOpenSSLException(
-            env, OPENSSL_UNSPECIFIED,
-            "Invalid CCM tag length: must be 4-16 bytes and even");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    // Validate tag length (must be in range and even)
+    if (!validateIntRange(env, tagLen, MIN_CCM_TAG_SIZE, MAX_CCM_TAG_SIZE,
+                         functionName, "Invalid CCM tag length: must be 4-16 bytes and even")) {
+        return;
+    }
+    if (tagLen % 2 != 0) {
+        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
+                            "Invalid CCM tag length: must be even");
+        logFunctionExit(functionName);
         return;
     }
 
@@ -55,40 +78,31 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
 
     EVP_CIPHER_CTX* ctx = cipherCtx->ctx;
 
-    jbyte* keyBytes = (*env)->GetByteArrayElements(env, key, NULL);
-
+    jbyte* keyBytes = getByteArrayElementsSafe(env, key, functionName, "key");
     if (keyBytes == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get key bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
-    jbyte* ivBytes = (*env)->GetByteArrayElements(env, iv, NULL);
-
+    jbyte* ivBytes = getByteArrayElementsSafe(env, iv, functionName, "IV");
     if (ivBytes == NULL) {
         cleanupByteArrays(env, key, keyBytes, NULL, NULL);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get IV bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
+        return;
+    }
+
+    // Validate IV length
+    if (!validateArrayLength(env, iv, MIN_CCM_IV_SIZE, MAX_CCM_IV_SIZE,
+                            functionName, "Invalid CCM IV length: must be 7-13 bytes")) {
+        cleanupByteArrays(env, key, keyBytes, iv, ivBytes);
         return;
     }
 
     int ivLen = (*env)->GetArrayLength(env, iv);
-
-    if (ivLen < MIN_CCM_IV_SIZE || ivLen > MAX_CCM_IV_SIZE) {
-        cleanupByteArrays(env, key, keyBytes, iv, ivBytes);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid CCM IV length: must be 7-13 bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return;
-    }
 
     int encryptFlag = (encrypt != 0) ? 1 : 0;
 
@@ -106,9 +120,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to initialize CCM cipher");
         logOpenSSLError("EVP_CipherInit_ex");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -117,9 +129,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to set CCM IV length");
         logOpenSSLError("EVP_CIPHER_CTX_ctrl(SET_IVLEN)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -128,9 +138,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to set CCM tag length");
         logOpenSSLError("EVP_CIPHER_CTX_ctrl(SET_TAG)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -140,9 +148,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to set CCM key and IV");
         logOpenSSLError("EVP_CipherInit_ex");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -156,19 +162,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1init(
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CCM_update
- * Signature: (JJII[BII[BI[BI)I
- */
+//============================================================================
+// CCM_update - Process data and AAD through CCM cipher
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jint encrypt,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jint encrypt,
     jbyteArray input, jint inputOffset, jint inputLen, jbyteArray output,
     jint outputOffset, jbyteArray aad, jint aadLen) {
     static const char* functionName = "OpenSSLNativeInterface.CCM_update";
@@ -177,24 +179,9 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
         gslogFunctionEntry(functionName);
     }
 
-    int isFIPS  = (fipsFlag != 0);
-    OpenSSLContext* context = getOrCreateContext(env, isFIPS);
-
-    if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return -1;
-    }
-
-    CipherContext* cipherCtx = (CipherContext*)cipherId;
-
-    if (cipherCtx == NULL || cipherCtx->ctx == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    CipherContext* cipherCtx = NULL;
+    if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
+                               &cipherCtx)) {
         return -1;
     }
 
@@ -208,14 +195,11 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
 #endif
 
     if (aad != NULL && aadLen > 0) {
-        jbyte* aadBytes = (*env)->GetByteArrayElements(env, aad, NULL);
-
+        jbyte* aadBytes = getByteArrayElementsSafe(env, aad, functionName, "AAD");
         if (aadBytes == NULL) {
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get AAD bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -227,9 +211,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process AAD");
             logOpenSSLError("EVP_CipherUpdate(AAD)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -249,20 +231,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
         inputOffset + inputLen > inputLength) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid input offset or length");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* inputBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+    jbyte* inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
     if (inputBytes == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get input bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -273,21 +250,16 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
         cleanupIOArrays(env, input, inputBytes, NULL, NULL, JNI_FALSE);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid parameters or integer overflow");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outputBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outputBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outputBytes == NULL) {
         cleanupIOArrays(env, input, inputBytes, NULL, NULL, JNI_FALSE);
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -300,9 +272,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "Failed to update CCM cipher");
         logOpenSSLError("EVP_CipherUpdate");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -317,21 +287,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1update(
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return outLen;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CCM_encryptFinal
- * Signature: (JJ[BII[BI[BII)I
- */
+//============================================================================
+// CCM_encryptFinal - Finalize CCM encryption and generate authentication tag
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFinal(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId,
     jbyteArray input, jint inputOffset, jint inputLen, jbyteArray output,
     jint outputOffset, jbyteArray aad, jint aadLen, jint tagLen) {
     static const char* functionName = "OpenSSLNativeInterface.CCM_encryptFinal";
@@ -364,9 +330,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "Failed to set CCM plaintext length");
         logOpenSSLError("EVP_CipherUpdate(set plaintext length)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -379,14 +343,11 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
 
     // Process AAD if present
     if (aad != NULL && aadLen > 0) {
-        jbyte* aadBytes = (*env)->GetByteArrayElements(env, aad, NULL);
-
+        jbyte* aadBytes = getByteArrayElementsSafe(env, aad, functionName, "AAD");
         if (aadBytes == NULL) {
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get AAD bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -398,9 +359,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process AAD");
             logOpenSSLError("EVP_CipherUpdate(AAD)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -422,34 +381,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
         outputOffset + requiredOutputSize > outputLength) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Output buffer too small or invalid offset");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outputBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outputBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outputBytes == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
     // Process input if present
     if (inputLen > 0) {
-        jbyte* inputBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+        jbyte* inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
         if (inputBytes == NULL) {
             cleanupIOArrays(env, NULL, NULL, output, outputBytes, JNI_FALSE);
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get input bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -463,9 +414,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process final input");
             logOpenSSLError("EVP_CipherUpdate");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -491,9 +440,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process zero-length plaintext");
             logOpenSSLError("EVP_CipherUpdate(zero-length)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -514,9 +461,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
         throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                               "Failed to finalize CCM cipher");
         logOpenSSLError("EVP_CipherFinal_ex");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -530,9 +475,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
         throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                               "Failed to get CCM tag");
         logOpenSSLError("EVP_CIPHER_CTX_ctrl(GET_TAG)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -558,21 +501,17 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1encryptFin
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return totalOutLen;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CCM_decryptFinal
- * Signature: (JJ[BII[BI[BII)I
- */
+//============================================================================
+// CCM_decryptFinal - Finalize CCM decryption and verify authentication tag
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFinal(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId,
     jbyteArray input, jint inputOffset, jint inputLen, jbyteArray output,
     jint outputOffset, jbyteArray aad, jint aadLen, jint tagLen) {
     static const char* functionName = "OpenSSLNativeInterface.CCM_decryptFinal";
@@ -596,9 +535,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
     if (actualInputLen < 0) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Input length less than tag length");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -618,9 +555,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "Failed to set CCM plaintext length");
         logOpenSSLError("EVP_CipherUpdate(set plaintext length)");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -633,14 +568,11 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
 
     // Process AAD if present
     if (aad != NULL && aadLen > 0) {
-        jbyte* aadBytes = (*env)->GetByteArrayElements(env, aad, NULL);
-
+        jbyte* aadBytes = getByteArrayElementsSafe(env, aad, functionName, "AAD");
         if (aadBytes == NULL) {
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get AAD bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -652,9 +584,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process AAD");
             logOpenSSLError("EVP_CipherUpdate(AAD)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -675,34 +605,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
         outputOffset + actualInputLen > outputLength) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Output buffer too small or invalid offset");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outputBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outputBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outputBytes == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
     // Extract and set the tag for verification
     if (input != NULL && inputLen >= tagLen) {
-        jbyte* inputBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+        jbyte* inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
         if (inputBytes == NULL) {
             cleanupIOArrays(env, NULL, NULL, output, outputBytes, JNI_FALSE);
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get input bytes for tag");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -714,9 +636,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                                   "Failed to set CCM tag");
             logOpenSSLError("EVP_CIPHER_CTX_ctrl(SET_TAG)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -733,15 +653,12 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
 
     // Process ciphertext if present
     if (actualInputLen > 0) {
-        jbyte* inputBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+        jbyte* inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
         if (inputBytes == NULL) {
             cleanupIOArrays(env, NULL, NULL, output, outputBytes, JNI_FALSE);
             throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                                   "Failed to get input bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -755,9 +672,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process final input");
             logOpenSSLError("EVP_CipherUpdate");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -783,9 +698,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process zero-length ciphertext");
             logOpenSSLError("EVP_CipherUpdate(zero-length)");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -810,9 +723,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
             gslogMessage("DETAIL_CCM OpenSSL CCM tag verification failed");
         }
 #endif
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return OPENSSL_TAG_MISMATCH_ERROR;
     }
 
@@ -828,9 +739,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CCM_1decryptFin
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return totalOutLen;
 }

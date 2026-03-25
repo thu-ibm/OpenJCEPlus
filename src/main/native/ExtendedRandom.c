@@ -24,13 +24,13 @@
  */
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1create(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jstring algName) {
-    static const char *functionName = "NativeInterface.EXTRAND_create";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jstring algName) {
+    static const char* functionName = "NativeInterface.EXTRAND_create";
 
-    ICC_CTX      *ockCtx       = (ICC_CTX *)((intptr_t)ockContextId);
-    const char   *algNameChars = NULL;
-    ICC_PRNG     *ockPRNG      = NULL;
-    ICC_PRNG_CTX *ockPRNGCtx   = NULL;
+    ICC_CTX*      ockCtx       = (ICC_CTX*)((intptr_t)ockContextId);
+    const char*   algNameChars = NULL;
+    ICC_PRNG*     ockPRNG      = NULL;
+    ICC_PRNG_CTX* ockPRNGCtx   = NULL;
     SP800_90STATE spState;
     jlong         ockPRNGContextId = 0;
 
@@ -101,13 +101,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1create(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1nextBytes(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPRNGContextId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPRNGContextId,
     jbyteArray bytes) {
-    static const char *functionName = "NativeInterface.EXTRAND_nextBytes";
+    static const char* functionName = "NativeInterface.EXTRAND_nextBytes";
 
-    ICC_CTX       *ockCtx      = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_PRNG_CTX  *ockPRNGCtx  = (ICC_PRNG_CTX *)((intptr_t)ockPRNGContextId);
-    unsigned char *bytesNative = NULL;
+    ICC_CTX*       ockCtx      = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_PRNG_CTX*  ockPRNGCtx  = (ICC_PRNG_CTX*)((intptr_t)ockPRNGContextId);
+    unsigned char* bytesNative = NULL;
     jboolean       isCopy;
     jint           size;
     SP800_90STATE  spState;
@@ -157,13 +157,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1nextBytes(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1setSeed(
-    JNIEnv *env, jclass thisObj, jlong contextId, jlong ockPRNGContextId,
+    JNIEnv* env, jclass thisObj, jlong contextId, jlong ockPRNGContextId,
     jbyteArray seed) {
-    static const char *functionName = "NativeInterface.EXTRAND_setSeed";
+    static const char* functionName = "NativeInterface.EXTRAND_setSeed";
 
-    ICC_CTX       *ockCtx     = (ICC_CTX *)((intptr_t)contextId);
-    ICC_PRNG_CTX  *ockPRNGCtx = (ICC_PRNG_CTX *)((intptr_t)ockPRNGContextId);
-    unsigned char *seedNative = NULL;
+    ICC_CTX*       ockCtx     = (ICC_CTX*)((intptr_t)contextId);
+    ICC_PRNG_CTX*  ockPRNGCtx = (ICC_PRNG_CTX*)((intptr_t)ockPRNGContextId);
+    unsigned char* seedNative = NULL;
     jboolean       isCopy;
     jint           size;
     SP800_90STATE  spState;
@@ -212,11 +212,11 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1setSeed(
  */
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_EXTRAND_1delete(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPRNGContextId) {
-    static const char *functionName = "NativeInterface.EXTRAND_delete";
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPRNGContextId) {
+    static const char* functionName = "NativeInterface.EXTRAND_delete";
 
-    ICC_CTX      *ockCtx     = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_PRNG_CTX *ockPRNGCtx = (ICC_PRNG_CTX *)((intptr_t)ockPRNGContextId);
+    ICC_CTX*      ockCtx     = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_PRNG_CTX* ockPRNGCtx = (ICC_PRNG_CTX*)((intptr_t)ockPRNGContextId);
 
     if (debug) {
         gslogFunctionEntry(functionName);

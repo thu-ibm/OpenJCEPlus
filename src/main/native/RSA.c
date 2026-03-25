@@ -26,15 +26,15 @@ static int rsaPaddingMap(int rsaPaddingId);
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1encrypt(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
     jint rsaPaddingId, jbyteArray plaintext, jint plaintextOff,
     jint plaintextLen, jbyteArray ciphertext, jint ciphertextOff) {
-    static const char *functionName = "NativeInterface.RSA_public_encrypt";
+    static const char* functionName = "NativeInterface.RSA_public_encrypt";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA           = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA           = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     jboolean       isCopy;
 
@@ -58,9 +58,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1encrypt
         }
         return outLen;
     }
-    plaintextNative  = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative  = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
     if (NULL == plaintextNative || NULL == ciphertextNative) {
 #ifdef DEBUG_RSA_DETAIL
@@ -75,7 +75,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1encrypt
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Data to encrypt - %d bytes: ",
                                (int)plaintextLen);
-            gslogMessageHex((char *)plaintextNative, 0, (int)plaintextLen, 0, 0,
+            gslogMessageHex((char*)plaintextNative, 0, (int)plaintextLen, 0, 0,
                             NULL);
         }
 #endif
@@ -97,7 +97,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1encrypt
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Encrypted data - %d bytes: ",
                                outLen);
-            gslogMessageHex((char *)ciphertextNative + (int)ciphertextOff, 0,
+            gslogMessageHex((char*)ciphertextNative + (int)ciphertextOff, 0,
                             outLen, 0, 0, NULL);
         }
 #endif
@@ -130,16 +130,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1encrypt
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1encrypt(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
     jint rsaPaddingId, jbyteArray plaintext, jint plaintextOff,
     jint plaintextLen, jbyteArray ciphertext, jint ciphertextOff,
     jboolean convertKey) {
-    static const char *functionName = "NativeInterface.RSA_private_encrypt";
+    static const char* functionName = "NativeInterface.RSA_private_encrypt";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA           = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA           = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     jboolean       isCopy;
 
@@ -163,9 +163,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1encryp
 #endif
     }
 
-    plaintextNative  = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative  = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
     if (NULL == plaintextNative || NULL == ciphertextNative) {
 #ifdef DEBUG_RSA_DETAIL
@@ -180,7 +180,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1encryp
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER  Data to encrypt - %d bytes: ",
                                (int)plaintextLen);
-            gslogMessageHex((char *)plaintextNative, 0, (int)plaintextLen, 0, 0,
+            gslogMessageHex((char*)plaintextNative, 0, (int)plaintextLen, 0, 0,
                             NULL);
         }
 #endif
@@ -207,7 +207,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1encryp
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Encrypted data - %d bytes: ",
                                outLen);
-            gslogMessageHex((char *)ciphertextNative + (int)ciphertextOff, 0,
+            gslogMessageHex((char*)ciphertextNative + (int)ciphertextOff, 0,
                             outLen, 0, 0, NULL);
         }
 #endif
@@ -237,15 +237,15 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1encryp
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1decrypt(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
     jint rsaPaddingId, jbyteArray ciphertext, jint ciphertextOff,
     jint ciphertextLen, jbyteArray plaintext, jint plaintextOff) {
-    static const char *functionName = "NativeInterface.RSA_public_decrypt";
+    static const char* functionName = "NativeInterface.RSA_public_decrypt";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA           = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA           = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     jboolean       isCopy;
 
@@ -268,9 +268,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1decrypt
         }
         return outLen;
     }
-    plaintextNative  = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative  = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
     if (NULL == plaintextNative || NULL == ciphertextNative) {
 #ifdef DEBUG_RSA_DETAIL
@@ -285,7 +285,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1decrypt
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Data to decrypt - %d bytes: ",
                                (int)ciphertextLen);
-            gslogMessageHex((char *)ciphertextNative, 0, (int)ciphertextLen, 0,
+            gslogMessageHex((char*)ciphertextNative, 0, (int)ciphertextLen, 0,
                             0, NULL);
         }
 #endif
@@ -308,7 +308,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1decrypt
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Decrypted data - %d bytes: ",
                                outLen);
-            gslogMessageHex((char *)plaintextNative, 0, outLen, 0, 0, NULL);
+            gslogMessageHex((char*)plaintextNative, 0, outLen, 0, 0, NULL);
         }
 #endif
     }
@@ -337,16 +337,16 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1public_1decrypt
  */
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1decrypt(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong rsaKeyId,
     jint rsaPaddingId, jbyteArray ciphertext, jint ciphertextOff,
     jint ciphertextLen, jbyteArray plaintext, jint plaintextOff,
     jboolean convertKey) {
-    static const char *functionName = "NativeInterface.RSA_private_decrypt";
+    static const char* functionName = "NativeInterface.RSA_private_decrypt";
 
-    ICC_CTX       *ockCtx           = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_RSA       *ockRSA           = (ICC_RSA *)((intptr_t)rsaKeyId);
-    unsigned char *plaintextNative  = NULL;
-    unsigned char *ciphertextNative = NULL;
+    ICC_CTX*       ockCtx           = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_RSA*       ockRSA           = (ICC_RSA*)((intptr_t)rsaKeyId);
+    unsigned char* plaintextNative  = NULL;
+    unsigned char* ciphertextNative = NULL;
     int            outLen           = 0;
     jboolean       isCopy;
 
@@ -369,9 +369,9 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1decryp
         }
         return outLen;
     }
-    plaintextNative  = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    plaintextNative  = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, plaintext, &isCopy));
-    ciphertextNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    ciphertextNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, ciphertext, &isCopy));
     if (NULL == plaintextNative || NULL == ciphertextNative) {
 #ifdef DEBUG_RSA_DETAIL
@@ -386,7 +386,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1decryp
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Data to decrypt - %d bytes: ",
                                (int)ciphertextLen);
-            gslogMessageHex((char *)ciphertextNative, 0, (int)ciphertextLen, 0,
+            gslogMessageHex((char*)ciphertextNative, 0, (int)ciphertextLen, 0,
                             0, NULL);
         }
 #endif
@@ -412,7 +412,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_RSACIPHER_1private_1decryp
         if (debug) {
             gslogMessagePrefix("DETAIL_RSACIPHER Decrypted data - %d bytes: ",
                                outLen);
-            gslogMessageHex((char *)plaintextNative, 0, outLen, 0, 0, NULL);
+            gslogMessageHex((char*)plaintextNative, 0, outLen, 0, 0, NULL);
         }
 #endif
     }

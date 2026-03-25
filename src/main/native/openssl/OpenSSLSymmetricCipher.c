@@ -6,6 +6,23 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file OpenSSLSymmetricCipher.c
+ * @brief Implementation of symmetric cipher operations using OpenSSL.
+ *
+ * This file implements symmetric encryption and decryption for various
+ * algorithms and modes using OpenSSL's EVP interface. Supports:
+ * - Block ciphers: AES, DES, Triple DES
+ * - Stream ciphers: ChaCha20
+ * - Modes: ECB, CBC, CTR, OFB, CFB, and others
+ * - Padding: PKCS#5/PKCS#7 padding support
+ * - Context reuse: Efficient reinitialization for multiple operations
+ *
+ * The implementation provides streaming operations (update/final pattern)
+ * for processing data in chunks, which is essential for large files and
+ * memory-constrained environments.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,40 +35,27 @@
 #include "OpenSSLContext.h"
 #include "OpenSSLExceptionCodes.h"
 #include "OpenSSLUtils.h"
-#include "OpenSSLLogging.h"
+#include "OpenSSLHelpers.h"
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_create
- * Signature: (JLjava/lang/String;)J
- */
+//============================================================================
+// CIPHER_create - Create a new cipher context
+//============================================================================
 JNIEXPORT jlong JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jstring cipherName) {
+    JNIEnv* env, jclass cls, jint fipsFlag, jstring cipherName) {
     static const char* functionName = "OpenSSLNativeInterface.CIPHER_create";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    int isFIPS  = (fipsFlag != 0);
-    OpenSSLContext* context = getOrCreateContext(env, isFIPS);
-
-    if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    // Validate and get context
+    OpenSSLContext* context = NULL;
+    if (!validateAndGetContext(env, fipsFlag, functionName, &context)) {
+        logFunctionExit(functionName);
         return -1;
     }
 
-    const char* name = (*env)->GetStringUTFChars(env, cipherName, NULL);
-
+    const char* name = getStringUTFCharsSafe(env, cipherName, functionName, "cipher name");
     if (name == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get cipher name");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return -1;
     }
 
@@ -62,35 +66,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create(
     }
 #endif
 
-    CipherContext* cipherCtx = (CipherContext*)malloc(sizeof(CipherContext));
+    CipherContext* cipherCtx = (CipherContext*)mallocSafe(
+        env, sizeof(CipherContext), "Failed to allocate memory for cipher context");
 
     if (cipherCtx == NULL) {
-        (*env)->ReleaseStringUTFChars(env, cipherName, name);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to allocate memory for cipher context");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupStringUTFChars(env, cipherName, name);
+        logFunctionExit(functionName);
         return -1;
     }
 
-    memset(cipherCtx, 0, sizeof(CipherContext));
+    // Memory already zeroed by mallocSafe
     cipherCtx->key       = NULL;
     cipherCtx->iv        = NULL;
     cipherCtx->blockSize = 0;
     cipherCtx->tagLen    = 0;
 
-    cipherCtx->ctx = EVP_CIPHER_CTX_new();
-
+    cipherCtx->ctx = createCipherCtxSafe(env, functionName, OPENSSL_CIPHER_INIT_FAILED,
+                                         "Failed to create cipher context");
     if (cipherCtx->ctx == NULL) {
         free(cipherCtx);
-        (*env)->ReleaseStringUTFChars(env, cipherName, name);
-        throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
-                              "Failed to create cipher context");
-        logOpenSSLError("EVP_CIPHER_CTX_new");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupStringUTFChars(env, cipherName, name);
         return -1;
     }
 
@@ -99,17 +94,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create(
     if (cipherCtx->cipher == NULL) {
         EVP_CIPHER_CTX_free(cipherCtx->ctx);
         free(cipherCtx);
-        (*env)->ReleaseStringUTFChars(env, cipherName, name);
+        cleanupStringUTFChars(env, cipherName, name);
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to fetch cipher");
         logOpenSSLError("EVP_CIPHER_fetch");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    (*env)->ReleaseStringUTFChars(env, cipherName, name);
+    cleanupStringUTFChars(env, cipherName, name);
 
 #ifdef DEBUG_CIPHER_DETAIL
     if (debug) {
@@ -118,27 +111,21 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1create(
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return (jlong)cipherCtx;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_init
- * Signature: (JJII[B[B)V
- */
+//============================================================================
+// CIPHER_init - Initialize cipher with key and IV
+//============================================================================
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jint encrypt,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jint encrypt,
     jint paddingId, jbyteArray key, jbyteArray iv) {
     static const char* functionName = "OpenSSLNativeInterface.CIPHER_init";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
@@ -146,27 +133,13 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
         return;
     }
 
-    if (cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return;
-    }
-
     cipherCtx->padding   = paddingId;
     cipherCtx->encrypt   = encrypt;
     cipherCtx->blockSize = EVP_CIPHER_get_block_size(cipherCtx->cipher);
 
-    jbyte* keyBytes = (*env)->GetByteArrayElements(env, key, NULL);
-
+    jbyte* keyBytes = getByteArrayElementsSafe(env, key, functionName, "key");
     if (keyBytes == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get key bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -177,15 +150,12 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
         free(cipherCtx->key);
     }
     cipherCtx->keyLen = keyLen;
-    cipherCtx->key    = (unsigned char*)malloc(keyLen);
+    cipherCtx->key    = (unsigned char*)mallocSafe(env, keyLen,
+                                                    "Failed to allocate memory for key");
 
     if (cipherCtx->key == NULL) {
-        (*env)->ReleaseByteArrayElements(env, key, keyBytes, JNI_ABORT);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to allocate memory for key");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupByteArray(env, key, keyBytes, JNI_ABORT);
+        logFunctionExit(functionName);
         return;
     }
     memcpy(cipherCtx->key, keyBytes, keyLen);
@@ -194,23 +164,25 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
     jsize  ivLen   = 0;
 
     if (iv != NULL) {
-        ivBytes = (*env)->GetByteArrayElements(env, iv, NULL);
-        ivLen   = (*env)->GetArrayLength(env, iv);
+        ivBytes = getByteArrayElementsSafe(env, iv, functionName, "IV");
+        if (ivBytes == NULL) {
+            cleanupByteArray(env, key, keyBytes, JNI_ABORT);
+            logFunctionExit(functionName);
+            return;
+        }
+        ivLen = (*env)->GetArrayLength(env, iv);
 
         if (cipherCtx->iv != NULL) {
             memset(cipherCtx->iv, 0, cipherCtx->ivLen);
             free(cipherCtx->iv);
         }
         cipherCtx->ivLen = ivLen;
-        cipherCtx->iv    = (unsigned char*)malloc(ivLen);
+        cipherCtx->iv    = (unsigned char*)mallocSafe(env, ivLen,
+                                                       "Failed to allocate memory for IV");
 
         if (cipherCtx->iv == NULL) {
             cleanupByteArrays(env, key, keyBytes, iv, ivBytes);
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Failed to allocate memory for IV");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return;
         }
         memcpy(cipherCtx->iv, ivBytes, ivLen);
@@ -241,51 +213,27 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1init(
         throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                               "Failed to initialize cipher");
         logOpenSSLError("EVP_CipherInit_ex");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_getBlockSize
- * Signature: (JJ)I
- */
+//============================================================================
+// CIPHER_getBlockSize - Get cipher block size
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getBlockSize(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId) {
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_getBlockSize";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    int isFIPS  = (fipsFlag != 0);
-    OpenSSLContext* context = getOrCreateContext(env, isFIPS);
-
-    if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return -1;
-    }
-
-    CipherContext* cipherCtx = (CipherContext*)cipherId;
-
-    if (cipherCtx == NULL || cipherCtx->ctx == NULL ||
-        cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    CipherContext* cipherCtx = NULL;
+    if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
+                               &cipherCtx)) {
         return -1;
     }
 
@@ -297,47 +245,25 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getBloc
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return blockSize;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_getKeyLength
- * Signature: (JJ)I
- */
+//============================================================================
+// CIPHER_getKeyLength - Get cipher key length
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getKeyLength(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId) {
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_getKeyLength";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    int isFIPS  = (fipsFlag != 0);
-    OpenSSLContext* context = getOrCreateContext(env, isFIPS);
-
-    if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return -1;
-    }
-
-    CipherContext* cipherCtx = (CipherContext*)cipherId;
-
-    if (cipherCtx == NULL || cipherCtx->ctx == NULL ||
-        cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    CipherContext* cipherCtx = NULL;
+    if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
+                               &cipherCtx)) {
         return -1;
     }
 
@@ -349,47 +275,24 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getKeyL
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
-
+    logFunctionExit(functionName);
     return keyLength;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_getIVLength
- * Signature: (JJ)I
- */
+//============================================================================
+// CIPHER_getIVLength - Get cipher IV length
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getIVLength(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId) {
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_getIVLength";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
-    int isFIPS  = (fipsFlag != 0);
-    OpenSSLContext* context = getOrCreateContext(env, isFIPS);
-
-    if (context == NULL) {
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
-        return -1;
-    }
-
-    CipherContext* cipherCtx = (CipherContext*)cipherId;
-
-    if (cipherCtx == NULL || cipherCtx->ctx == NULL ||
-        cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    CipherContext* cipherCtx = NULL;
+    if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
+                               &cipherCtx)) {
         return -1;
     }
 
@@ -401,42 +304,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1getIVLe
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
-
+    logFunctionExit(functionName);
     return ivLength;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_encryptUpdate
- * Signature: (JJ[BII[BIIZ)I
- */
+//============================================================================
+// CIPHER_encryptUpdate - Encrypt data (streaming operation)
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptUpdate(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jbyteArray input,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jbyteArray input,
     jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_encryptUpdate";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
                                &cipherCtx)) {
-        return -1;
-    }
-
-    if (cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return -1;
     }
 
@@ -451,9 +338,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                                   "Failed to re-initialize cipher for reuse");
             logOpenSSLError("EVP_EncryptInit_ex");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
     }
@@ -462,45 +347,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
     jsize inputLength  = (*env)->GetArrayLength(env, input);
     jsize outputLength = (*env)->GetArrayLength(env, output);
 
-    if (inputOffset < 0 || inputLen < 0 ||
-        inputOffset + inputLen > inputLength) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid input parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    if (!validateOffsetAndLength(env, inputLength, inputOffset, inputLen, functionName, "input")) {
+        logFunctionExit(functionName);
         return -1;
     }
 
-    if (outputOffset < 0 || outputOffset >= outputLength) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid output parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    if (!validateOutputBuffer(env, output, outputOffset, 0, functionName,
+                              "Invalid output parameters")) {
         return -1;
     }
 
-    jbyte* inBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+    jbyte* inBytes = getByteArrayElementsSafe(env, input, functionName, "input");
     if (inBytes == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get input bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outBytes == NULL) {
         cleanupIOArrays(env, input, inBytes, NULL, NULL, JNI_FALSE);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -513,9 +379,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "Failed to update cipher");
         logOpenSSLError("EVP_EncryptUpdate");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -529,42 +393,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
-
+    logFunctionExit(functionName);
     return outLen;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_decryptUpdate
- * Signature: (JJ[BII[BIIZ)I
- */
+//============================================================================
+// CIPHER_decryptUpdate - Decrypt data (streaming operation)
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptUpdate(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jbyteArray input,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jbyteArray input,
     jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_decryptUpdate";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
                                &cipherCtx)) {
-        return -1;
-    }
-
-    if (cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return -1;
     }
 
@@ -579,9 +427,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                                   "Failed to re-initialize cipher for reuse");
             logOpenSSLError("EVP_DecryptInit_ex");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
     }
@@ -593,41 +439,25 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
         inputOffset + inputLen > inputLength) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid input parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    if (outputOffset < 0 || outputOffset >= outputLength) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid output parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    if (!validateOutputBuffer(env, output, outputOffset, 0, functionName,
+                              "Invalid output parameters")) {
         return -1;
     }
 
-    jbyte* inBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+    jbyte* inBytes = getByteArrayElementsSafe(env, input, functionName, "input");
     if (inBytes == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get input bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outBytes == NULL) {
-        cleanupIOArrays(env, input, inBytes, NULL, NULL, JNI_FALSE);
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        cleanupByteArray(env, input, inBytes, JNI_ABORT);
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -640,9 +470,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
         throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                               "Failed to update cipher");
         logOpenSSLError("EVP_DecryptUpdate");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -3;
     }
 
@@ -656,42 +484,26 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
-
+    logFunctionExit(functionName);
     return outLen;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_encryptFinal
- * Signature: (JJ[BII[BIIZ)I
- */
+//============================================================================
+// CIPHER_encryptFinal - Finalize encryption and apply padding
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encryptFinal(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jbyteArray input,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jbyteArray input,
     jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_encryptFinal";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
                                &cipherCtx)) {
-        return -1;
-    }
-
-    if (cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return -1;
     }
 
@@ -706,21 +518,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                                   "Failed to re-initialize cipher for reuse");
             logOpenSSLError("EVP_EncryptInit_ex");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
     }
 
     jsize outputLength = (*env)->GetArrayLength(env, output);
 
-    if (outputOffset < 0 || outputOffset >= outputLength) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid output parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    if (!validateOutputBuffer(env, output, outputOffset, 0, functionName,
+                              "Invalid output parameters")) {
         return -1;
     }
 
@@ -729,36 +535,21 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
     if (input != NULL && inputLen > 0) {
         jsize inputLength = (*env)->GetArrayLength(env, input);
 
-        if (inputOffset < 0 || inputLen < 0 ||
-            inputOffset + inputLen > inputLength) {
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Invalid input parameters");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+        if (!validateOffsetAndLength(env, inputLength, inputOffset, inputLen, functionName, "input")) {
+            logFunctionExit(functionName);
             return -1;
         }
 
-        jbyte* inBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+        jbyte* inBytes = getByteArrayElementsSafe(env, input, functionName, "input");
         if (inBytes == NULL) {
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Failed to get input bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
-        jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+        jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
         if (outBytes == NULL) {
             cleanupIOArrays(env, input, inBytes, NULL, NULL, JNI_FALSE);
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Failed to get output bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -772,9 +563,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to update cipher");
             logOpenSSLError("EVP_EncryptUpdate");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -783,14 +572,9 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
         cleanupIOArrays(env, input, inBytes, output, outBytes, JNI_TRUE);
     }
 
-    jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outBytes == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -804,9 +588,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
         throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                               "Failed to finalize cipher");
         logOpenSSLError("EVP_EncryptFinal_ex");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -2;
     }
 
@@ -823,42 +605,27 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1encrypt
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return totalOutLen;
 }
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_decryptFinal
- * Signature: (JJ[BII[BIIZ)I
- */
+//============================================================================
+// CIPHER_decryptFinal - Finalize decryption and remove padding
+//============================================================================
 JNIEXPORT jint JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decryptFinal(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId, jbyteArray input,
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId, jbyteArray input,
     jint inputOffset, jint inputLen, jbyteArray output, jint outputOffset,
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_decryptFinal";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, fipsFlag, cipherId, functionName,
                                &cipherCtx)) {
-        return -1;
-    }
-
-    if (cipherCtx->cipher == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
         return -1;
     }
 
@@ -873,21 +640,15 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_INIT_FAILED,
                                   "Failed to re-initialize cipher for reuse");
             logOpenSSLError("EVP_DecryptInit_ex");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
     }
 
     jsize outputLength = (*env)->GetArrayLength(env, output);
 
-    if (outputOffset < 0 || outputOffset >= outputLength) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid output parameters");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+    if (!validateOutputBuffer(env, output, outputOffset, 0, functionName,
+                              "Invalid output parameters")) {
         return -1;
     }
 
@@ -896,36 +657,21 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
     if (input != NULL && inputLen > 0) {
         jsize inputLength = (*env)->GetArrayLength(env, input);
 
-        if (inputOffset < 0 || inputLen < 0 ||
-            inputOffset + inputLen > inputLength) {
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Invalid input parameters");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+        if (!validateOffsetAndLength(env, inputLength, inputOffset, inputLen, functionName, "input")) {
+            logFunctionExit(functionName);
             return -1;
         }
 
-        jbyte* inBytes = (*env)->GetByteArrayElements(env, input, NULL);
-
+        jbyte* inBytes = getByteArrayElementsSafe(env, input, functionName, "input");
         if (inBytes == NULL) {
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Failed to get input bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
-        jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+        jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
         if (outBytes == NULL) {
             cleanupIOArrays(env, input, inBytes, NULL, NULL, JNI_FALSE);
-            throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                                  "Failed to get output bytes");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -1;
         }
 
@@ -939,9 +685,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
             throwOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to update cipher");
             logOpenSSLError("EVP_DecryptUpdate");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -3;
         }
 
@@ -950,14 +694,9 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
         cleanupIOArrays(env, input, inBytes, output, outBytes, JNI_TRUE);
     }
 
-    jbyte* outBytes = (*env)->GetByteArrayElements(env, output, NULL);
-
+    jbyte* outBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outBytes == NULL) {
-        throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return -1;
     }
 
@@ -974,17 +713,13 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
         if (ERR_GET_REASON(err) == EVP_R_BAD_DECRYPT) {
             throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                                   "Bad padding");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -5;
         } else {
             throwOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
                                   "Failed to finalize cipher");
             logOpenSSLError("EVP_DecryptFinal_ex");
-            if (debug) {
-                gslogFunctionExit(functionName);
-            }
+            logFunctionExit(functionName);
             return -4;
         }
     }
@@ -1002,34 +737,27 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1decrypt
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return totalOutLen;
 }
 
-/* Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    CIPHER_delete
- * Signature: (JJ)V
- */
+//============================================================================
+// CIPHER_delete - Delete cipher context and free resources
+//============================================================================
 JNIEXPORT void JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1delete(
-    JNIEnv* env, jclass cls, jlong fipsFlag, jlong cipherId) {
+    JNIEnv* env, jclass cls, jint fipsFlag, jlong cipherId) {
     static const char* functionName = "OpenSSLNativeInterface.CIPHER_delete";
 
-    if (debug) {
-        gslogFunctionEntry(functionName);
-    }
+    logFunctionEntry(functionName);
 
     CipherContext* cipherCtx = (CipherContext*)cipherId;
 
     if (cipherCtx == NULL) {
         throwOpenSSLException(env, OPENSSL_UNSPECIFIED,
                               "Invalid cipher context ID");
-        if (debug) {
-            gslogFunctionExit(functionName);
-        }
+        logFunctionExit(functionName);
         return;
     }
 
@@ -1044,22 +772,23 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_CIPHER_1delete(
 
     if (cipherCtx->cipher != NULL) {
         EVP_CIPHER_free((EVP_CIPHER*)cipherCtx->cipher);
+        cipherCtx->cipher = NULL;
     }
 
     if (cipherCtx->ctx != NULL) {
         EVP_CIPHER_CTX_free(cipherCtx->ctx);
+        cipherCtx->ctx = NULL;
     }
-
-    free(cipherCtx);
 
 #ifdef DEBUG_CIPHER_DETAIL
     if (debug) {
+        // Log before free() to avoid use-after-free
         gslogMessage("DETAIL_CIPHER OpenSSL Deleted cipher context %p",
                      cipherCtx);
     }
 #endif
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    free(cipherCtx);
+
+    logFunctionExit(functionName);
 }

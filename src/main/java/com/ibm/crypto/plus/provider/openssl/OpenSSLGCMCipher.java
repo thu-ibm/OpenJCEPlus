@@ -89,7 +89,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
             throws OpenSSLException {
         this.isFIPS = isFIPS;
         // Pass FIPS flag as contextId (0=non-FIPS, 1=FIPS)
-        long fipsFlag = isFIPS ? 1L : 0L;
+        int fipsFlag = isFIPS ? 1 : 0;
         this.opensslCipherId = OpenSSLNativeInterface.CIPHER_create(fipsFlag, cipherName);
     }
 
@@ -177,7 +177,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
         }
 
         // Initialize the cipher with GCM mode
-        long fipsFlag = isFIPS ? 1L : 0L;
+        int fipsFlag = isFIPS ? 1 : 0;
         OpenSSLNativeInterface.GCM_init(fipsFlag, opensslCipherId,
                 isEncrypt ? 1 : 0, key, iv, tagLen);
 
@@ -253,7 +253,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
             if (opensslCipherId == 0L) {
                 throw new OpenSSLException(badIdMsg);
             }
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             keyLength = OpenSSLNativeInterface.CIPHER_getKeyLength(fipsFlag, opensslCipherId);
         }
         return keyLength;
@@ -270,7 +270,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
             if (opensslCipherId == 0L) {
                 throw new OpenSSLException(badIdMsg);
             }
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             ivLength = OpenSSLNativeInterface.CIPHER_getIVLength(fipsFlag, opensslCipherId);
         }
         return ivLength;
@@ -344,7 +344,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
                 this.aadProcessed = true; // Mark as processed
             }
 
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             int outLen = OpenSSLNativeInterface.GCM_update(fipsFlag, opensslCipherId,
                     encrypting ? 1 : 0, input, inputOffset, inputLen, output, outputOffset,
                     aadData, aadLen);
@@ -440,7 +440,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
                 aadLen = 0;
             }
 
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             int outLen;
             if (encrypting) {
                 outLen = OpenSSLNativeInterface.GCM_encryptFinal(fipsFlag, opensslCipherId,
@@ -496,7 +496,7 @@ public final class OpenSSLGCMCipher implements AutoCloseable {
     @Override
     public synchronized void close() throws OpenSSLException {
         if (opensslCipherId != 0) {
-            long fipsFlag = isFIPS ? 1L : 0L;
+            int fipsFlag = isFIPS ? 1 : 0;
             OpenSSLNativeInterface.CIPHER_delete(fipsFlag, opensslCipherId);
             opensslCipherId = 0;
         }

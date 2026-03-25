@@ -708,54 +708,54 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
         aliases = new String[] {"HMACwithMD5"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacMD5",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacMD5", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacMD5", aliases));
 
         aliases = new String[] {"OID.1.2.840.113549.2.7", "1.2.840.113549.2.7", "HMACwithSHA1",
                 "HMACwithSHA-1", "HmacSHA-1"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA1",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA1", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA1", aliases));
 
         aliases = new String[] {"OID.1.2.840.113549.2.8", "1.2.840.113549.2.8", "HMACwithSHA224",
                 "HMACwithSHA-224", "HmacSHA-224"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA224",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA224", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA224", aliases));
 
         aliases = new String[] {
 
                 "OID.1.2.840.113549.2.9", "1.2.840.113549.2.9", "HMACwithSHA256", // Added per tag [IBM-ALIASES]/ in DesignNotes.txt
                 "HMACwithSHA-256", "HmacSHA-256"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA256",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA256", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA256", aliases));
 
         aliases = new String[] {"OID.1.2.840.113549.2.10", "1.2.840.113549.2.10", "HMACwithSHA384", // Added per tag [IBM-ALIASES]    in DesignNotes.txt
                 "HMACwithSHA-384", "HmacSHA-384"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA384",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA384", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA384", aliases));
 
         aliases = new String[] {"OID.1.2.840.113549.2.11", "1.2.840.113549.2.11", "HMACwithSHA512",
                 "HMACwithSHA-512", "HmacSHA-512"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA512",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA512", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA512", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.13", "2.16.840.1.101.3.4.2.13",
                 "HMACwithSHA3-224", "HmacSHA3-224"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA3-224",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA3_224", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA3_224", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.14", "2.16.840.1.101.3.4.2.14",
                 "HMACwithSHA3-256", "HmacSHA3-256"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA3-256",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA3_256", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA3_256", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.15", "2.16.840.1.101.3.4.2.15",
                 "HMACwithSHA3-384", "HmacSHA3-384"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA3-384",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA3_384", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA3_384", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.16", "2.16.840.1.101.3.4.2.16",
                 "HMACwithSHA3-512", "HmacSHA3-512"};
         putService(new OpenJCEPlusService(jce, "MAC", "HmacSHA3-512",
-                "com.ibm.crypto.plus.provider.HmacCore$HmacSHA3_512", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLHMACWrapper$HmacSHA3_512", aliases));
 
         if (allowLegacyHKDF) {
             /* =======================================================================
@@ -798,61 +798,61 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
          */
         aliases = null;
         putService(new OpenJCEPlusService(jce, "MessageDigest", "MD5",
-                "com.ibm.crypto.plus.provider.MessageDigest$MD5", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$MD5", aliases));
 
         aliases = new String[] {"SHA", "SHA1", "OID.1.3.14.3.2.26", "1.3.14.3.2.26"};
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-1",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA1", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA1", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.4", "2.16.840.1.101.3.4.2.4", "SHA224"};
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-224",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA224", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA224", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.1", "2.16.840.1.101.3.4.2.1", "SHA2",
                 "SHA-2", "SHA256"};
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-256",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA256", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA256", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.2", "2.16.840.1.101.3.4.2.2", "SHA3",
                 "SHA-3", "SHA384"};
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-384",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA384", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA384", aliases));
 
         aliases = new String[] {"OID.2.16.840.1.101.3.4.2.3", "2.16.840.1.101.3.4.2.3", "SHA5",
                 "SHA-5", "SHA512"};
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-512",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA512", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA512", aliases));
 
         // SHA512-224
         aliases = new String[] {"SHA512/224", "OID.2.16.840.1.101.3.4.2.5",
                 "2.16.840.1.101.3.4.2.5", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-512/224",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA512_224", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA512_224", aliases));
 
         // SHA512-256
         aliases = new String[] {"SHA512/256", "OID.2.16.840.1.101.3.4.2.6",
                 "2.16.840.1.101.3.4.2.6", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA-512/256",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA512_256", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA512_256", aliases));
 
         //SHA3 Hashes
 
         aliases = new String[] {"SHA3-224", "OID.2.16.840.1.101.3.4.2.7",
                 "2.16.840.1.101.3.4.2.7", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA3-224",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA3_224", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA3_224", aliases));
         aliases = new String[] {"SHA3-256", "OID.2.16.840.1.101.3.4.2.8",
                 "2.16.840.1.101.3.4.2.8", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA3-256",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA3_256", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA3_256", aliases));
         aliases = new String[] {"SHA3-384", "OID.2.16.840.1.101.3.4.2.9",
                 "2.16.840.1.101.3.4.2.9", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA3-384",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA3_384", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA3_384", aliases));
         aliases = new String[] {"SHA3-512", "OID.2.16.840.1.101.3.4.2.10",
                 "2.16.840.1.101.3.4.2.10", };
         putService(new OpenJCEPlusService(jce, "MessageDigest", "SHA3-512",
-                "com.ibm.crypto.plus.provider.MessageDigest$SHA3_512", aliases));
+                "com.ibm.crypto.plus.provider.OpenSSLMessageDigestWrapper$SHA3_512", aliases));
 
         /* =======================================================================
          * PQC key encapsulation mechanisms

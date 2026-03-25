@@ -6,6 +6,15 @@
  * this code, including the "Classpath" Exception described therein.
  */
 
+/**
+ * @file BuildDate.c
+ * @brief Provides build date information for the OpenSSL native library.
+ *
+ * This file implements functionality to retrieve the build date and time
+ * of the native library, which can be useful for version tracking and
+ * debugging purposes.
+ */
+
 #include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +24,26 @@
 #include "OpenSSLLogging.h"
 #include <stdint.h>
 
-/*
- * Class:     com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface
- * Method:    getLibraryBuildDate
- * Signature: ()Ljava/lang/String;
+/**
+ * Retrieves the build date and time of the native library.
+ *
+ * This function returns a string containing the build date and time of the
+ * native library. The date is determined at compile time using preprocessor
+ * macros in the following priority:
+ * 1. BUILD_DATE macro if defined
+ * 2. __DATE__ and __TIME__ macros if available
+ * 3. __DATE__ macro only if __TIME__ is not available
+ * 4. "<UNKNOWN>" if no date information is available
+ *
+ * On z/OS (MVS), the string is converted to ISO8859-1 encoding.
+ *
+ * @param env The JNI environment pointer
+ * @param thisObj The class object (unused)
+ * @return A Java String containing the build date, or NULL if allocation fails
  */
+//============================================================================
+// getLibraryBuildDate - Get the build date and time of the native library
+//============================================================================
 JNIEXPORT jstring JNICALL
 Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getLibraryBuildDate(
     JNIEnv* env, jclass thisObj) {
@@ -54,9 +78,7 @@ Java_com_ibm_crypto_plus_provider_openssl_OpenSSLNativeInterface_getLibraryBuild
         retValue = (*env)->NewStringUTF(env, buildDateString);
     }
 
-    if (debug) {
-        gslogFunctionExit(functionName);
-    }
+    logFunctionExit(functionName);
 
     return retValue;
 }

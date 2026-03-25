@@ -25,16 +25,16 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digest,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digest,
     jlong dsaKeyId) {
-    static const char *functionName = "NativeInterface.DSANONE_SIGNATURE_sign";
+    static const char* functionName = "NativeInterface.DSANONE_SIGNATURE_sign";
 
-    ICC_CTX       *ockCtx            = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA            = (ICC_DSA *)((intptr_t)dsaKeyId);
-    unsigned char *digestBytesNative = NULL;
-    unsigned char *sigBytesLocal     = NULL;
+    ICC_CTX*       ockCtx            = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA            = (ICC_DSA*)((intptr_t)dsaKeyId);
+    unsigned char* digestBytesNative = NULL;
+    unsigned char* sigBytesLocal     = NULL;
     jbyteArray     sigBytes          = NULL;
-    unsigned char *sigBytesNative    = NULL;
+    unsigned char* sigBytesNative    = NULL;
     jboolean       isCopy            = 0;
     int            sigLen            = 0;
     unsigned int   outLen            = 0;
@@ -58,7 +58,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
         return retSigBytes;
     }
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digest, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DSANONE_DETAIL
@@ -84,7 +84,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
             ockCheckStatus(ockCtx);
             throwOCKException(env, 0, "ICC_DSA_size failed");
         } else {
-            sigBytesLocal = (unsigned char *)malloc(sigLen);
+            sigBytesLocal = (unsigned char*)malloc(sigLen);
             if (sigBytesLocal == NULL) {
 #ifdef DEBUG_SIGNATURE_DSANONE_DETAIL
                 if (debug) {
@@ -110,13 +110,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
                     gslogMessagePrefix(
                         "DETAIL_SIGNATURE_DSANONE Digest - %d bytes\n",
                         digestLength);
-                    gslogMessageHex((char *)digestBytesNative, 0, digestLength,
+                    gslogMessageHex((char*)digestBytesNative, 0, digestLength,
                                     0, 0, NULL);
 
                     gslogMessagePrefix(
                         "DETAIL_SIGNATURE_DSANONE Signature - %d bytes\n",
                         outLen);
-                    gslogMessageHex((char *)sigBytesLocal, 0, outLen, 0, 0,
+                    gslogMessageHex((char*)sigBytesLocal, 0, outLen, 0, 0,
                                     NULL);
 #endif
                     sigBytes = (*env)->NewByteArray(env, outLen);
@@ -130,7 +130,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
                         throwOCKException(env, 0, "NewByteArray failed");
                     } else {
                         sigBytesNative =
-                            (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                            (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                                 env, sigBytes, &isCopy));
                         if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DSANONE_DETAIL
@@ -184,15 +184,15 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1sign(
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1verify(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray digest,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray digest,
     jlong dsaKeyId, jbyteArray sigBytes) {
-    static const char *functionName =
+    static const char* functionName =
         "NativeInterface.DSANONE_SIGNATURE_verify";
 
-    ICC_CTX       *ockCtx            = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_DSA       *ockDSA            = (ICC_DSA *)((intptr_t)dsaKeyId);
-    unsigned char *digestBytesNative = NULL;
-    unsigned char *sigBytesNative    = NULL;
+    ICC_CTX*       ockCtx            = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_DSA*       ockDSA            = (ICC_DSA*)((intptr_t)dsaKeyId);
+    unsigned char* digestBytesNative = NULL;
+    unsigned char* sigBytesNative    = NULL;
     jboolean       isCopy            = 0;
 
     int      rc       = ICC_OSSL_SUCCESS;
@@ -215,7 +215,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1verify
         return verified;
     }
 
-    digestBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+    digestBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
         env, digest, &isCopy));
     if (digestBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DSANONE_DETAIL
@@ -233,7 +233,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1verify
         }
 #endif
 
-        sigBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, sigBytes, &isCopy));
         if (sigBytesNative == NULL) {
 #ifdef DEBUG_SIGNATURE_DSANONE_DETAIL
@@ -249,7 +249,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_DSANONE_1SIGNATURE_1verify
                 gslogMessagePrefix(
                     "DETAIL_SIGNATURE_DSANONE Signature to verify %d bytes:\n",
                     (int)size);
-                gslogMessageHex((char *)sigBytesNative, 0, size, 0, 0, NULL);
+                gslogMessageHex((char*)sigBytesNative, 0, size, 0, 0, NULL);
             }
 #endif
             rc = ICC_DSA_verify(ockCtx, NID, digestBytesNative, digestLength,

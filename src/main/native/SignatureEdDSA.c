@@ -25,17 +25,17 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneShot(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray bytes) {
-    static const char *functionName   = "SIGNATUREEdDSA_signOneShot";
-    ICC_CTX           *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY      *pkey           = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    ICC_EVP_PKEY_CTX  *pctx           = NULL;
-    ICC_EVP_MD_CTX    *md_ctx         = NULL;
-    unsigned char     *bytesNative    = NULL;
-    unsigned char     *sigBytesLocal  = NULL;
+    static const char* functionName   = "SIGNATUREEdDSA_signOneShot";
+    ICC_CTX*           ockCtx         = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*      pkey           = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    ICC_EVP_PKEY_CTX*  pctx           = NULL;
+    ICC_EVP_MD_CTX*    md_ctx         = NULL;
+    unsigned char*     bytesNative    = NULL;
+    unsigned char*     sigBytesLocal  = NULL;
     jbyteArray         sigBytes       = NULL;
-    unsigned char     *sigBytesNative = NULL;
+    unsigned char*     sigBytesNative = NULL;
     jboolean           isCopy         = 0;
     int                rc             = ICC_OSSL_SUCCESS;
     jbyteArray         retSigBytes    = NULL;
@@ -63,7 +63,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
         ockCheckStatus(ockCtx);
         throwOCKException(env, 0, "ICC_EVP_MD_CTX_new failed");
     } else {
-        bytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        bytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, bytes, &isCopy));
         if (bytesNative == NULL) {
             throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
@@ -91,7 +91,7 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
                 return 0;
             } else {
                 rc = ICC_EVP_DigestSign(ockCtx, md_ctx, NULL, &outLen,
-                                        (unsigned char *)bytesNative, size);
+                                        (unsigned char*)bytesNative, size);
                 sigBytesLocal = malloc(outLen);
                 if (sigBytesLocal == NULL) {
 #ifdef DEBUG_SIGNATURE_EDDSA_DETAIL
@@ -101,8 +101,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
                     throwOCKException(env, 0, "malloc failed");
                 } else {
                     rc = ICC_EVP_DigestSign(
-                        ockCtx, md_ctx, (unsigned char *)sigBytesLocal, &outLen,
-                        (unsigned char *)bytesNative, (unsigned int)size);
+                        ockCtx, md_ctx, (unsigned char*)sigBytesLocal, &outLen,
+                        (unsigned char*)bytesNative, (unsigned int)size);
 #ifdef DEBUG_SIGNATURE_EDDSA_DETAIL
                     gslogMessage(
                         "DETAIL_SIGNATURE_EDDSA sigBytesLocal %lx outLen %d",
@@ -117,9 +117,10 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
                             throwOCKException(env, 0, "NewByteArray failed");
                         } else {
                             sigBytesNative =
-                                (unsigned char
-                                     *)((*env)->GetPrimitiveArrayCritical(
-                                    env, sigBytes, &isCopy));
+                                (unsigned char*)((*env)
+                                                     ->GetPrimitiveArrayCritical(
+                                                         env, sigBytes,
+                                                         &isCopy));
                             if (sigBytesNative == NULL) {
                                 throwOCKException(
                                     env, 0,
@@ -132,8 +133,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
                                     "outLen %d",
                                     sigBytesNative, sigBytesLocal, outLen);
 #endif
-                                memcpy((void *)sigBytesNative,
-                                       (void *)sigBytesLocal, (size_t)outLen);
+                                memcpy((void*)sigBytesNative,
+                                       (void*)sigBytesLocal, (size_t)outLen);
 #ifdef DEBUG_SIGNATURE_EDDSA_DETAIL
                                 gslogMessage(
                                     "DETAIL_SIGNATURE_EDDSA memcpy successful");
@@ -178,15 +179,15 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1signOneSho
  */
 JNIEXPORT jboolean JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1verifyOneShot(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jlong ockPKeyId,
     jbyteArray sigBytes, jbyteArray oneShotBytes) {
-    static const char *functionName   = "SIGNATUREEdDSA_verifyOneShot";
-    ICC_CTX           *ockCtx         = (ICC_CTX *)((intptr_t)ockContextId);
-    ICC_EVP_PKEY      *pkey           = (ICC_EVP_PKEY *)((intptr_t)ockPKeyId);
-    ICC_EVP_PKEY_CTX  *pctx           = NULL;
-    ICC_EVP_MD_CTX    *md_ctx         = NULL;
-    unsigned char     *sigBytesNative = NULL;
-    unsigned char     *sigBytesNativeRes = NULL;
+    static const char* functionName      = "SIGNATUREEdDSA_verifyOneShot";
+    ICC_CTX*           ockCtx            = (ICC_CTX*)((intptr_t)ockContextId);
+    ICC_EVP_PKEY*      pkey              = (ICC_EVP_PKEY*)((intptr_t)ockPKeyId);
+    ICC_EVP_PKEY_CTX*  pctx              = NULL;
+    ICC_EVP_MD_CTX*    md_ctx            = NULL;
+    unsigned char*     sigBytesNative    = NULL;
+    unsigned char*     sigBytesNativeRes = NULL;
     jboolean           isCopy            = 0;
     int                rc                = ICC_OSSL_SUCCESS;
     jboolean           verified          = 0;
@@ -211,13 +212,13 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1verifyOneS
         ockCheckStatus(ockCtx);
         throwOCKException(env, 0, "ICC_EVP_MD_CTX_new failed");
     } else {
-        sigBytesNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+        sigBytesNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(
             env, sigBytes, &isCopy));
         if (sigBytesNative == NULL) {
             throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
         } else {
             sigBytesNativeRes =
-                (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                     env, oneShotBytes, &isCopy));
             if (sigBytesNativeRes == NULL) {
                 throwOCKException(env, 0, "GetPrimitiveArrayCritical failed");
@@ -248,8 +249,8 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_SIGNATUREEdDSA_1verifyOneS
                     return 0;
                 } else {
                     rc = ICC_EVP_DigestVerify(
-                        ockCtx, md_ctx, (unsigned char *)sigBytesNative,
-                        (unsigned int)size, (unsigned char *)sigBytesNativeRes,
+                        ockCtx, md_ctx, (unsigned char*)sigBytesNative,
+                        (unsigned int)size, (unsigned char*)sigBytesNativeRes,
                         (unsigned int)sizeRes);
                     if (ICC_OSSL_SUCCESS == rc) {
                         verified = 1;

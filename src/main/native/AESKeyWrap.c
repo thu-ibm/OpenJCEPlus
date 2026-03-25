@@ -26,42 +26,44 @@
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_ibm_crypto_plus_provider_ock_NativeInterface_CIPHER_1KeyWraporUnwrap(
-    JNIEnv *env, jclass thisObj, jlong ockContextId, jbyteArray input,
+    JNIEnv* env, jclass thisObj, jlong ockContextId, jbyteArray input,
     jbyteArray KEK, jint type) {
-    ICC_CTX       *ockCtx    = (ICC_CTX *)((intptr_t)ockContextId);
+    ICC_CTX*       ockCtx    = (ICC_CTX*)((intptr_t)ockContextId);
     int            outputlen = 0;
     int            rv        = 0;
     jboolean       isCopy;
     jbyteArray     outBytes       = NULL;
     jbyteArray     retOutBytes    = NULL;
-    unsigned char *inputNative    = NULL;
-    unsigned char *outputLocal    = NULL;
-    unsigned char *outBytesNative = NULL;
-    unsigned char *KEKNative      = NULL;
+    unsigned char* inputNative    = NULL;
+    unsigned char* outputLocal    = NULL;
+    unsigned char* outBytesNative = NULL;
+    unsigned char* KEKNative      = NULL;
     unsigned int   opType         = (unsigned int)type;
     unsigned int   inputSize      = 0;
 
-    inputNative = (unsigned char *)((*env)->GetPrimitiveArrayCritical(
-        env, input, &isCopy));
+    inputNative = (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, input,
+                                                                     &isCopy));
 
     if (NULL == inputNative) {
-        throwOCKException(env, 0, "Input is NULL from GetPrimitiveArrayCritical!");
+        throwOCKException(env, 0,
+                          "Input is NULL from GetPrimitiveArrayCritical!");
         return retOutBytes;
     }
 
     KEKNative =
-        (unsigned char *)((*env)->GetPrimitiveArrayCritical(env, KEK, &isCopy));
+        (unsigned char*)((*env)->GetPrimitiveArrayCritical(env, KEK, &isCopy));
 
     if (NULL == KEKNative) {
         (*env)->ReleasePrimitiveArrayCritical(env, input, inputNative,
                                               JNI_ABORT);
-        throwOCKException(env, 0, "KEK is NULL from GetPrimitiveArrayCritical!");
+        throwOCKException(env, 0,
+                          "KEK is NULL from GetPrimitiveArrayCritical!");
         return retOutBytes;
     }
 
     inputSize = (*env)->GetArrayLength(env, input);
 
-    outputLocal = (unsigned char *)malloc(inputSize + 16);
+    outputLocal = (unsigned char*)malloc(inputSize + 16);
     if (outputLocal == NULL) {
         throwOCKException(env, 0, "malloc failed");
     } else {
@@ -79,11 +81,12 @@ Java_com_ibm_crypto_plus_provider_ock_NativeInterface_CIPHER_1KeyWraporUnwrap(
                 throwOCKException(env, 0, "NewByteArray failed");
             } else {
                 outBytesNative =
-                    (unsigned char *)((*env)->GetPrimitiveArrayCritical(
+                    (unsigned char*)((*env)->GetPrimitiveArrayCritical(
                         env, outBytes, &isCopy));
                 if (outBytesNative == NULL) {
-                    throwOCKException(env, 0,
-                                      "Output is NULL from GetPrimitiveArrayCritical");
+                    throwOCKException(
+                        env, 0,
+                        "Output is NULL from GetPrimitiveArrayCritical");
                 } else {
                     memcpy(outBytesNative, outputLocal, outputlen);
                     retOutBytes = outBytes;
