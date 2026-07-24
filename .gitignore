@@ -57,3 +57,5 @@ jmh.lock
 # Ignore AI files
 .bob
 AGENTS.md
+/src/main/native/openssl/com_ibm_crypto_plus_provider_base_*.h
+/src/main/native/openssl/com_ibm_crypto_plus_provider_openssl_*.h
