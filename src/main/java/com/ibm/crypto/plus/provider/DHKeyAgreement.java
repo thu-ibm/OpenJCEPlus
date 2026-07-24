@@ -8,7 +8,6 @@
 
 package com.ibm.crypto.plus.provider;
 
-import com.ibm.crypto.plus.provider.base.ConfigurationException;
 import com.ibm.crypto.plus.provider.base.DHKey;
 import com.ibm.crypto.plus.provider.base.NativeCryptoSelector;
 import com.ibm.crypto.plus.provider.base.NativeException;
@@ -55,11 +54,7 @@ public final class DHKeyAgreement extends KeyAgreementSpi {
 
     public DHKeyAgreement(OpenJCEPlusProvider provider) {
         this.provider = provider;
-        try {
-            this.nativeInterface = NativeCryptoSelector.selectBackend(provider, "KeyAgreement", "DiffieHellman");
-        } catch (ConfigurationException ne) {
-            throw provider.providerException("Failure in creating DHKeyAgreement", ne);
-        }
+        this.nativeInterface = NativeCryptoSelector.selectBackend(provider, "KeyAgreement", "DiffieHellman");
     }
 
     @Override

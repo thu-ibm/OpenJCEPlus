@@ -9,12 +9,13 @@
 package com.ibm.crypto.plus.provider.ock;
 
 import com.ibm.crypto.plus.provider.base.NativeInterface;
+import sun.security.util.Debug;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
-import sun.security.util.Debug;
 
 public abstract class NativeOCKAdapter implements NativeInterface {
     // These code values must match those defined in Context.h.
@@ -95,8 +96,8 @@ public abstract class NativeOCKAdapter implements NativeInterface {
                 // thrown, we want to get the message from the cause of that
                 // exception.
                 //
-                if ((t instanceof java.lang.ExceptionInInitializerError)
-                        || (t instanceof java.lang.NoClassDefFoundError)) {
+                if ((t instanceof ExceptionInInitializerError)
+                        || (t instanceof NoClassDefFoundError)) {
                     Throwable cause = t.getCause();
                     if (cause != null) {
                         t = cause;
@@ -599,6 +600,13 @@ public abstract class NativeOCKAdapter implements NativeInterface {
     @Override
     public long create_GCM_context() throws OCKException {
         return NativeOCKImplementation.create_GCM_context(ockContext.getId());
+    }
+    
+    @Override
+    public long create_GCM_context(int keySize) throws OCKException {
+        // OCK doesn't need key size at context creation time
+        // It determines the cipher type from the key during initialization
+        return create_GCM_context();
     }
 
     @Override

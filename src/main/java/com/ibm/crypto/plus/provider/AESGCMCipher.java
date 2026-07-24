@@ -10,26 +10,15 @@ package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.base.GCMCipher;
 import com.ibm.crypto.plus.provider.base.NativeException;
+
+import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.AlgorithmParameters;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.ProviderException;
-import java.security.SecureRandom;
+import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
-import javax.crypto.AEADBadTagException;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.CipherSpi;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
-import javax.crypto.spec.GCMParameterSpec;
 
 public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMConstants {
 
@@ -72,6 +61,8 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
     private boolean sbeInLastUpdateEncrypt = false;
     boolean initCalledInEncSeq = false;
     boolean aadDone = false;
+    boolean finalCalled = false;  // Track if doFinal has been called since last init
+    boolean singleShotFinalCalled = false; // Track if single-shot doFinal was called
 
 
 
@@ -157,6 +148,13 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
+        
+        // OpenSSL only: prevent re-use without init after a single-shot doFinal (GCM IV reuse).
+        // OCK already handles this via requireReinit / checkReinit for explicit IVs.
+        if (gcmCipher != null && gcmCipher.isOpenSSLBackend() && singleShotFinalCalled && encrypting) {
+            throw new IllegalStateException("Must use either different key or iv for GCM encryption");
+        }
+
         checkReinit();
         if (updateCalled) {
 
@@ -218,6 +216,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
             int outputLen = engineDoFinal(input, inputOffset, inputLen, output, 0);
             resetVars(false);
+            singleShotFinalCalled = true; // Mark that single-shot doFinal was called
             if (outputLen < output.length) {
                 byte[] out = Arrays.copyOfRange(output, 0, outputLen);
                 if (!encrypting) {
@@ -261,6 +260,13 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
+        
+        // OpenSSL only: prevent re-use without init after a single-shot doFinal (GCM IV reuse).
+        // OCK already handles this via requireReinit / checkReinit for explicit IVs.
+        if (gcmCipher != null && gcmCipher.isOpenSSLBackend() && singleShotFinalCalled && encrypting) {
+            throw new IllegalStateException("Must use either different key or iv for GCM encryption");
+        }
+
         checkReinit();
 
         if (updateCalled) {
@@ -366,7 +372,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         } catch (ShortBufferException sbe) {
             sbeInLastFinalEncrypt = encrypting;
             throw sbe;
-        } catch (com.ibm.crypto.plus.provider.base.NativeException ock_excp) {
+        } catch (NativeException ock_excp) {
             resetVars(true);
             AEADBadTagException tagexcp = new AEADBadTagException(ock_excp.getMessage());
             provider.setExceptionCause(tagexcp, ock_excp);
@@ -729,6 +735,8 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             this.encrypting = isEncrypt;
             this.initialized = true;
             this.initCalledInEncSeq = true;
+            this.finalCalled = false; // Reset finalCalled flag on init
+            this.singleShotFinalCalled = false; // Reset singleShotFinalCalled flag on init
             this.authData = null; // Before returning from internalInit(), restore AAD to uninitialized state
             this.updateCalled = false;
             this.sbeInLastFinalEncrypt = false;
@@ -881,6 +889,13 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
+        
+        // OpenSSL only: prevent re-use without init after a single-shot doFinal (GCM IV reuse).
+        // OCK already handles this via requireReinit / checkReinit for explicit IVs.
+        if (gcmCipher != null && gcmCipher.isOpenSSLBackend() && singleShotFinalCalled && encrypting) {
+            throw new IllegalStateException("Must use either different key or iv for GCM encryption");
+        }
+
         checkReinit();
 
         // OCKDebug.Msg(debPrefix, methodName, "DoUpdate returning byte[] encrypting
@@ -1105,7 +1120,7 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         } catch (ShortBufferException sbe) {
             sbeInLastUpdateEncrypt = encrypting;
             throw sbe;
-        } catch (com.ibm.crypto.plus.provider.base.NativeException ock_excp) {
+        } catch (NativeException ock_excp) {
             sbeInLastUpdateEncrypt = false;
             AEADBadTagException tagexcp = new AEADBadTagException(ock_excp.getMessage());
             provider.setExceptionCause(tagexcp, ock_excp);
@@ -1163,14 +1178,31 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
+        // OpenSSL only: prevent updateAAD after doFinal without re-init (encryption).
+        // OCK handles this through the existing updateCalled / aadDone state.
+        if (gcmCipher != null && gcmCipher.isOpenSSLBackend() && finalCalled && encrypting) {
+            throw new IllegalStateException("Cannot call updateAAD after doFinal - must call init first");
+        }
         checkReinit();
         if (updateCalled) {
             throw new IllegalStateException(
                     "AAD must be supplied before encryption/decryption starts");
         }
 
-        this.authData = new byte[len];
-        System.arraycopy(src, offset, authData, 0, len);
+        // JCE CipherSpi.engineUpdateAAD() contract: successive calls must concatenate
+        // their AAD rather than replace it.  Previously this method always allocated a
+        // fresh array, silently discarding any AAD supplied in prior calls and causing
+        // wrong authentication tags when callers split AAD across multiple updateAAD
+        // invocations.
+        if (this.authData == null) {
+            this.authData = new byte[len];
+            System.arraycopy(src, offset, authData, 0, len);
+        } else {
+            byte[] combined = new byte[this.authData.length + len];
+            System.arraycopy(this.authData, 0, combined, 0, this.authData.length);
+            System.arraycopy(src, offset, combined, this.authData.length, len);
+            this.authData = combined;
+        }
     }
 
     @Override
@@ -1180,6 +1212,11 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
+        // OpenSSL only: prevent updateAAD after doFinal without re-init (encryption).
+        // OCK handles this through the existing updateCalled / aadDone state.
+        if (gcmCipher != null && gcmCipher.isOpenSSLBackend() && finalCalled && encrypting) {
+            throw new IllegalStateException("Cannot call updateAAD after doFinal - must call init first");
+        }
         // OCKDebug.Msg(debPrefix, methodName, "engingeUpdateAAD called with ByteBuffer"
         // + src);
         checkReinit();
@@ -1187,8 +1224,18 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             throw new IllegalStateException(
                     "AAD must be supplied before encryption/decryption starts");
         }
-        this.authData = new byte[src.remaining()];
-        src.get(authData, 0, authData.length);
+        // Same concatenation fix as the byte[] overload above: JCE requires successive
+        // updateAAD calls to append, not replace, the accumulated AAD.
+        int remaining = src.remaining();
+        if (this.authData == null) {
+            this.authData = new byte[remaining];
+            src.get(authData, 0, remaining);
+        } else {
+            byte[] combined = new byte[this.authData.length + remaining];
+            System.arraycopy(this.authData, 0, combined, 0, this.authData.length);
+            src.get(combined, this.authData.length, remaining);
+            this.authData = combined;
+        }
     }
 
     private int fillOutputBuffer(byte[] finalBuf, int finalOffset, byte[] output, int outOfs,
@@ -1248,8 +1295,15 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         // if we are decrypting with padding applied, we can perform this
         // check only after we have determined how many padding bytes there
         // are.
+        // BUG FIX: The original code evaluated output.length before testing
+        // output == null, making the null check dead and causing a
+        // NullPointerException instead of the declared ShortBufferException.
+        // The null guard must precede any dereference of output.
+        if (output == null) {
+            throw new ShortBufferException("Output buffer is null");
+        }
         int outputCapacity = output.length - outputOffset;
-        if ((output == null) || (outputCapacity < estOutSize)) {
+        if (outputCapacity < estOutSize) {
             throw new ShortBufferException(
                     "Output buffer must be " + "(at least) " + estOutSize + " bytes long");
         }
@@ -1394,12 +1448,27 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             this.requireReinit = true;
             authData = null;
             this.aadDone = false;
+        } else {
+            // Mark that doFinal has been called - prevents updateAAD until next init for encryption
+            this.finalCalled = true;
+            this.singleShotFinalCalled = false; // Reset for multi-step doFinal (update was called)
+            // Note: We do NOT set requireReinit=true after successful doFinal for encryption.
+            // The init() method will check if the same key+IV is being reused and set requireReinit accordingly.
+            // For auto-generated IV, each init() generates a new IV, so requireReinit will be false.
+            // For explicit IV, init() will detect reuse and set requireReinit=true.
         }
         initCalledInEncSeq = false;
         updateCalled = false;
         sbeInLastUpdateEncrypt = false;
         this.buffered = 0;
         Arrays.fill(buffer, (byte) 0x0);
+        
+        // Notify GCMCipher that this operation is complete.
+        // For OCK: frees and removes the ThreadLocal context.
+        // For OpenSSL: no-op — GCM_init resets the context in-place on the next operation.
+        if (gcmCipher != null && Key.getValue() != null) {
+            gcmCipher.clearThreadLocalContext(encrypting, Key.getValue().length, provider.isFIPS());
+        }
     }
 
     private Runnable cleanOCKResources(PrimitiveWrapper.ByteArray Key) {

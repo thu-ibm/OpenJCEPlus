@@ -42,7 +42,9 @@ public class BaseTestAESGCMBufferIV extends BaseTestJunit5 {
     }
 
     private void testBufferIV(int buffLen, int ivLen) throws Exception {
-        GCMParameterSpec iv = new GCMParameterSpec(16, generateRandomIv(ivLen));
+        // Changed tag length from 16 bits (2 bytes) to 32 bits (4 bytes) to comply with
+        // OpenSSL's minimum GCM tag length requirement (4-16 bytes)
+        GCMParameterSpec iv = new GCMParameterSpec(32, generateRandomIv(ivLen));
 
         System.out.println("Encrypting --- buffLen: " + buffLen + " ivLen: " + ivLen);
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, iv);

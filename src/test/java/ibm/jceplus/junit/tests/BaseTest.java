@@ -8,12 +8,8 @@
 
 package ibm.jceplus.junit.tests;
 
-import com.ibm.crypto.plus.provider.OpenJCEPlus;
-import ibm.jceplus.junit.tests.parameters.resolvers.ProviderListParameterResolver;
 import java.security.Provider;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-@ExtendWith(ProviderListParameterResolver.class)
 abstract public class BaseTest {
 
     private String providerName;
@@ -56,12 +52,6 @@ abstract public class BaseTest {
             case OpenJCEPlus:
                 loadProvider(TestProvider.OpenJCEPlus);
                 break;
-            case OpenJCEPlus_OpenSSL:
-                loadProvider(TestProvider.OpenJCEPlus_OpenSSL);
-                break;
-            case OpenJCEPlus_OCK:
-                loadProvider(TestProvider.OpenJCEPlus_OCK);
-                break;
             case OpenJCEPlusFIPS:
                 loadProvider(TestProvider.OpenJCEPlusFIPS);
                 break;
@@ -73,15 +63,39 @@ abstract public class BaseTest {
     private static Provider loadProvider(TestProvider testProvider) throws Exception {
         String providerName = testProvider.getProviderName();
         String providerClassName = testProvider.getProviderClassName();
-        String providerConfigFile = testProvider.getConfigFile();
         
+        // Check if OpenSSL backend should be used via system property
+        String useOpenSSL = System.getProperty("openjceplus.useOpenSSL");
+        boolean needsOpenSSLConfig = "true".equalsIgnoreCase(useOpenSSL) &&
+            (testProvider == TestProvider.OpenJCEPlus || testProvider == TestProvider.OpenJCEPlusFIPS);
+        
+        // If OpenSSL config is needed, remove any existing provider to force reconfiguration
         Provider provider = java.security.Security.getProvider(providerName);
+        if (provider != null && needsOpenSSLConfig) {
+            System.out.println("Removing existing provider to apply OpenSSL configuration");
+            java.security.Security.removeProvider(providerName);
+            provider = null;
+        }
+        
         if (provider == null) {
             provider = (Provider) Class.forName(providerClassName).getDeclaredConstructor().newInstance();
-            if ((providerConfigFile != null) && provider instanceof OpenJCEPlus ojpProvider) {
-                provider = ojpProvider.configure(providerConfigFile);
+            
+            if (needsOpenSSLConfig) {
+                String configPath = System.getProperty("openjceplus.openssl.config",
+                                                      "./src/test/ProviderOpenSSLAttrs.config");
+                System.out.println("Loading OpenSSL configuration from: " + configPath);
+                
+                try {
+                    provider = provider.configure(configPath);
+                    System.out.println("OpenSSL backend configuration loaded successfully");
+                } catch (Exception e) {
+                    System.err.println("Failed to load OpenSSL configuration: " + e.getMessage());
+                    e.printStackTrace();
+                    throw e;
+                }
             }
-            java.security.Security.insertProviderAt(provider, 0);
+            
+            java.security.Security.insertProviderAt(provider, 1);
         }
 
         return provider;

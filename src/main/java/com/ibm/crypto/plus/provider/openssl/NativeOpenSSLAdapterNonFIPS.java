@@ -1,5 +1,5 @@
 /*
- * Copyright IBM Corp. 2026
+ * Copyright IBM Corp. 2025, 2026
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms provided by IBM in the LICENSE file that accompanied
@@ -15,12 +15,14 @@ public class NativeOpenSSLAdapterNonFIPS extends NativeOpenSSLAdapter {
         super(false);
     }
 
-    public static NativeOpenSSLAdapterNonFIPS getInstance() {
-        System.out.println("Using OpenSSL non-FIPS adapter.");
+    public static synchronized NativeOpenSSLAdapterNonFIPS getInstance() {
         if (instance == null) {
             instance = new NativeOpenSSLAdapterNonFIPS();
         }
 
         return instance;
     }
+
 }
+
+

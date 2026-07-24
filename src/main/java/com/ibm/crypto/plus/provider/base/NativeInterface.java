@@ -222,6 +222,8 @@ public interface NativeInterface {
     //public int get_GCM_TLSEnabled() throws NativeException;
 
     public long create_GCM_context() throws NativeException;
+    
+    public long create_GCM_context(int keySize) throws NativeException;
 
     // =========================================================================
     // CCM Cipher functions
@@ -329,9 +331,9 @@ public interface NativeInterface {
     public byte[] RSAKEY_getPublicKeyBytes(long rsaKeyId)
             throws NativeException;
 
-    public int RSAKEY_size(long rsaKeyId);
+    int RSAKEY_size(long rsaKeyId);
 
-    public void RSAKEY_delete(long rsaKeyId);
+    void RSAKEY_delete(long rsaKeyId);
 
     // =========================================================================
     // DSA key functions
@@ -428,7 +430,7 @@ public interface NativeInterface {
     public int RSAPSS_verifyInit(long rsaPssId, long pkeyId,
             int saltlen) throws NativeException;
 
-    public int RSAPSS_getSigLen(long rsaPssId);
+    int RSAPSS_getSigLen(long rsaPssId);
 
     public void RSAPSS_signFinal(long rsaPssId, byte[] signature,
             int length) throws NativeException;

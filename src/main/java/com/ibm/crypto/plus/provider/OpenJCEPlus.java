@@ -9,6 +9,7 @@
 package com.ibm.crypto.plus.provider;
 
 import com.ibm.crypto.plus.provider.ock.NativeOCKAdapterNonFIPS;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.security.InvalidParameterException;
@@ -146,7 +147,8 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
     }
 
     public OpenJCEPlus(ProviderServiceReader config, List<ProviderServiceReader.ServiceDefinition> services) {
-        super("OpenJCEPlus-" + config.getName(), config.getDesc());
+        // If config name is "OpenJCEPlus", use it directly without prefix to maintain compatibility
+        super(config.getName().equals("OpenJCEPlus") ? "OpenJCEPlus" : "OpenJCEPlus-" + config.getName(), config.getDesc());
 
         if (instance == null) {
             instance = this;
@@ -162,7 +164,7 @@ public final class OpenJCEPlus extends OpenJCEPlusProvider {
 
         if (debug != null) {
             debug.println("\n\nOpenJCEPlus instance created the following Services were created:");
-            for (Provider.Service service1 : this.getServices()) {
+            for (Service service1 : this.getServices()) {
                 debug.println("Service: " + service1.getType() + " " + service1.getAlgorithm() + " " + service1.getClassName());
 
                 //Display aliases

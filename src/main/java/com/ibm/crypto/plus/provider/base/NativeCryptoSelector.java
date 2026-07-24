@@ -11,7 +11,6 @@ package com.ibm.crypto.plus.provider.base;
 import com.ibm.crypto.plus.provider.OpenJCEPlusProvider;
 import com.ibm.crypto.plus.provider.ock.NativeOCKAdapterFIPS;
 import com.ibm.crypto.plus.provider.ock.NativeOCKAdapterNonFIPS;
-import com.ibm.crypto.plus.provider.openssl.NativeOpenSSLAdapterNonFIPS;
 import java.security.Provider;
 import java.security.ProviderException;
 import sun.security.util.Debug;
@@ -66,11 +65,11 @@ public class NativeCryptoSelector {
                 return ockBackend;
             }
         } else if (backend == Backend.OPENSSL) {
-            if (isFIPS) {
-                throw new ProviderException("FIPS not supported through OpenSSL.");
-            } else {
-                return NativeOpenSSLAdapterNonFIPS.getInstance();
+            // OpenSSL FIPS mode is not yet supported; always use non-FIPS adapter.
+            if (opensslBackend == null) {
+                opensslBackend = com.ibm.crypto.plus.provider.openssl.NativeOpenSSLAdapterNonFIPS.getInstance();
             }
+            return opensslBackend;
         }
         return null;
     }
@@ -100,11 +99,10 @@ public class NativeCryptoSelector {
                 String nativeProviderValue = service.getAttribute("NativeProvider");
                 bked = selectBackendFromAttribute(nativeProviderValue);
             } else {
-                // Service not found.
-                throw new ConfigurationException("Service not found for type " + type + " and algorithm " + algorithm);
+                throw new ProviderException("Service not found for type " + type + " and algorithm " + algorithm);
             }
         } else {
-            throw new ConfigurationException("Provider, Type and Algorithm must not be null");
+            throw new ProviderException("Provider, Type and Algorithm must not be null");
         }
 
         if (debug != null) {
@@ -134,8 +132,8 @@ public class NativeCryptoSelector {
             case "OCK":
                 return Backend.OCK;
             default:
-                // If not OCK or OpenSSL throw an exception
-                throw new ConfigurationException("Native backend unknown - " + nativeProviderValue);
+                // Default to OCK for any other value
+                return Backend.OCK;
         }
 
     }

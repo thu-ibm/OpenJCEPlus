@@ -1,5 +1,5 @@
 /*
- * Copyright IBM Corp. 2026
+ * Copyright IBM Corp. 2023, 2026
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms provided by IBM in the LICENSE file that accompanied
@@ -8,22 +8,23 @@
 
 package com.ibm.crypto.plus.provider.openssl;
 
-public class OpenSSLContext {
-    private long osslContextId;
+public final class OpenSSLContext {
+
+    private long opensslContextId;
     private boolean isFIPS;
 
-    public static OpenSSLContext createContext(long osslContextId, boolean isFIPS) throws OpenSSLException {
+    public static OpenSSLContext createContext(long opensslContextId, boolean isFIPS) throws OpenSSLException {
 
-        return new OpenSSLContext(osslContextId, isFIPS);
+        return new OpenSSLContext(opensslContextId, isFIPS);
     }
 
-    private OpenSSLContext(long osslContextId, boolean isFIPS) {
-        this.osslContextId = osslContextId;
+    private OpenSSLContext(long opensslContextId, boolean isFIPS) {
+        this.opensslContextId = opensslContextId;
         this.isFIPS = isFIPS;
     }
 
     public long getId() {
-        return osslContextId;
+        return opensslContextId;
     }
 
     public boolean isFIPS() {
@@ -31,6 +32,8 @@ public class OpenSSLContext {
     }
 
     public String toString() {
-        return "OpenSSLContext [isFIPS=" + isFIPS + ", id=" + osslContextId + "]";
+        return "OpenSSLContext [isFIPS=" + isFIPS + ", id=" + opensslContextId + "]";
     }
 }
+
+

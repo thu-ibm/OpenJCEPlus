@@ -20,7 +20,7 @@ public final class BasicRandom {
         return new BasicRandom(provider, algName);
     }
 
-    private BasicRandom(OpenJCEPlusProvider provider, String algName) {
+    private BasicRandom(OpenJCEPlusProvider provider, String algName) throws NativeException {
         this.provider = provider;
         this.nativeInterface = NativeCryptoSelector.selectBackend(provider, "SecureRandom", algName + "DRBG");
     }
