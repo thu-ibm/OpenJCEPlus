@@ -9,10 +9,13 @@
 package ibm.jceplus.junit.openjceplus;
 
 import ibm.jceplus.junit.base.BaseTestAESGCMBufferIV;
+import ibm.jceplus.junit.tests.Tags;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+@Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @TestInstance(Lifecycle.PER_CLASS)
 public class TestAESGCMBufferIV extends BaseTestAESGCMBufferIV {
 
