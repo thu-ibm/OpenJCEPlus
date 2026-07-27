@@ -26,12 +26,6 @@ OBJS= \
 	OpenSSLGCM.obj \
 	OpenSSLCCM.obj \
 	OpenSSLKeyWrap.obj \
-	OpenSSLDigest.obj \
-	OpenSSLSignature.obj \
-	OpenSSLKeyPairGenerator.obj \
-	OpenSSLHMAC.obj \
-	OpenSSLPBKDF2.obj \
-	OpenSSLHKDF.obj \
 	OpenSSLRandom.obj \
 	OpenSSLUtils.obj \
 	OpenSSLHelpers.obj \
@@ -79,24 +73,6 @@ OpenSSLCCM.obj : openssl\OpenSSLCCM.c openssl\OpenSSLHelpers.h
 OpenSSLKeyWrap.obj : openssl\OpenSSLKeyWrap.c openssl\OpenSSLHelpers.h
 	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLKeyWrap.c
                 		
-OpenSSLDigest.obj : openssl\OpenSSLDigest.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLDigest.c
-
-OpenSSLSignature.obj : openssl\OpenSSLSignature.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLSignature.c
-
-OpenSSLKeyPairGenerator.obj : openssl\OpenSSLKeyPairGenerator.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLKeyPairGenerator.c
-
-OpenSSLHMAC.obj : openssl\OpenSSLHMAC.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLHMAC.c
-
-OpenSSLPBKDF2.obj : openssl\OpenSSLPBKDF2.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLPBKDF2.c
-
-OpenSSLHKDF.obj : openssl\OpenSSLHKDF.c openssl\OpenSSLHelpers.h
-	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLHKDF.c
-
 OpenSSLRandom.obj : openssl\OpenSSLRandom.c openssl\OpenSSLExceptionCodes.h
 	cl $(DEBUG_FLAGS) $(CFLAGS) -c -I"$(OPENSSL_HOME)\include" -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -I..\include -Iopenssl openssl\OpenSSLRandom.c
 
