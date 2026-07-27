@@ -56,6 +56,7 @@ for %%T in (%TESTS%) do (
         -Dopenjceplus.useOpenSSL=true ^
         -Djgskit.library.path=%JGSKIT_PATH% ^
         -Dock.library.path=%OCK_PATH% ^
+        -Dskip.native.compile=true ^
         test
     
     if !ERRORLEVEL! EQU 0 (
