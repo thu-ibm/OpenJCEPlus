@@ -9,10 +9,12 @@
 package com.ibm.crypto.plus.provider.openssl;
 
 import com.ibm.crypto.plus.provider.base.NativeInterface;
+import sun.security.util.Debug;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
+
 public abstract class NativeOpenSSLAdapter implements NativeInterface {
     // These code values must match those defined in OpenSSLContext.h
     private static final int VALUE_ID_FIPS_APPROVED_MODE = 0;
@@ -23,8 +25,8 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     private static final int FIPS_ENABLED = 1;
     private static final int FIPS_DISABLED = 0;
 
-    // Debug logging disabled (sun.security.util.Debug not accessible in module system)
-    // private static Debug debug = Debug.getInstance("jceplus");
+    // User enabled debugging
+    private static Debug debug = Debug.getInstance("jceplus");
 
     static final String unobtainedValue = new String();
     
@@ -94,10 +96,9 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
                 }
             }
 
-            // Debug disabled - sun.security.util.Debug not accessible
-            // if (debug != null) {
-            //     exceptionToThrow.printStackTrace(System.out);
-            // }
+            if (debug != null) {
+                exceptionToThrow.printStackTrace(System.out);
+            }
 
             throw exceptionToThrow;
         }
@@ -146,8 +147,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     }
 
     static public void setOpenSSLExceptionCause(Exception exception, Throwable opensslException) {
-        // Debug disabled - sun.security.util.Debug not accessible
-        // Always set cause for proper exception chaining
         if (exception.getCause() == null) {
             exception.initCause(opensslException);
         }
