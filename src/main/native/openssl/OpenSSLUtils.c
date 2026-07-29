@@ -1,5 +1,5 @@
 /*
- * Copyright IBM Corp. 2025
+ * Copyright IBM Corp. 2026
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms provided by IBM in the LICENSE file that accompanied
@@ -194,13 +194,6 @@ void freeInternalContext(OpenSSLContext* context) {
 int validateCipherContext(JNIEnv* env, jint fipsFlag, jlong cipherId,
                           const char*     functionName,
                           CipherContext** outCipherCtx) {
-    OpenSSLContext* context = NULL;
-
-    if (!validateAndGetContext(env, fipsFlag, functionName, &context)) {
-        logFunctionExit(functionName);
-        return 0;
-    }
-
     CipherContext* cipherCtx = (CipherContext*)cipherId;
 
     if (cipherCtx == NULL || cipherCtx->ctx == NULL ||
