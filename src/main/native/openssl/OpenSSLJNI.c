@@ -43,9 +43,18 @@
 #include "OpenSSLHelpers.h"
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
-    // Verify OpenSSL version - require 3.0.0 or later
-    // OpenSSL 3.0.0 = 0x30000000L
-    unsigned long opensslVersion = OpenSSL_version_num();
+    /* Declare all locals at top of block for C89 compatibility (MSVC) */
+    unsigned long opensslVersion;
+    JNIEnv*       env      = NULL;
+    char*         debugEnv = NULL;
+    jclass        sysCls   = NULL;
+    jmethodID     getProp  = NULL;
+    jstring       propName = NULL;
+    jstring       propVal  = NULL;
+    const char*   val      = NULL;
+
+    /* Require OpenSSL 3.0.0+ */
+    opensslVersion = OpenSSL_version_num();
     if (opensslVersion < 0x30000000L) {
         fprintf(stderr,
                 "[OpenSSL JNI] ERROR: OpenSSL 3.0.0 or later is required.\n");
@@ -57,20 +66,46 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
                 "(EVP_MD_fetch, OSSL_LIB_CTX, etc.) which are not available "
                 "in older versions.\n");
         fflush(stderr);
-        return JNI_ERR;  // Fail library load
+        return JNI_ERR;
     }
 
-    char* debugEnv = getenv("OPENSSL_DEBUG");
+    /* Obtain JNIEnv for system property lookup */
+    if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_8) != JNI_OK) {
+        env = NULL;
+    }
+
+    /* 1. Check environment variable: OPENSSL_DEBUG=1|true */
+    debugEnv = getenv("OPENSSL_DEBUG");
     if (debugEnv != NULL &&
         (strcmp(debugEnv, "1") == 0 || strcmp(debugEnv, "true") == 0)) {
         debug = 1;
-        fprintf(stderr,
-                "[OpenSSL JNI] Debug logging ENABLED (OPENSSL_DEBUG=%s)\n",
-                debugEnv);
-        fflush(stderr);
+    }
+
+    /* 2. Check JVM system property: -Djceplus.openssl.debug=true|1 */
+    if (!debug && env != NULL) {
+        sysCls  = (*env)->FindClass(env, "java/lang/System");
+        getProp = sysCls ? (*env)->GetStaticMethodID(env, sysCls,
+                      "getProperty",
+                      "(Ljava/lang/String;)Ljava/lang/String;") : NULL;
+        if (getProp) {
+            propName = (*env)->NewStringUTF(env, "jceplus.openssl.debug");
+            propVal  = propName ? (jstring)(*env)->CallStaticObjectMethod(
+                           env, sysCls, getProp, propName) : NULL;
+            if (propVal) {
+                val = (*env)->GetStringUTFChars(env, propVal, NULL);
+                if (val &&
+                    (strcmp(val, "1") == 0 || strcmp(val, "true") == 0)) {
+                    debug = 1;
+                }
+                if (val) (*env)->ReleaseStringUTFChars(env, propVal, val);
+            }
+            if (propName) (*env)->DeleteLocalRef(env, propName);
+        }
     }
 
     if (debug) {
+        fprintf(stderr,
+                "[OpenSSL JNI] Debug logging ENABLED\n");
         fprintf(stderr, "[OpenSSL JNI] Loaded with OpenSSL version: %s\n",
                 OpenSSL_version(OPENSSL_VERSION));
         fflush(stderr);
