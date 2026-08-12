@@ -71,3 +71,9 @@ AGENTS.md
 # IDE files
 .idea/
 .vscode/
+
+# Local helper scripts and developer monologues
+internal-monologue/
+buildNativeOpenSSL_Win64_AutoEnv.bat
+run_suite_openssl.bat
+run_all_aes_tests.bat
