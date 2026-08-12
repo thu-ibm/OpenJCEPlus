@@ -62,31 +62,32 @@ if exist "!VCVARS_SCRIPT!" (
     echo.
     
     :: Navigate to native directory and build
-    cd src\main\native
+    cd src\main\native\openssl
     
     echo ========================================
     echo Building OpenSSL native library...
     echo ========================================
-    nmake -nologo -f openssl\openssl.win64.mak
+    nmake -nologo -f openssl.win64.mak clean
+    nmake -nologo -f openssl.win64.mak
     
     if errorlevel 1 (
-        cd ..\..\..
+        cd ..\..\..\..
         goto :error
     )
     
-    cd ..\..\..
+    cd ..\..\..\..
     
     echo.
     echo ========================================
     echo BUILD SUCCESSFUL
     echo ========================================
     echo.
-    echo Output: target\buildopensslwin\host64\libjgskit_openssl_64.dll
+    echo Output: src\main\native\openssl\libjgskit_openssl_64.dll
     echo.
     
     :: Copy DLL to JVM bin directory
     echo Copying DLL to JVM bin directory...
-    copy target\buildopensslwin\host64\libjgskit_openssl_64.dll "%JAVA_HOME%\bin\" >nul
+    copy src\main\native\openssl\libjgskit_openssl_64.dll "%JAVA_HOME%\bin\" >nul
     if errorlevel 1 (
         echo WARNING: Failed to copy DLL to JVM bin directory
     ) else (
