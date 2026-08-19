@@ -223,6 +223,8 @@ public interface NativeInterface {
 
     public long create_GCM_context() throws NativeException;
 
+    public long create_GCM_context(int keySize) throws NativeException;
+
     // =========================================================================
     // CCM Cipher functions
     // =========================================================================

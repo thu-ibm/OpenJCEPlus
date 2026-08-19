@@ -1,6 +1,6 @@
 ::#############################################################################
 ::#
-::# Copyright IBM Corp. 2023, 2026
+::# Copyright IBM Corp. 2026
 ::#
 ::# This code is free software; you can redistribute it and/or modify it
 ::# under the terms provided by IBM in the LICENSE file that accompanied
@@ -15,13 +15,13 @@ IF NOT DEFINED JAVA_HOME (
 	echo "JAVA_HOME must be set"
 	goto :eof
 )
-IF NOT DEFINED GSKIT_HOME (
-	echo "GSKIT_HOME must be set"
+IF NOT DEFINED OPENSSL_HOME (
+	echo "OPENSSL_HOME must be set"
 	goto :eof
 )
 
 :: This check for the presence of the VCVARS_64_SCRIPT was commented out since the github
-:: action being used calls the equivilant of the vcvars64.bat file prior to 
+:: action being used calls the equivalent of the vcvars64.bat file prior to
 :: this script being executed.
 
 :: IF NOT DEFINED VCVARS_64_SCRIPT (
@@ -31,9 +31,9 @@ IF NOT DEFINED GSKIT_HOME (
 
 :: @call "%VCVARS_64_SCRIPT%"
 
-cd src/main/native/ock
+cd src/main/native/openssl
 
-@call nmake -nologo -f jgskit.win64.cygwin.mak clean
-@call nmake -nologo -f jgskit.win64.cygwin.mak
+@call nmake -nologo -f openssl.win64.mak clean
+@call nmake -nologo -f openssl.win64.mak
 
 @endlocal

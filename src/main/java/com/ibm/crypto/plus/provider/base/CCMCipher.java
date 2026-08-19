@@ -10,14 +10,15 @@ package com.ibm.crypto.plus.provider.base;
 
 import com.ibm.crypto.plus.provider.OpenJCEPlusProvider;
 import com.ibm.crypto.plus.provider.ock.NativeOCKAdapterNonFIPS;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class CCMCipher {
     private static final boolean disableCCMAcceleration;
@@ -42,31 +43,59 @@ public final class CCMCipher {
     }
 
 
-    // Buffer to pass CCM input to native
-    private static final ThreadLocal<FastJNIBuffer> inputBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIInputBufferSize);
+    // Buffer to pass CCM input to native - lazily initialized based on backend
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> inputBuffer = new ThreadLocal<>();
+
+    // Buffer to get CCM output from native - lazily initialized based on backend
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> outputBuffer = new ThreadLocal<>();
+
+    // ByteArray buffer to pass/get errCode key, IV, AAD, tag - lazily initialized based on backend
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> parameterBuffer = new ThreadLocal<>();
+
+    /**
+     * Gets or creates the input buffer for the current thread and backend.
+     *
+     * @param backend The native interface backend
+     * @return The input buffer
+     */
+    private static BufferFactory.CryptoBuffer getInputBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = inputBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIInputBufferSize);
+            inputBuffer.set(buffer);
         }
-    };
+        return buffer;
+    }
 
-
-    // Buffer to get CCM output from native
-    private static final ThreadLocal<FastJNIBuffer> outputBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIOutputBufferSize);
+    /**
+     * Gets or creates the output buffer for the current thread and backend.
+     *
+     * @param backend The native interface backend
+     * @return The output buffer
+     */
+    private static BufferFactory.CryptoBuffer getOutputBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = outputBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIOutputBufferSize);
+            outputBuffer.set(buffer);
         }
-    };
+        return buffer;
+    }
 
-
-    // ByteArray buffer to pass/get errCode key, IV, AAD, tag
-    private static final ThreadLocal<FastJNIBuffer> parameterBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIParameterBufferSize);
+    /**
+     * Gets or creates the parameter buffer for the current thread and backend.
+     *
+     * @param backend The native interface backend
+     * @return The parameter buffer
+     */
+    private static BufferFactory.CryptoBuffer getParameterBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = parameterBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIParameterBufferSize);
+            parameterBuffer.set(buffer);
         }
-    };
+        return buffer;
+    }
 
 
     private static final Map<Integer, String> ErrorCodes;
@@ -197,9 +226,13 @@ public final class CCMCipher {
             CCMHardwareFunctionPtr = nativeInterface.do_CCM_checkHardwareCCMSupport();
         }
 
-        if (iv.length + key.length + aadLen <= FastJNIParameterBufferSize && !disableCCMAcceleration
+        // Only use FastJNI path if hardware acceleration is available (OCK backend)
+        // OpenSSL backend returns -1 from checkHardwareCCMSupport and uses standard path
+        if (CCMHardwareFunctionPtr != -1
+                && iv.length + key.length + aadLen <= FastJNIParameterBufferSize
+                && !disableCCMAcceleration
                 && (inputLen <= FastJNIInputBufferSize || CCMHardwareFunctionPtr != -1)) {
-            FastJNIBuffer parameters = CCMCipher.parameterBuffer.get();
+            BufferFactory.CryptoBuffer parameters = getParameterBuffer(nativeInterface);
             parameters.put(0, iv, 0, iv.length);
             parameters.put(iv.length, authenticationData, 0, aadLen);
 
@@ -210,16 +243,16 @@ public final class CCMCipher {
                 rc = useHardwareCCM(false, inputLen, iv.length, key.length, aadLen, tagLen, key,
                         input, inputOffset, output, outputOffset, parameters);
             } else {
-                FastJNIBuffer outputBuffer = CCMCipher.outputBuffer.get();
-                FastJNIBuffer inputBuffer = CCMCipher.inputBuffer.get();
-                inputBuffer.put(0, input, inputOffset, inputLen);
+                BufferFactory.CryptoBuffer outputBuf = getOutputBuffer(nativeInterface);
+                BufferFactory.CryptoBuffer inputBuf = getInputBuffer(nativeInterface);
+                inputBuf.put(0, input, inputOffset, inputLen);
                 parameters.put(iv.length + aadLen, key, 0, key.length);
                 rc = nativeInterface.do_CCM_decryptFastJNI(key.length,
                         iv.length, inputLen, output.length, aadLen, tagLen, parameters.pointer(),
-                        inputBuffer.pointer(), outputBuffer.pointer());
+                        inputBuf.pointer(), outputBuf.pointer());
 
                 // Copy Output + Tag out of native data buffer
-                outputBuffer.get(0, output, outputOffset, len);
+                outputBuf.get(0, output, outputOffset, len);
             }
 
             if (rc != 0) {
@@ -336,10 +369,13 @@ public final class CCMCipher {
         if (CCMHardwareFunctionPtr == 0)
             CCMHardwareFunctionPtr = nativeInterface.do_CCM_checkHardwareCCMSupport();
 
-        if (iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
+        // Only use FastJNI path if hardware acceleration is available (OCK backend)
+        // OpenSSL backend returns -1 from checkHardwareCCMSupport and uses standard path
+        if (CCMHardwareFunctionPtr != -1
+                && iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
                 && (inputLen <= FastJNIInputBufferSize || CCMHardwareFunctionPtr != -1)) {
 
-            FastJNIBuffer parameters = CCMCipher.parameterBuffer.get();
+            BufferFactory.CryptoBuffer parameters = getParameterBuffer(nativeInterface);
             parameters.put(0, iv, 0, ivLen);
             parameters.put(ivLen, authenticationData, 0, aadLen);
 
@@ -350,16 +386,16 @@ public final class CCMCipher {
                 rc = useHardwareCCM(true, inputLen, ivLen, keyLen, aadLen, tagLen, key, input,
                         inputOffset, output, outputOffset, parameters);
             } else {
-                FastJNIBuffer outputBuffer = CCMCipher.outputBuffer.get();
-                FastJNIBuffer inputBuffer = CCMCipher.inputBuffer.get();
-                inputBuffer.put(0, input, inputOffset, inputLen);
+                BufferFactory.CryptoBuffer outputBuf = getOutputBuffer(nativeInterface);
+                BufferFactory.CryptoBuffer inputBuf = getInputBuffer(nativeInterface);
+                inputBuf.put(0, input, inputOffset, inputLen);
                 parameters.put(ivLen + aadLen, key, 0, keyLen);
                 rc = nativeInterface.do_CCM_encryptFastJNI(keyLen, ivLen,
                         inputLen, output.length, aadLen, tagLen, parameters.pointer(),
-                        inputBuffer.pointer(), outputBuffer.pointer());
+                        inputBuf.pointer(), outputBuf.pointer());
 
                 // Copy Output + Tag out of native data buffer
-                outputBuffer.get(0, output, outputOffset, len);
+                outputBuf.get(0, output, outputOffset, len);
             }
             if (rc != 0) {
                 throw new NativeException(ErrorCodes.get(rc));
@@ -367,16 +403,15 @@ public final class CCMCipher {
 
         } else {
 
-            // Create tempInput
-            byte[] tempInput = new byte[input.length - inputOffset];
-            // Copy contents of input from inputOffset for length inputLen into tempInput
-            System.arraycopy(input, inputOffset, tempInput, 0, input.length - inputOffset);
+            // Create tempInput ΓÇö sized exactly to inputLen, not the entire remaining input
+            byte[] tempInput = new byte[inputLen];
+            System.arraycopy(input, inputOffset, tempInput, 0, inputLen);
 
             // Create tempOutput
             byte[] tempOutput = new byte[len + outputOffset]; // len from call to getOutputSizeLegacy() above
 
             rc = nativeInterface.do_CCM_encrypt(iv, iv.length, key, key.length,
-                    authenticationData, aadLen, tempInput, tempInput.length, tempOutput,
+                    authenticationData, aadLen, tempInput, inputLen, tempOutput,
                     tempOutput.length, tagLen);
 
             if (rc != 0) {
@@ -468,7 +503,7 @@ public final class CCMCipher {
 
     static int useHardwareCCM(boolean isEncrypt, int inputLen, int ivLen, int keyLen, int aadLen,
             int tagLen, byte[] key, byte[] input, int inputOffset, byte[] output, int outputOffset,
-            FastJNIBuffer parameters)
+            BufferFactory.CryptoBuffer parameters)
             throws NativeException, IllegalStateException, ShortBufferException,
             IllegalBlockSizeException, BadPaddingException, AEADBadTagException {
 

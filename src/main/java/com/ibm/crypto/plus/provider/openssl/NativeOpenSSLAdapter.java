@@ -25,6 +25,10 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     static final String unobtainedValue = new String();
 
+    private static final int DEFAULT_GCM_TAG_LEN = 16;
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    private static final long HKDF_DUMMY_CONTEXT_ID = 1L;
+
     // whether to validate OpenSSL was loaded from JRE location
     private static final boolean validateOSSLLocation = true;
 
@@ -60,8 +64,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         }
 
         try {
-            //long osslContextId =  NativeOpenSSLImplementation.initializeOSSL(this.useFIPSMode);
-            long osslContextId = 0;
+            long osslContextId = NativeOpenSSLImplementation.initializeOSSL(this.useFIPSMode);
             this.osslContext = OpenSSLContext.createContext(osslContextId, this.useFIPSMode);
             /*getLibraryBuildDate();
 
@@ -388,7 +391,9 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     @Override
     public long checkHardwareSupport() {
-        return NativeOpenSSLImplementation.checkHardwareSupport(osslContext.getId());
+        // OpenSSL handles hardware acceleration internally (e.g., AES-NI on x86).
+        // No z/OS-specific KMC hardware support on this platform.
+        return 0;
     }
 
     @Override
@@ -405,246 +410,407 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     @Override
     public int z_kmc_native(byte[] input, int inputOffset, byte[] output, int outputOffset, long paramPointer,
             int inputLength, int mode) {
-        return NativeOpenSSLImplementation.z_kmc_native(input, inputOffset, output, outputOffset, paramPointer, inputLength, mode);
+        throw new UnsupportedOperationException("z_kmc_native not supported on OpenSSL backend (no z/arch hardware)");
     }
 
     @Override
     public long POLY1305CIPHER_create(String cipher) throws OpenSSLException {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_create(osslContext.getId(), cipher);
+        throw new UnsupportedOperationException("POLY1305CIPHER_create not yet implemented in OpenSSL backend");
     }
 
     @Override
     public void POLY1305CIPHER_init(long cipherId, int isEncrypt, byte[] key, byte[] iv) throws OpenSSLException {
-        NativeOpenSSLImplementation.POLY1305CIPHER_init(osslContext.getId(), cipherId, isEncrypt, key, iv);
+        throw new UnsupportedOperationException("POLY1305CIPHER_init not yet implemented in OpenSSL backend");
     }
 
     @Override
     public void POLY1305CIPHER_clean(long cipherId) throws OpenSSLException {
-        NativeOpenSSLImplementation.POLY1305CIPHER_clean(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_clean not yet implemented in OpenSSL backend");
     }
 
     @Override
     public void POLY1305CIPHER_setPadding(long cipherId, int paddingId) throws OpenSSLException {
-        NativeOpenSSLImplementation.POLY1305CIPHER_setPadding(osslContext.getId(), cipherId, paddingId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_setPadding not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_getBlockSize(long cipherId) {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_getBlockSize(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_getBlockSize not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_getKeyLength(long cipherId) {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_getKeyLength(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_getKeyLength not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_getIVLength(long cipherId) {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_getIVLength(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_getIVLength not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_getOID(long cipherId) {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_getOID(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_getOID not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_encryptUpdate(long cipherId, byte[] plaintext, int plaintextOffset, int plaintextLen,
             byte[] ciphertext, int ciphertextOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_encryptUpdate(osslContext.getId(), cipherId,
-            plaintext, plaintextOffset, plaintextLen, ciphertext, ciphertextOffset);
+        throw new UnsupportedOperationException("POLY1305CIPHER_encryptUpdate not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_decryptUpdate(long cipherId, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_decryptUpdate(osslContext.getId(), cipherId,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset);
+        throw new UnsupportedOperationException("POLY1305CIPHER_decryptUpdate not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_encryptFinal(long cipherId, byte[] input, int inOffset, int inLen, byte[] ciphertext,
             int ciphertextOffset, byte[] tag) throws OpenSSLException {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_encryptFinal(osslContext.getId(), cipherId,
-            input, inOffset, inLen, ciphertext, ciphertextOffset, tag);
+        throw new UnsupportedOperationException("POLY1305CIPHER_encryptFinal not yet implemented in OpenSSL backend");
     }
 
     @Override
     public int POLY1305CIPHER_decryptFinal(long cipherId, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset, byte[] tag) throws OpenSSLException {
-        return NativeOpenSSLImplementation.POLY1305CIPHER_decryptFinal(osslContext.getId(), cipherId,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, tag);
+        throw new UnsupportedOperationException("POLY1305CIPHER_decryptFinal not yet implemented in OpenSSL backend");
     }
 
     @Override
     public void POLY1305CIPHER_delete(long cipherId) throws OpenSSLException {
-        NativeOpenSSLImplementation.POLY1305CIPHER_delete(osslContext.getId(), cipherId);
+        throw new UnsupportedOperationException("POLY1305CIPHER_delete not yet implemented in OpenSSL backend");
     }
+
+    // =========================================================================
+    // GCM Functions — implemented in Java over thin JNI primitives
+    // =========================================================================
 
     @Override
     public long do_GCM_checkHardwareGCMSupport() {
-        return NativeOpenSSLImplementation.do_GCM_checkHardwareGCMSupport(osslContext.getId());
+        // No z/OS-style hardware GCM support on x86; OpenSSL uses AES-NI internally.
+        return -1;
     }
 
     @Override
     public int do_GCM_encryptFastJNI_WithHardwareSupport(int keyLen, int ivLen, int inOffset, int inLen,
             int ciphertextOffset, int aadLen, int tagLen, long parameterBuffer, byte[] input, int inputOffset,
             byte[] output, int outputOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_encryptFastJNI_WithHardwareSupport(keyLen, ivLen,
-            inOffset, inLen, ciphertextOffset, aadLen, tagLen, parameterBuffer,
-            input, inputOffset, output, outputOffset);
+        throw new UnsupportedOperationException("do_GCM_encryptFastJNI_WithHardwareSupport not supported by OpenSSL backend");
     }
 
     @Override
     public int do_GCM_encryptFastJNI(long gcmCtx, int keyLen, int ivLen, int inOffset, int inLen, int ciphertextOffset,
             int aadLen, int tagLen, long parameterBuffer, long inputBuffer, long outputBuffer) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_encryptFastJNI(osslContext.getId(), gcmCtx, keyLen, ivLen, inOffset, inLen,
-            ciphertextOffset, aadLen, tagLen, parameterBuffer, inputBuffer, outputBuffer);
+        throw new UnsupportedOperationException("do_GCM_encryptFastJNI not supported by OpenSSL backend");
     }
 
     @Override
     public int do_GCM_decryptFastJNI_WithHardwareSupport(int keyLen, int ivLen, int inOffset, int inLen,
             int ciphertextOffset, int aadLen, int tagLen, long parameterBuffer, byte[] input, int inputOffset,
             byte[] output, int outputOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_decryptFastJNI_WithHardwareSupport(keyLen, ivLen, inOffset, inLen,
-            ciphertextOffset, aadLen, tagLen, parameterBuffer, input, inputOffset, output, outputOffset);
+        throw new UnsupportedOperationException("do_GCM_decryptFastJNI_WithHardwareSupport not supported by OpenSSL backend");
     }
 
     @Override
     public int do_GCM_decryptFastJNI(long gcmCtx, int keyLen, int ivLen, int ciphertextOffset, int ciphertextLen,
             int plainOffset, int aadLen, int tagLen, long parameterBuffer, long inputBuffer, long outputBuffer)
             throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_decryptFastJNI(osslContext.getId(), gcmCtx, keyLen, ivLen,
-            ciphertextOffset, ciphertextLen, plainOffset, aadLen, tagLen, parameterBuffer, inputBuffer, outputBuffer);
+        throw new UnsupportedOperationException("do_GCM_decryptFastJNI not supported by OpenSSL backend");
     }
 
     @Override
     public int do_GCM_encrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] input, int inOffset,
             int inLen, byte[] ciphertext, int ciphertextOffset, byte[] aad, int aadLen, byte[] tag, int tagLen)
             throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_encrypt(osslContext.getId(), gcmCtx, key, keyLen, iv, ivLen,
-            input, inOffset, inLen, ciphertext, ciphertextOffset, aad, aadLen, tag, tagLen);
+        if (ciphertextOffset < 0 || inLen < 0 || ciphertextOffset + inLen > ciphertext.length) {
+            throw new OpenSSLException("GCM encrypt: ciphertext buffer too small or invalid offset");
+        }
+        if (tagLen < 0 || tagLen > tag.length) {
+            throw new OpenSSLException("GCM encrypt: tag buffer too small");
+        }
+        int ctxKeyLen = CIPHER_getKeyLength(gcmCtx);
+        if (ctxKeyLen > 0 && keyLen != ctxKeyLen) {
+            throw new OpenSSLException("GCM encrypt: key length " + keyLen
+                    + " does not match context cipher key length " + ctxKeyLen);
+        }
+        try {
+            // Native GCM_init requires tagLen >= 4 bytes. Clamp up for the native call;
+            // only the requested tagLen bytes are returned to the caller.
+            int nativeTagLen = Math.max(tagLen, 4);
+            NativeOpenSSLImplementation.GCM_init(osslContext.getId(), gcmCtx, 1, key, iv, nativeTagLen);
+            byte[] combinedOutput = new byte[inLen + nativeTagLen];
+            int totalLen = NativeOpenSSLImplementation.GCM_encryptFinal(osslContext.getId(), gcmCtx,
+                    input, inOffset, inLen, combinedOutput, 0, aad, aadLen, nativeTagLen);
+            int cipherLen = Math.max(0, totalLen - nativeTagLen);
+            System.arraycopy(combinedOutput, 0, ciphertext, ciphertextOffset, cipherLen);
+            System.arraycopy(combinedOutput, cipherLen, tag, 0, tagLen);
+            return 0;
+        } catch (IllegalArgumentException e) {
+            throw new OpenSSLException("Invalid GCM encryption parameters: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new OpenSSLException("Unexpected error during GCM encryption: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_decrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] ciphertext,
             int cipherOffset, int cipherLen, byte[] plaintext, int plaintextOffset, byte[] aad, int aadLen, int tagLen)
             throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_decrypt(osslContext.getId(), gcmCtx, key, keyLen, iv, ivLen,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, aad, aadLen, tagLen);
+        if (cipherOffset < 0 || cipherLen < 0 || tagLen < 0 ||
+                cipherOffset + cipherLen + tagLen > ciphertext.length) {
+            throw new OpenSSLException("GCM decrypt: ciphertext buffer too small or invalid offset/length");
+        }
+        int ctxKeyLen = CIPHER_getKeyLength(gcmCtx);
+        if (ctxKeyLen > 0 && keyLen != ctxKeyLen) {
+            throw new OpenSSLException("GCM decrypt: key length " + keyLen
+                    + " does not match context cipher key length " + ctxKeyLen);
+        }
+        try {
+            // Native GCM_init requires tagLen >= 4 bytes. Clamp up; only tagLen bytes of
+            // ciphertext are the actual tag — pad with zeros if the tag is short.
+            int nativeTagLen = Math.max(tagLen, 4);
+            byte[] combinedInput = new byte[cipherLen + nativeTagLen];
+            System.arraycopy(ciphertext, cipherOffset, combinedInput, 0, cipherLen);
+            System.arraycopy(ciphertext, cipherOffset + cipherLen, combinedInput, cipherLen, tagLen);
+            // remaining bytes (nativeTagLen - tagLen) are zero-padded, which is acceptable
+            // because GCM tag verification is truncated to tagLen by OpenSSL
+            NativeOpenSSLImplementation.GCM_init(osslContext.getId(), gcmCtx, 0, key, iv, nativeTagLen);
+            NativeOpenSSLImplementation.GCM_decryptFinal(osslContext.getId(), gcmCtx,
+                    combinedInput, 0, combinedInput.length, plaintext, plaintextOffset, aad, aadLen, nativeTagLen);
+            return 0;
+        } catch (IllegalArgumentException e) {
+            throw new OpenSSLException("Invalid GCM decryption parameters: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new OpenSSLException("Unexpected error during GCM decryption: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_FinalForUpdateEncrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] input,
             int inOffset, int inLen, byte[] ciphertext, int ciphertextOffset, byte[] aad, int aadLen, byte[] tag,
             int tagLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_FinalForUpdateEncrypt(osslContext.getId(), gcmCtx, key, keyLen, iv, ivLen,
-            input, inOffset, inLen, ciphertext, ciphertextOffset, aad, aadLen, tag, tagLen);
+        try {
+            int totalLen = NativeOpenSSLImplementation.GCM_encryptFinal(osslContext.getId(), gcmCtx,
+                    input, inOffset, inLen, ciphertext, ciphertextOffset, aad, aadLen, tagLen);
+            if (totalLen < 0) {
+                return totalLen;
+            }
+            if (totalLen != inLen + tagLen) {
+                throw new OpenSSLException("GCM encrypt final: unexpected output length " + totalLen
+                        + " (expected " + (inLen + tagLen) + ")");
+            }
+            System.arraycopy(ciphertext, ciphertextOffset + inLen, tag, 0, tagLen);
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException(e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_FinalForUpdateDecrypt(long gcmCtx, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset, int plaintextlen, byte[] aad, int aadLen, int tagLen)
             throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_FinalForUpdateDecrypt(osslContext.getId(), gcmCtx,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, plaintextlen, aad, aadLen, tagLen);
+        try {
+            int result = NativeOpenSSLImplementation.GCM_decryptFinal(osslContext.getId(), gcmCtx,
+                    ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, aad, aadLen, tagLen);
+            if (result < 0) {
+                return result;
+            }
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException("GCM decrypt final failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_UpdForUpdateEncrypt(long gcmCtx, byte[] input, int inOffset, int inLen, byte[] ciphertext,
             int ciphertextOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_UpdForUpdateEncrypt(osslContext.getId(), gcmCtx,
-            input, inOffset, inLen, ciphertext, ciphertextOffset);
+        try {
+            int outLen = NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 1,
+                    input, inOffset, inLen, ciphertext, ciphertextOffset, null, 0);
+            if (outLen < 0) {
+                return outLen;
+            }
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException(e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_UpdForUpdateDecrypt(long gcmCtx, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_UpdForUpdateDecrypt(osslContext.getId(), gcmCtx,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset);
+        try {
+            int outLen = NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 0,
+                    ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, null, 0);
+            if (outLen < 0) {
+                return outLen;
+            }
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException(e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_InitForUpdateEncrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] aad,
             int aadLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_InitForUpdateEncrypt(osslContext.getId(), gcmCtx,
-            key, keyLen, iv, ivLen, aad, aadLen);
+        int ctxKeyLen = CIPHER_getKeyLength(gcmCtx);
+        if (ctxKeyLen > 0 && keyLen != ctxKeyLen) {
+            throw new OpenSSLException("GCM init (update encrypt): key length " + keyLen
+                    + " does not match context cipher key length " + ctxKeyLen);
+        }
+        try {
+            NativeOpenSSLImplementation.GCM_init(osslContext.getId(), gcmCtx, 1, key, iv, DEFAULT_GCM_TAG_LEN);
+            if (aad != null && aadLen > 0) {
+                NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 1,
+                        EMPTY_BYTE_ARRAY, 0, 0, EMPTY_BYTE_ARRAY, 0, aad, aadLen);
+            }
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException("GCM init for update encrypt failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public int do_GCM_InitForUpdateDecrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] aad,
             int aadLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_GCM_InitForUpdateDecrypt(osslContext.getId(), gcmCtx,
-            key, keyLen, iv, ivLen, aad, aadLen);
+        int ctxKeyLen = CIPHER_getKeyLength(gcmCtx);
+        if (ctxKeyLen > 0 && keyLen != ctxKeyLen) {
+            throw new OpenSSLException("GCM init (update decrypt): key length " + keyLen
+                    + " does not match context cipher key length " + ctxKeyLen);
+        }
+        try {
+            NativeOpenSSLImplementation.GCM_init(osslContext.getId(), gcmCtx, 0, key, iv, DEFAULT_GCM_TAG_LEN);
+            if (aad != null && aadLen > 0) {
+                NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 0,
+                        EMPTY_BYTE_ARRAY, 0, 0, EMPTY_BYTE_ARRAY, 0, aad, aadLen);
+            }
+            return 0;
+        } catch (Exception e) {
+            throw new OpenSSLException("GCM init for update decrypt failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public void do_GCM_delete() throws OpenSSLException {
-        NativeOpenSSLImplementation.do_GCM_delete(osslContext.getId());
+        // No-op for OpenSSL backend — GCM contexts are managed explicitly via create/free.
     }
 
     @Override
     public void free_GCM_ctx(long gcmContextId) throws OpenSSLException {
-        NativeOpenSSLImplementation.free_GCM_ctx(osslContext.getId(), gcmContextId);
+        NativeOpenSSLImplementation.CIPHER_delete(osslContext.getId(), gcmContextId);
     }
 
     @Override
     public long create_GCM_context() throws OpenSSLException {
-        return NativeOpenSSLImplementation.create_GCM_context(osslContext.getId());
+        // Default to AES-128-GCM; key size is set properly on first GCM_init call.
+        return NativeOpenSSLImplementation.CIPHER_create(osslContext.getId(), "AES-128-GCM");
     }
 
     @Override
+    public long create_GCM_context(int keySize) throws OpenSSLException {
+        String cipherName;
+        switch (keySize) {
+            case 24: cipherName = "AES-192-GCM"; break;
+            case 32: cipherName = "AES-256-GCM"; break;
+            default: cipherName = "AES-128-GCM"; break;
+        }
+        return NativeOpenSSLImplementation.CIPHER_create(osslContext.getId(), cipherName);
+    }
+
+    // =========================================================================
+    // CCM Functions — implemented in Java over thin JNI primitives
+    // =========================================================================
+
+    @Override
     public long do_CCM_checkHardwareCCMSupport() {
-        return NativeOpenSSLImplementation.do_CCM_checkHardwareCCMSupport(osslContext.getId());
+        // No z/OS-style hardware CCM support on x86.
+        return -1;
     }
 
     @Override
     public int do_CCM_encryptFastJNI_WithHardwareSupport(int keyLen, int ivLen, int inOffset, int inLen,
             int ciphertextOffset, int aadLen, int tagLen, long parameterBuffer, byte[] input, int inputOffset,
             byte[] output, int outputOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_encryptFastJNI_WithHardwareSupport(keyLen, ivLen, inOffset, inLen,
-            ciphertextOffset, aadLen, tagLen, parameterBuffer, input, inputOffset, output, outputOffset);
+        throw new UnsupportedOperationException("do_CCM_encryptFastJNI_WithHardwareSupport not supported by OpenSSL backend");
     }
 
     @Override
     public int do_CCM_encryptFastJNI(int keyLen, int ivLen, int inLen, int ciphertextLen, int aadLen, int tagLen,
             long parameterBuffer, long inputBuffer, long outputBuffer) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_encryptFastJNI(osslContext.getId(), keyLen, ivLen, inLen,
-            ciphertextLen, aadLen, tagLen, parameterBuffer, inputBuffer, outputBuffer);
+        throw new UnsupportedOperationException("do_CCM_encryptFastJNI not supported by OpenSSL backend");
     }
 
     @Override
     public int do_CCM_decryptFastJNI_WithHardwareSupport(int keyLen, int ivLen, int inOffset, int inLen,
             int ciphertextOffset, int aadLen, int tagLen, long parameterBuffer, byte[] input, int inputOffset,
             byte[] output, int outputOffset) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_decryptFastJNI_WithHardwareSupport(keyLen, ivLen, inOffset, inLen,
-            ciphertextOffset, aadLen, tagLen, parameterBuffer, input, inputOffset, output, outputOffset);
+        throw new UnsupportedOperationException("do_CCM_decryptFastJNI_WithHardwareSupport not supported by OpenSSL backend");
     }
 
     @Override
-    public int do_CCM_decryptFastJNI(int keyLen, int ivLen, int ciphertextLen, int plaintextLen, int aadLen, int tagLen,
-            long parameterBuffer, long inputBuffer, long outputBuffer) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_decryptFastJNI(osslContext.getId(), keyLen, ivLen, ciphertextLen,
-            plaintextLen, aadLen, tagLen, parameterBuffer, inputBuffer, outputBuffer);
+    public int do_CCM_decryptFastJNI(int keyLen, int ivLen, int ciphertextLen, int plaintextLen, int aadLen,
+            int tagLen, long parameterBuffer, long inputBuffer, long outputBuffer) throws OpenSSLException {
+        throw new UnsupportedOperationException("do_CCM_decryptFastJNI not supported by OpenSSL backend");
+    }
+
+    private String getAESCipherAlgorithm(int keyLen, String mode) {
+        switch (keyLen) {
+            case 16: return "AES-128-" + mode;
+            case 24: return "AES-192-" + mode;
+            case 32: return "AES-256-" + mode;
+            default: throw new IllegalArgumentException("Invalid AES key length: " + keyLen);
+        }
     }
 
     @Override
     public int do_CCM_encrypt(byte[] iv, int ivLen, byte[] key, int keyLen, byte[] aad, int aadLen, byte[] input,
             int inLen, byte[] ciphertext, int ciphertextLen, int tagLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_encrypt(osslContext.getId(), iv, ivLen, key, keyLen,
-            aad, aadLen, input, inLen, ciphertext, ciphertextLen, tagLen);
+        if (ciphertext.length < inLen + tagLen) {
+            throw new OpenSSLException("CCM encrypt: ciphertext buffer too small (need "
+                    + (inLen + tagLen) + " bytes, have " + ciphertext.length + ")");
+        }
+        long cipherId = NativeOpenSSLImplementation.CIPHER_create(osslContext.getId(),
+                getAESCipherAlgorithm(keyLen, "CCM"));
+        try {
+            NativeOpenSSLImplementation.CCM_init(osslContext.getId(), cipherId, 1, key, iv, tagLen);
+            NativeOpenSSLImplementation.CCM_encryptFinal(osslContext.getId(),
+                    cipherId, input, 0, inLen, ciphertext, 0, aad, aadLen, tagLen);
+            return 0;
+        } catch (IllegalArgumentException e) {
+            throw new OpenSSLException("Invalid CCM encryption parameters: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new OpenSSLException("Unexpected error during CCM encryption: " + e.getMessage(), e);
+        } finally {
+            NativeOpenSSLImplementation.CIPHER_delete(osslContext.getId(), cipherId);
+        }
     }
 
     @Override
-    public int do_CCM_decrypt(byte[] iv, int ivLen, byte[] key, int keyLen, byte[] aad, int aadLen, byte[] ciphertext,
-            int ciphertextLength, byte[] plaintext, int plaintextLength, int tagLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.do_CCM_decrypt(osslContext.getId(), iv, ivLen, key, keyLen,
-            aad, aadLen, ciphertext, ciphertextLength, plaintext, plaintextLength, tagLen);
+    public int do_CCM_decrypt(byte[] iv, int ivLen, byte[] key, int keyLen, byte[] aad, int aadLen,
+            byte[] ciphertext, int ciphertextLength, byte[] plaintext, int plaintextLength, int tagLen)
+            throws OpenSSLException {
+        long cipherId = NativeOpenSSLImplementation.CIPHER_create(osslContext.getId(),
+                getAESCipherAlgorithm(keyLen, "CCM"));
+        try {
+            NativeOpenSSLImplementation.CCM_init(osslContext.getId(), cipherId, 0, key, iv, tagLen);
+            NativeOpenSSLImplementation.CCM_decryptFinal(osslContext.getId(),
+                    cipherId, ciphertext, 0, ciphertextLength, plaintext, 0, aad, aadLen, tagLen);
+            return 0;
+        } catch (IllegalArgumentException e) {
+            throw new OpenSSLException("Invalid CCM decryption parameters: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new OpenSSLException("Unexpected error during CCM decryption: " + e.getMessage(), e);
+        } finally {
+            NativeOpenSSLImplementation.CIPHER_delete(osslContext.getId(), cipherId);
+        }
     }
 
     @Override
     public void do_CCM_delete() throws OpenSSLException {
-        NativeOpenSSLImplementation.do_CCM_delete(osslContext.getId());
+        // No-op for OpenSSL backend — contexts are managed per-operation.
     }
 
     @Override

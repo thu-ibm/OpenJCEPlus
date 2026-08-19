@@ -311,10 +311,10 @@
                       <printStacktraceOnFailure>true</printStacktraceOnFailure>
                       <printStdoutOnError>true</printStdoutOnError>
                       <printStdoutOnFailure>true</printStdoutOnFailure>
-                      <printStdoutOnSuccess>false</printStdoutOnSuccess>
+                      <printStdoutOnSuccess>true</printStdoutOnSuccess>
                       <printStderrOnError>true</printStderrOnError>
                       <printStderrOnFailure>true</printStderrOnFailure>
-                      <printStderrOnSuccess>false</printStderrOnSuccess>
+                      <printStderrOnSuccess>true</printStderrOnSuccess>
                     </statelessTestsetInfoReporter>
                     <!-- Activate the use of TCP to transmit events to the plugin -->
                     <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
@@ -456,10 +456,10 @@
                       <printStacktraceOnFailure>true</printStacktraceOnFailure>
                       <printStdoutOnError>true</printStdoutOnError>
                       <printStdoutOnFailure>true</printStdoutOnFailure>
-                      <printStdoutOnSuccess>false</printStdoutOnSuccess>
+                      <printStdoutOnSuccess>true</printStdoutOnSuccess>
                       <printStderrOnError>true</printStderrOnError>
                       <printStderrOnFailure>true</printStderrOnFailure>
-                      <printStderrOnSuccess>false</printStderrOnSuccess>
+                      <printStderrOnSuccess>true</printStderrOnSuccess>
                     </statelessTestsetInfoReporter>
                     <!-- Activate the use of TCP to transmit events to the plugin -->
                     <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>

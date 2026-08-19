@@ -9,18 +9,21 @@
 package ibm.jceplus.junit.openjceplus;
 
 import ibm.jceplus.junit.base.BaseTestAESGCMUpdateInteropBC;
+import ibm.jceplus.junit.tests.Tags;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+@Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @TestInstance(Lifecycle.PER_CLASS)
 public class TestAESGCMUpdateInteropBC extends BaseTestAESGCMUpdateInteropBC {
 
     @BeforeAll
     public void beforeAll() throws Exception {
-        Utils.loadProviderTestSuite();
+        Utils.loadProviderOpenSSL();
         Utils.loadProviderBC();
-        setProviderName(Utils.TEST_SUITE_PROVIDER_NAME);
+        setProviderName(Utils.OPENSSL_PROVIDER_NAME);
         setInteropProviderName(Utils.PROVIDER_BC);
     }
 }

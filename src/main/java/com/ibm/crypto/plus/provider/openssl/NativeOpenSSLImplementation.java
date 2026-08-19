@@ -33,7 +33,7 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     // Default library names
     //
     private static final String OPENSSL_CORE_LIBRARY_NAME = "crypto";
-    private static final String OPENJCEPLUS_CORE_LIBRARY_NAME = "openjceplus";
+    private static final String JGSKIT_LIBRARY_NAME = "libjgskit_openssl_64";
     private static String osName = null;
     private static String osArch = null;
     private static String JVMFIPSmode = null;
@@ -110,50 +110,50 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
         return loadFile;
     }
 
-    static String getOpenJCEPlusNativeLoadPath() {
-        String ojpOverridePath = System.getProperty("openjceplus.library.path");
-        if (ojpOverridePath != null) {
+    static String getJGskitLoadPath() {
+        String jgskitOverridePath = System.getProperty("jgskit.library.path");
+        if (jgskitOverridePath != null) {
             if (debug != null) {
-                debug.println("Loading openjceplus native library using value in property openjceplus.library.path: " + ojpOverridePath);
+                debug.println("Loading jgskit native library using value in property jgskit.library.path: " + jgskitOverridePath);
             }
-            return ojpOverridePath;
+            return jgskitOverridePath;
         }
         if (debug != null) {
-            debug.println("Libpath not found for openjceplus native library, use java home directory.");
+            debug.println("Libpath not found for jgskit native library, use java home directory.");
         }
 
         String javaHome = System.getProperty("java.home");
         osName = System.getProperty("os.name");
-        String ojpPath;
+        String jgskitPath;
 
         if (osName.startsWith("Windows")) {
-            ojpPath = javaHome + File.separator + "bin";
+            jgskitPath = javaHome + File.separator + "bin";
         } else {
-            ojpPath = javaHome + File.separator + "lib";
+            jgskitPath = javaHome + File.separator + "lib";
         }
 
         if (debug != null) {
-            debug.println("Loading openjceplus native library using value: " + ojpPath);
+            debug.println("Loading jgskit native library using value: " + jgskitPath);
         }
-        return ojpPath;
+        return jgskitPath;
     }
 
     static void preloadOpenJCEPlusNative() {
         osName = System.getProperty("os.name");
         osArch = System.getProperty("os.arch");
-        String ojpPath = getOpenJCEPlusNativeLoadPath();
+        String jgskitPath = getJGskitLoadPath();
         File loadFile = null;
         if (osName.startsWith("Windows") && osArch.equals("amd64")) {
-            loadFile = new File(ojpPath, "lib" + OPENJCEPLUS_CORE_LIBRARY_NAME + "_64.dll");
+            loadFile = new File(jgskitPath, JGSKIT_LIBRARY_NAME + ".dll");
         } else if (osName.equals("Mac OS X")) {
-            loadFile = new File(ojpPath, "lib" + OPENJCEPLUS_CORE_LIBRARY_NAME + ".dylib");
+            loadFile = new File(jgskitPath, JGSKIT_LIBRARY_NAME + ".dylib");
         } else {
-            loadFile = new File(ojpPath, "lib" + OPENJCEPLUS_CORE_LIBRARY_NAME + ".so");
+            loadFile = new File(jgskitPath, JGSKIT_LIBRARY_NAME + ".so");
         }
 
-        boolean ojpLibraryPreloaded = loadIfExists(loadFile);
-        if (ojpLibraryPreloaded == false) {
-            throw new ProviderException("Could not load dependent " + OPENJCEPLUS_CORE_LIBRARY_NAME + " library for os.name=" + osName
+        boolean jgskitLoaded = loadIfExists(loadFile);
+        if (!jgskitLoaded) {
+            throw new ProviderException("Could not load dependent " + JGSKIT_LIBRARY_NAME + " library for os.name=" + osName
                         + ", os.arch=" + osArch);
         }
     }
@@ -248,8 +248,6 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     static public native int CIPHER_decryptFinal(long osslContextId, long cipherId,
             byte[] ciphertext, int cipherOffset, int cipherLen, byte[] plaintext,
             int plaintextOffset, boolean needsReinit) throws OpenSSLException;
-
-    static public native long checkHardwareSupport(long osslContextId);
 
     static public native void CIPHER_delete(long osslContextId, long cipherId)
             throws OpenSSLException;
@@ -374,6 +372,25 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
 
     static public native long create_GCM_context(long osslContextId) throws OpenSSLException;
 
+    // -------------------------------------------------------------------------
+    // New thin GCM JNI primitives (implemented in OpenSSLGCM.c)
+    // -------------------------------------------------------------------------
+
+    static public native void GCM_init(long osslContextId, long cipherId, int encrypt,
+            byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
+
+    static public native int GCM_update(long osslContextId, long cipherId, int encrypt,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen) throws OpenSSLException;
+
+    static public native int GCM_encryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    static public native int GCM_decryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
     // =========================================================================
     // CCM Cipher functions
     // =========================================================================
@@ -407,6 +424,25 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
             byte[] plaintext, int plaintextLength, int tagLen) throws OpenSSLException;
 
     static public native void do_CCM_delete(long osslContextId) throws OpenSSLException;
+
+    // -------------------------------------------------------------------------
+    // New thin CCM JNI primitives (implemented in OpenSSLCCM.c)
+    // -------------------------------------------------------------------------
+
+    static public native void CCM_init(long osslContextId, long cipherId, int encrypt,
+            byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
+
+    static public native int CCM_update(long osslContextId, long cipherId, int encrypt,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen) throws OpenSSLException;
+
+    static public native int CCM_encryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    static public native int CCM_decryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
 
     // =========================================================================
     // RSA cipher functions

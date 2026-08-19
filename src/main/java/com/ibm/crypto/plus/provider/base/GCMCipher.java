@@ -9,14 +9,15 @@
 package com.ibm.crypto.plus.provider.base;
 
 import com.ibm.crypto.plus.provider.OpenJCEPlusProvider;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class GCMCipher {
 
@@ -27,6 +28,12 @@ public final class GCMCipher {
     // This tracks if the HARDWARE actually supports GCM (Checked once)
     // 0 = Not checked, 1 = Supported, -1 = Not supported
     private static long actualHardwareSupport = 0;
+
+    // Track whether Init was called for multi-step operations.
+    // Used by OpenSSL backend to suppress re-sending AAD in Final (AAD was already sent in Init).
+    private boolean initCalled = false;
+    // True when the backend is OpenSSL ΓÇö set once in constructor.
+    private final boolean isOpenSSL;
 
     static final int parameterBlockSize = 80;
     static final int TAADLOffset = 48;
@@ -39,28 +46,50 @@ public final class GCMCipher {
     static final int GCM_MODE_DECRYPT = 128;
     static final int GCM_AUGMENTED_MODE = 768;
 
-    // Buffer to pass GCM input to native
-    private static final ThreadLocal<FastJNIBuffer> inputBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIInputBufferSize);
-        }
-    };
+    // Lazy-initialized buffers for GCM operations
+    // These are created on-demand based on the backend (OCK vs OpenSSL)
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> inputBuffer = new ThreadLocal<>();
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> outputBuffer = new ThreadLocal<>();
+    private static final ThreadLocal<BufferFactory.CryptoBuffer> parameterBuffer = new ThreadLocal<>();
 
-    // Buffer to get GCM output from native
-    private static final ThreadLocal<FastJNIBuffer> outputBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIOutputBufferSize);
+    /**
+     * Get or create the input buffer for the current thread and backend.
+     * Lazy initialization avoids OCK dependency when using OpenSSL backend.
+     */
+    private static BufferFactory.CryptoBuffer getInputBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = inputBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIInputBufferSize);
+            inputBuffer.set(buffer);
         }
-    };
-    // ByteArray buffer to pass/get errCode key, IV, AAD, tag
-    private static final ThreadLocal<FastJNIBuffer> parameterBuffer = new ThreadLocal<FastJNIBuffer>() {
-        @Override
-        protected FastJNIBuffer initialValue() {
-            return FastJNIBuffer.create(FastJNIParameterBufferSize);
+        return buffer;
+    }
+
+    /**
+     * Get or create the output buffer for the current thread and backend.
+     * Lazy initialization avoids OCK dependency when using OpenSSL backend.
+     */
+    private static BufferFactory.CryptoBuffer getOutputBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = outputBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIOutputBufferSize);
+            outputBuffer.set(buffer);
         }
-    };
+        return buffer;
+    }
+
+    /**
+     * Get or create the parameter buffer for the current thread and backend.
+     * Lazy initialization avoids OCK dependency when using OpenSSL backend.
+     */
+    private static BufferFactory.CryptoBuffer getParameterBuffer(NativeInterface backend) {
+        BufferFactory.CryptoBuffer buffer = parameterBuffer.get();
+        if (buffer == null) {
+            buffer = BufferFactory.createBuffer(backend, FastJNIParameterBufferSize);
+            parameterBuffer.set(buffer);
+        }
+        return buffer;
+    }
 
     // Buffer to maintain GCM contexts should the platform not be capable of
     // caching the GCM contexts itself in a thread safe manner
@@ -80,7 +109,6 @@ public final class GCMCipher {
     private static final ThreadLocal<GCMContextPointer> gcmContextBufferD16FIPS = new ThreadLocal<GCMContextPointer>();
     private static final ThreadLocal<GCMContextPointer> gcmContextBufferD24FIPS = new ThreadLocal<GCMContextPointer>();
     private static final ThreadLocal<GCMContextPointer> gcmContextBufferD32FIPS = new ThreadLocal<GCMContextPointer>();
-    private static final boolean useJavaTLS = true;
 
     private static final Map<Integer, String> ErrorCodes;
 
@@ -117,6 +145,14 @@ public final class GCMCipher {
     public GCMCipher(OpenJCEPlusProvider provider) throws NativeException {
         this.provider = provider;
         this.nativeInterface = NativeCryptoSelector.selectBackend(provider, "Cipher", "AES/GCM/NoPadding");
+        // Use instanceof rather than class-name string matching so that the check
+        // remains correct if the class is renamed, shaded, or obfuscated.
+        this.isOpenSSL = nativeInterface instanceof com.ibm.crypto.plus.provider.openssl.NativeOpenSSLAdapter;
+    }
+
+    /** Returns true if the active backend is OpenSSL. Used by AESGCMCipher to gate OpenSSL-only guards. */
+    public boolean isOpenSSLBackend() {
+        return isOpenSSL;
     }
 
     // it is not synchronized since there are no shared OCK data structures used in the OCK call
@@ -195,7 +231,7 @@ public final class GCMCipher {
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(false, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(false, key.length);
         long GCMHardwareFunctionPtr;
 
         // The OS_Helper functions are not NIST certified, thus they can't be used in FIPS mode.
@@ -211,9 +247,13 @@ public final class GCMCipher {
             GCMHardwareFunctionPtr = actualHardwareSupport;
         }
 
-        if (iv.length + key.length + aadLen <= FastJNIParameterBufferSize && !disableGCMAcceleration
+        // Only use FastJNI path if hardware acceleration is available (OCK backend)
+        // OpenSSL backend returns -1 from checkHardwareGCMSupport and uses standard path
+        if (GCMHardwareFunctionPtr != -1
+                && iv.length + key.length + aadLen <= FastJNIParameterBufferSize
+                && !disableGCMAcceleration
                 && (inputLen <= FastJNIInputBufferSize || GCMHardwareFunctionPtr != -1)) {
-            FastJNIBuffer parameters = GCMCipher.parameterBuffer.get();
+            BufferFactory.CryptoBuffer parameters = getParameterBuffer(this.nativeInterface);
             parameters.put(0, iv, 0, iv.length);
             parameters.put(iv.length, authenticationData, 0, aadLen);
 
@@ -222,16 +262,16 @@ public final class GCMCipher {
                         input, inputOffset, output, outputOffset, parameters, provider);
             } else {
 
-                FastJNIBuffer outputBuffer = GCMCipher.outputBuffer.get();
-                FastJNIBuffer inputBuffer = GCMCipher.inputBuffer.get();
-                inputBuffer.put(0, input, inputOffset, inputLen);
+                BufferFactory.CryptoBuffer outputBuf = getOutputBuffer(this.nativeInterface);
+                BufferFactory.CryptoBuffer inputBuf = getInputBuffer(this.nativeInterface);
+                inputBuf.put(0, input, inputOffset, inputLen);
                 parameters.put(iv.length + aadLen, key, 0, key.length);
 
                 rc = this.nativeInterface.do_GCM_decryptFastJNI(gcmCtx,
                         key.length, iv.length, 0, inputLen - tagLen, 0, aadLen, tagLen,
-                        parameters.pointer(), inputBuffer.pointer(), outputBuffer.pointer());
+                        parameters.pointer(), inputBuf.pointer(), outputBuf.pointer());
                 // Copy Output + Tag out of native data buffer
-                outputBuffer.get(0, output, outputOffset, len);
+                outputBuf.get(0, output, outputOffset, len);
             }
 
             //OCKDebug.Msg (debPrefix, methodName, "RC = " + rc);
@@ -329,7 +369,7 @@ public final class GCMCipher {
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(true, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(true, key.length);
         long GCMHardwareFunctionPtr;
 
         // The OS_Helper functions are not NIST certified, thus they can't be used in FIPS mode.
@@ -345,9 +385,12 @@ public final class GCMCipher {
             GCMHardwareFunctionPtr = actualHardwareSupport;
         }
 
-        if (iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
+        // Only use FastJNI path if hardware acceleration is available (OCK backend)
+        // OpenSSL backend returns -1 from checkHardwareGCMSupport and uses standard path
+        if (GCMHardwareFunctionPtr != -1
+                && iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
                 && (inputLen <= FastJNIInputBufferSize || GCMHardwareFunctionPtr != -1)) {
-            FastJNIBuffer parameters = GCMCipher.parameterBuffer.get();
+            BufferFactory.CryptoBuffer parameters = getParameterBuffer(this.nativeInterface);
             parameters.put(0, iv, 0, ivLen);
             parameters.put(ivLen, authenticationData, 0, aadLen);
 
@@ -355,15 +398,15 @@ public final class GCMCipher {
                 rc = useHardwareGCM(true, inputLen, ivLen, keyLen, aadLen, tagLen, key, input,
                         inputOffset, output, outputOffset, parameters, provider);
             } else {
-                FastJNIBuffer outputBuffer = GCMCipher.outputBuffer.get();
-                FastJNIBuffer inputBuffer = GCMCipher.inputBuffer.get();
-                inputBuffer.put(0, input, inputOffset, inputLen);
+                BufferFactory.CryptoBuffer outputBuf = getOutputBuffer(this.nativeInterface);
+                BufferFactory.CryptoBuffer inputBuf = getInputBuffer(this.nativeInterface);
+                inputBuf.put(0, input, inputOffset, inputLen);
                 parameters.put(ivLen + aadLen, key, 0, keyLen);
                 rc = this.nativeInterface.do_GCM_encryptFastJNI(gcmCtx, keyLen,
                         ivLen, 0, inputLen, 0, aadLen, tagLen, parameters.pointer(),
-                        inputBuffer.pointer(), outputBuffer.pointer());
+                        inputBuf.pointer(), outputBuf.pointer());
                 // Copy Output + Tag out of native data buffer
-                outputBuffer.get(0, output, outputOffset, len);
+                outputBuf.get(0, output, outputOffset, len);
             }
             if (rc != 0) {
                 throw new NativeException(ErrorCodes.get(rc));
@@ -440,12 +483,12 @@ public final class GCMCipher {
             throw new ShortBufferException(
                     "Output buffer must be (at least) " + len + " bytes long");
         }
-
+        
         authenticationData = (aad != null) ? aad.clone() : emptyAAD.clone();
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(false, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(false, key.length);
         //OCKDebug.Msg(debPrefix,methodName, "gcmCtx = " + gcmCtx );
 
         //OCKDebug.Msg (debPrefix, methodName, "key.length :" + key.length + " iv.length :" + iv.length + " inputOffset :" + inputOffset);
@@ -453,15 +496,35 @@ public final class GCMCipher {
         //OCKDebug.Msg (debPrefix, methodName, "length of output :" + output.length + " outputOffset :" + outputOffset);
 
         //OCKDebug.Msg (debPrefix, methodName, "before calling do_GCM_FinalForUpdateDecrypt gcmUpdateOutlen ="  + String.valueOf(gcmUpdateOutlen.getValue()));
+        
+        // For OpenSSL: Skip AAD in Final if it was already processed in Init
+        byte[] finalAAD = authenticationData;
+        int finalAADLen = aadLen;
+        if (isOpenSSL && initCalled) {
+            // OpenSSL multi-step: AAD was already processed in Init, don't pass it again
+            finalAAD = emptyAAD;
+            finalAADLen = 0;
+        }
+        
         rc = this.nativeInterface.do_GCM_FinalForUpdateDecrypt(gcmCtx, input,
-                inputOffset, inputLen, output, outputOffset, output.length, authenticationData,
-                aadLen, tagLen);
+                inputOffset, inputLen, output, outputOffset, output.length, finalAAD,
+                finalAADLen, tagLen);
 
         //OCKDebug.Msg (debPrefix, methodName, "After calling do_GCM_FinalForUpdateDecrypt gcmUpdateOutlen ="  + String.valueOf(gcmUpdateOutlen.getValue()));
         //OCKDebug.Msg (debPrefix, methodName, "Decrypted text from do_GCM_FinalForUpdateDecrypt = ",  output);
-        if (rc != 0) {
+        if (rc < 0) {
+            // rc == -6 means tag mismatch (OPENSSL_TAG_MISMATCH_ERROR); any other
+            // negative value is also an unrecoverable failure.  Reset state before
+            // throwing so the context is clean for any subsequent reuse.
+            initCalled = false;
+            throw new AEADBadTagException("GCM tag verification failed");
+        } else if (rc != 0) {
+            initCalled = false;
             throw new NativeException(ErrorCodes.get(rc));
         }
+
+        // Reset state after Final
+        initCalled = false;
 
         //OCKDebug.Msg (debPrefix, methodName, "Returning length= " +  len);
         return len;
@@ -512,7 +575,7 @@ public final class GCMCipher {
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(false, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(false, key.length);
         //OCKDebug.Msg(debPrefix,methodName, "gcmCtx = " + gcmCtx );
 
         //To-Do - replace false with actual logic
@@ -526,9 +589,15 @@ public final class GCMCipher {
 
         //OCKDebug.Msg (debPrefix, methodName, "After calling do_GCM_InitForUpdateDecrypt gcmUpdateOutlen ="  + String.valueOf(gcmUpdateOutlen.getValue()));
         if (rc != 0) {
+            if (isOpenSSL) {
+                throw new NativeException("OpenSSL GCM Init for decrypt failed with error code: " + rc);
+            }
             throw new NativeException(ErrorCodes.get(rc));
         }
         //OCKDebug.Msg (debPrefix, methodName, "Native do_GCM_InitForUpdateDecrypt returns  output offset=" + outputOffset + " output=", output);
+
+        // Mark that Init was called (for multi-step operations)
+        initCalled = true;
 
         return len;
     }
@@ -584,7 +653,7 @@ public final class GCMCipher {
 
         //int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(false, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(false, key.length);
 
         //OCKDebug.Msg(debPrefix,methodName, "gcmCtx = " + gcmCtx );
 
@@ -598,6 +667,9 @@ public final class GCMCipher {
         //                //OCKDebug.Msg (debPrefix, methodName, "rc =" + rc + " After calling do_GCM_UpdForUpdateDecrypt gcmUpdateOutlen ="  + String.valueOf(gcmUpdateOutlen.getValue()));
 
         if (rc != 0) {
+            if (isOpenSSL) {
+                throw new NativeException("OpenSSL GCM Final for decrypt failed with error code: " + rc);
+            }
             throw new NativeException(ErrorCodes.get(rc));
         }
         //              //OCKDebug.Msg (debPrefix, methodName, "Native do_GCM_UpdForUpdateDecrypt returns  output offset=" + outputOffset + " output=", output);
@@ -683,7 +755,7 @@ public final class GCMCipher {
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(true, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(true, key.length);
         //OCKDebug.Msg (debPrefix, methodName, "gcmCtx :" + String.valueOf(gcmCtx));
 
         byte[] tag = new byte[tagLen];
@@ -691,20 +763,46 @@ public final class GCMCipher {
         //OCKDebug.Msg (debPrefix, methodName, "key.length :" + key.length + " iv.length :" + iv.length + " inputOffset :" + inputOffset);
         //OCKDebug.Msg (debPrefix, methodName, " inputLen :" + inputLen + " aadLen :" + aadLen + " tagLen " + tagLen);
         //OCKDebug.Msg (debPrefix, methodName, "before calling do_GCM_FinalForUpdateEncrypt gcmUpdateOutlen ="  + String.valueOf(gcmUpdateOutlen.getValue()) + " input[]=", input);
+        
+        // Validate output buffer has enough space for ciphertext + tag
+        if (output.length - outputOffset < inputLen + tagLen) {
+            throw new ShortBufferException(
+                    "Output buffer must be (at least) " + (inputLen + tagLen) + " bytes long");
+        }
+        
+        // For OpenSSL: Skip AAD in Final if it was already processed in Init
+        byte[] finalAAD = authenticationData;
+        int finalAADLen = aadLen;
+        if (isOpenSSL && initCalled) {
+            // OpenSSL multi-step: AAD was already processed in Init, don't pass it again
+            finalAAD = emptyAAD;
+            finalAADLen = 0;
+        }
+        
         rc = this.nativeInterface.do_GCM_FinalForUpdateEncrypt(gcmCtx, key,
                 key.length, iv, iv.length, input, inputOffset, inputLen, output, outputOffset,
-                authenticationData, aadLen, tag, tagLen);
+                finalAAD, finalAADLen, tag, tagLen);
 
-        //OCKDebug.Msg(debPrefix, methodName,  " System array copy myoutput=",  myoutput);
+        // BUG FIX: Previously System.arraycopy(tag, ...) was called before this rc
+        // check, so a native failure would still corrupt the caller's output buffer
+        // with uninitialised/zero tag bytes before the exception was thrown.
+        // The rc check must come first; the tag is only written on success.
+        if (rc != 0) {
+            initCalled = false; // reset state so context is clean for reuse
+            if (isOpenSSL) {
+                throw new NativeException("OpenSSL GCM Final operation failed with error code: " + rc);
+            }
+            throw new NativeException(ErrorCodes.get(rc));
+        }
+
         System.arraycopy(tag, 0, output, (outputOffset + inputLen), tagLen);
 
         outLen = inputLen + tagLen;
-
-        if (rc != 0) {
-            throw new NativeException(ErrorCodes.get(rc));
-        }
         //OCKDebug.Msg (debPrefix, methodName, "output from native do_GCM_FinalForUpdateEncrypt=", output);
 
+        // Reset state after Final
+        initCalled = false;
+        
         //}
         //OCKDebug.Msg(debPrefix, methodName,  "outLen=" + outLen + " output=",  output);
         return outLen;
@@ -772,9 +870,8 @@ public final class GCMCipher {
 
         // int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(true, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(true, key.length);
         //OCKDebug.Msg(debPrefix, methodName, " gcmCtx " + gcmCtx);
-        //To-Do and implement actual logic
 
         //OCKDebug.Msg (debPrefix, methodName, "key.length :" + key.length + " iv.length :" + iv.length + " inputOffset :" + inputOffset);
         //OCKDebug.Msg (debPrefix, methodName, "calling native interface: inputLen :" + inputLen + " tagLen " + tagLen);
@@ -787,6 +884,9 @@ public final class GCMCipher {
         outLen = inputLen;
 
         if (rc != 0) {
+            if (isOpenSSL) {
+                throw new NativeException("OpenSSL GCM Update operation failed with error code: " + rc);
+            }
             throw new NativeException(ErrorCodes.get(rc));
         }
 
@@ -845,7 +945,7 @@ public final class GCMCipher {
 
         int aadLen = authenticationData.length;
 
-        long gcmCtx = getGCMContext(true, key.length, this.provider, this.nativeInterface);
+        long gcmCtx = getGCMContext(true, key.length);
         //OCKDebug.Msg(debPrefix, methodName, " gcmCtx " + gcmCtx);
 
         //OCKDebug.Msg (debPrefix, methodName, "key.length :" + key.length + " iv.length :" + iv.length + " inputOffset :" + inputOffset);
@@ -859,19 +959,26 @@ public final class GCMCipher {
         outLen = 0;
 
         if (rc != 0) {
+            if (isOpenSSL) {
+                throw new NativeException("OpenSSL GCM Init operation failed with error code: " + rc);
+            }
             throw new NativeException(ErrorCodes.get(rc));
         }
+        
+        // Mark that Init was called (for multi-step operations)
+        initCalled = true;
 
         //OCKDebug.Msg(debPrefix, methodName,  "outLen=" + outLen + " output=",  output);
         return outLen;
     }
 
 
-    private static long getGCMContext(boolean encrypting, int keyLength, OpenJCEPlusProvider provider, NativeInterface nativeInterface)
+    private long getGCMContext(boolean encrypting, int keyLength)
             throws NativeException {
-        //// if it is indicated that Java based TLS storage of GCM contexts should be used
-        //// we fetch the TLS copy of the gcm context. if uninitialized, create a new one
-        if (useJavaTLS) {
+        // Both OCK and OpenSSL use the same ThreadLocal caching strategy.
+        // GCM_init (called by do_GCM_InitForUpdate*) always calls EVP_CIPHER_CTX_reset
+        // at the start of every operation, so post-final state is cleared automatically.
+        {
             GCMContextPointer gcmCtx = null;
             int keyLength_ = keyLength + ((provider.isFIPS()) ? 1 : 0);
             ThreadLocal<GCMContextPointer> gcmCtxBuffer = null;
@@ -894,15 +1001,18 @@ public final class GCMCipher {
                 case 33:
                     gcmCtxBuffer = (encrypting) ? gcmContextBufferE32FIPS : gcmContextBufferD32FIPS;
                     break;
+                default:
+                    // Guard against any key length that falls outside the supported set.
+                    // Without this, gcmCtxBuffer would remain null and the following .get()
+                    // call would throw a NullPointerException with no diagnostic information.
+                    throw new NativeException("Unsupported AES key length for GCM: " + keyLength + " bytes");
             }
             gcmCtx = gcmCtxBuffer.get();
             if (gcmCtx == null) {
-                gcmCtx = new GCMContextPointer(nativeInterface, provider);
+                gcmCtx = new GCMContextPointer(nativeInterface, provider, keyLength);
                 gcmCtxBuffer.set(gcmCtx);
             }
             return gcmCtx.getCtx();
-        } else {
-            return 0;
         }
     }
 
@@ -980,7 +1090,7 @@ public final class GCMCipher {
 
     static int useHardwareGCM(boolean isEncrypt, int inputLen, int ivLen, int keyLen, int aadLen,
             int tagLen, byte[] key, byte[] input, int inputOffset, byte[] output, int outputOffset,
-            FastJNIBuffer parameters, OpenJCEPlusProvider provider)
+            BufferFactory.CryptoBuffer parameters, OpenJCEPlusProvider provider)
             throws NativeException, IllegalStateException, ShortBufferException,
             IllegalBlockSizeException, BadPaddingException, AEADBadTagException {
         int rc = 0;
@@ -1041,22 +1151,35 @@ public final class GCMCipher {
     static class GCMContextPointer {
         OpenJCEPlusProvider provider;
         final long gcmCtx;
+        private volatile boolean freed = false;  // Track if context has been explicitly freed
 
-        GCMContextPointer(NativeInterface nativeInterface, OpenJCEPlusProvider provider) throws NativeException {
-            this.gcmCtx = nativeInterface.create_GCM_context();
+        GCMContextPointer(NativeInterface nativeInterface, OpenJCEPlusProvider provider, int keySize) throws NativeException {
+            this.gcmCtx = nativeInterface.create_GCM_context(keySize);
             this.provider = provider;
 
-            this.provider.registerCleanable(this, cleanOCKResources(gcmCtx, nativeInterface));
+            this.provider.registerCleanable(this, cleanOCKResources(gcmCtx, nativeInterface, this));
         }
 
         long getCtx() {
             return gcmCtx;
         }
+        
+        /**
+         * Explicitly free the context. This is called when clearing thread-local contexts
+         * for OpenSSL backend compatibility. Marks the context as freed to prevent double-free.
+         */
+        void freeContext(NativeInterface nativeInterface) throws Exception {
+            if (!freed && gcmCtx != 0) {
+                freed = true;
+                nativeInterface.free_GCM_ctx(gcmCtx);
+            }
+        }
 
-        private Runnable cleanOCKResources(long gcmCtx, NativeInterface nativeInterface) {
+        private Runnable cleanOCKResources(long gcmCtx, NativeInterface nativeInterface, GCMContextPointer pointer) {
             return () -> {
                 try {
-                    if (gcmCtx != 0) {
+                    // Only free if not already explicitly freed
+                    if (!pointer.freed && gcmCtx != 0) {
                         nativeInterface.free_GCM_ctx(gcmCtx);
                     }
                 } catch (Exception e) {
@@ -1067,5 +1190,26 @@ public final class GCMCipher {
                 }
             };
         }
+    }
+    
+    /**
+     * Called by AESGCMCipher after each doFinal. Both backends are no-ops here:
+     * contexts stay alive in ThreadLocal and are reused by the next operation.
+     *
+     * OCK: GCMContextPointer registers a Cleanable that frees the native context when GC'd.
+     *      The ThreadLocal cache keeps the context alive for the thread's lifetime, matching
+     *      the original OCK caching design.
+     * OpenSSL: GCM_init calls EVP_CIPHER_CTX_reset at the start of every new operation,
+     *          so the post-final state is cleared automatically without freeing anything.
+     *
+     * @param encrypting true for encryption context, false for decryption
+     * @param keyLength the key length in bytes
+     * @param isFIPS whether FIPS mode is enabled
+     */
+    public void clearThreadLocalContext(boolean encrypting, int keyLength, boolean isFIPS) {
+        // Both OCK and OpenSSL: context stays in ThreadLocal for reuse.
+        // OCK: GCMContextPointer.cleanOCKResources (Cleanable) handles native free when GC'd.
+        // OpenSSL: GCM_init calls EVP_CIPHER_CTX_reset at the start of every new operation,
+        //          so the post-final state is cleared automatically ΓÇö no free needed here.
     }
 }
