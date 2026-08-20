@@ -9,6 +9,7 @@
 package com.ibm.crypto.plus.provider.openssl;
 
 import com.ibm.crypto.plus.provider.base.NativeInterface;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
 import sun.security.util.Debug;
@@ -17,8 +18,8 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     // These code values must match those defined in Context.h.
     //
     private static final int VALUE_ID_FIPS_APPROVED_MODE = 0;
-    private static final int VALUE_OCK_INSTALL_PATH = 1;
-    private static final int VALUE_OCK_VERSION = 2;
+    private static final int VALUE_OSSL_INSTALL_PATH = 1;
+    private static final int VALUE_OSSL_VERSION = 2;
 
     // User enabled debugging
     private static Debug debug = Debug.getInstance("jceplus");
@@ -60,12 +61,11 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         }
 
         try {
-            //long osslContextId =  NativeOpenSSLImplementation.initializeOSSL(this.useFIPSMode);
-            long osslContextId = 0;
+            long osslContextId =  NativeOpenSSLImplementation.initializeOSSL(this.useFIPSMode);
             this.osslContext = OpenSSLContext.createContext(osslContextId, this.useFIPSMode);
-            /*getLibraryBuildDate();
+            getLibraryBuildDate();
 
-            if (validateOSSLLocation) {
+            /*if (validateOSSLLocation) {
                 validateLibraryLocation();
             }*/
 
@@ -152,7 +152,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         // code one time.
         //
         if (osslVersion == unobtainedValue) {
-            osslVersion = CTX_getValue(VALUE_OCK_VERSION);
+            osslVersion = CTX_getValue(VALUE_OSSL_VERSION);
         }
     }
 
@@ -162,7 +162,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         // code one time.
         //
         if (osslInstallPath == unobtainedValue) {
-            osslInstallPath = CTX_getValue(VALUE_OCK_INSTALL_PATH);
+            osslInstallPath = CTX_getValue(VALUE_OSSL_INSTALL_PATH);
         }
     }
 
@@ -172,98 +172,61 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     @Override
     public void validateLibraryLocation() throws ProviderException, OpenSSLException {
-        /*if (NativeOpenSSLImplementation.requirePreloadOSSL == false) {
-            // If we are not requiring OCK to be pre-loaded, then it does not need to be
-            // loaded from the JRE location
-            //
-            return;
-        }
-
         try {
             // Check to make sure that the OCK install path is within the JRE
             //
-            String ockLoadPath = new File(NativeOpenSSLImplementation.getOSSLLoadFile()).getCanonicalPath();
-            String ockInstallPath = new File(getLibraryInstallPath()).getCanonicalPath();
+            String osslLoadPath = NativeOpenSSLImplementation.getOSSLLoadFile().getCanonicalPath();
+            String osslInstallPath = new File(getLibraryInstallPath()).getCanonicalPath();
 
             if (debug != null) {
-                debug.println("dependent library load path : " + ockLoadPath);
-                debug.println("dependent library install path : " + ockInstallPath);
+                debug.println("dependent library load path : " + osslLoadPath);
+                debug.println("dependent library install path : " + osslInstallPath);
             }
 
-            if (ockInstallPath.startsWith(ockLoadPath) == false) {
-                String exceptionMessage = "Dependent library was loaded from an external location";
-
+            if (osslInstallPath.startsWith(osslLoadPath) == false) {
                 if (debug != null) {
-                    exceptionMessage = "Dependent library was loaded from " + ockInstallPath;
+                    debug.println("Dependent library was loaded from " + osslLoadPath + " and config files from " + osslInstallPath);
                 }
-
-                throw new ProviderException(exceptionMessage);
             }
         } catch (java.io.IOException e) {
-            throw new ProviderException("Failed to validate dependent library", e);
-        }*/
+            throw new ProviderException("Incorrect file specification for dependent library", e);
+        }
     }
 
     @Override
     public void validateLibraryVersion() throws ProviderException, OpenSSLException {
-        if (NativeOpenSSLImplementation.requirePreloadOSSL == false) {
-            // If we are not requiring OpenSSL to be pre-loaded, then it does not need to be
-            // a specific version
-            //
-            return;
-        }
+        String[] expectedVersion = getExpectedLibraryVersion().split("\\.");
+        String[] actualVersion = getLibraryVersion().split("\\.");
 
-        String expectedVersion = getExpectedLibraryVersion();
-        String actualVersion = getLibraryVersion();
+        int majorExpected = Integer.parseInt(expectedVersion[0]);
+        int majorActual = Integer.parseInt(actualVersion[0]);
+        int minorExpected = Integer.parseInt(expectedVersion[1]);
+        int minorActual = Integer.parseInt(actualVersion[1]);
+        int patchExpected = Integer.parseInt(expectedVersion[2]);
+        int patchActual = Integer.parseInt(actualVersion[2]);
 
-        if (expectedVersion == null) {
-            throw new ProviderException(
-                    "Could not not determine expected version of dependent library");
-        } else if (expectedVersion.equals(actualVersion) == false) {
-            throw new ProviderException("Expected depdendent library version " + expectedVersion
+        if (majorExpected > majorActual) {
+            throw new ProviderException("Expected OpenSSL library version greater than " + expectedVersion
                     + ", got " + actualVersion);
+        } else if (majorExpected == majorActual) {
+            if (minorExpected > minorActual) {
+                throw new ProviderException("Expected OpenSSL library version greater than " + expectedVersion
+                    + ", got " + actualVersion);
+            } else if ((minorExpected == minorActual) && (patchExpected > patchActual)) {
+                throw new ProviderException("Expected OpenSSL library version greater than " + expectedVersion
+                        + ", got " + actualVersion);
+            }
         }
     }
 
     private String getExpectedLibraryVersion() {
-        /*String osslLoadPath = NativeOpenSSLImplementation.getOSSLLoadFile();
-        String osslSigFileName;
-        if (this.useFIPSMode) {
-            osslSigFileName = osslLoadPath + File.separator + "C" + File.separator + "icc"
-                    + File.separator + "icclib" + File.separator + "ICCSIG.txt";
-        } else {
-            osslSigFileName = osslLoadPath + File.separator + "N" + File.separator + "icc"
-                    + File.separator + "icclib" + File.separator + "ICCSIG.txt";
-        }
-        BufferedReader br = null;
-        try {
-            String line;
-            String versionMarker = "# ICC Version ";
-            br = new BufferedReader(new FileReader(osslSigFileName));
-            while ((line = br.readLine()) != null) {
-                if (line.startsWith(versionMarker)) {
-                    String version = line.substring(versionMarker.length()).trim();
-                    return version;
-                }
-            }
-        } catch (Exception e) {
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (Exception e) {
-                }
-            }
-        }*/
-
-        return null;
+        return "3.0.0";
     }
 
     @Override
     public String getLibraryBuildDate() {
         if (libraryBuildDate == unobtainedValue) {
-            // libraryBuildDate = NativeOpenSSLImplementation.getLibraryBuildDate();
-            throw new UnsupportedOperationException("getLibraryBuildDate");
+            libraryBuildDate = NativeOpenSSLImplementation.getLibraryBuildDate();
         }
         return libraryBuildDate;
     }
@@ -276,8 +239,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     @Override
     public String CTX_getValue(int valueId) throws OpenSSLException {
-        // return NativeOpenSSLImplementation.CTX_getValue(osslContext.getId(), valueId);
-        throw new UnsupportedOperationException("CTX_getValue");
+        return NativeOpenSSLImplementation.CTX_getValue(osslContext.getId(), valueId);
     }
 
     @Override

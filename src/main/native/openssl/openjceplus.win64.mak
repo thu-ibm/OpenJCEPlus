@@ -14,7 +14,9 @@ JNI_CLASS = $(TOPDIR)/src/main/java/com/ibm/crypto/plus/provider/openssl/NativeO
 JNI_HEADER = com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h
 
 OBJS= \
+	$(HOSTOUT)/BuildDate.obj \
 	$(HOSTOUT)/Digest.obj \
+	$(HOSTOUT)/StaticStub.obj \
 	$(HOSTOUT)/Utils.obj
 
 ifndef OPENSSL_LIB_LOCATION

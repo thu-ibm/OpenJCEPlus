@@ -14,7 +14,9 @@ JNI_CLASS = ${TOPDIR}/src/main/java/com/ibm/crypto/plus/provider/openssl/NativeO
 JNI_HEADER = com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h
 
 OBJS = \
+	${HOSTOUT}/BuildDate.o \
 	${HOSTOUT}/Digest.o \
+	${HOSTOUT}/StaticStub.o \
 	${HOSTOUT}/Utils.o
 
 LIB_FOLDER = lib

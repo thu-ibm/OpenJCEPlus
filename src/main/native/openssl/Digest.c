@@ -236,7 +236,7 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_DIGEST_1di
         return 0;
     }
 
-    signedDigestLen = EVP_MD_CTX_get_size(ctx);
+    signedDigestLen = EVP_MD_CTX_get_size(mdCtx);
     if (0 >= signedDigestLen) {
         //osslCheckStatus(osslCtx);
         throwOSSLException(env, 0, "DIGEST_digest: EVP_MD_CTX_get_size failed");

@@ -36,8 +36,6 @@
 
 extern int debug;
 
-void com_ibm_crypto_plus_provider_initialize(void);
-
 int gslogFunctionEntry(const char* functionName);
 int gslogError(const char* formatString, ...);
 int gslogMessage(const char* formatString, ...);
