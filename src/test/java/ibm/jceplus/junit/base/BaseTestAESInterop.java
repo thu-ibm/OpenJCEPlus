@@ -300,19 +300,19 @@ public class BaseTestAESInterop extends BaseTestJunit5Interop {
                 "AES/CBC/PKCS5Padding", "AES/CBC/NoPadding"};
 
         for (int i = 0; i < algorithms.length; i++) {
-            doTestAESOnlyFinal(algorithms[i], fullBlock, "OpenJCEPlus", "SunJCE");
-            System.err.println("Test AESOnlyFinal with fullBlock OpenJCEPlus->SunJCE OK");
-            doTestAESOnlyFinal(algorithms[i], incompleteBlock, "OpenJCEPlus", "SunJCE");
-            System.err.println("Test AESOnlyFinal with incompelteBlock OpenJCEPlus->SunJCE OK");
-            doTestAESOnlyFinal(algorithms[i], multipleFullBlocks, "OpenJCEPlus", "SunJCE");
-            System.err.println("Test  AESOnlyFinal with multipleFullBlocks OpenJCEPlus->SunJCE OK");
+            doTestAESOnlyFinal(algorithms[i], fullBlock, getProviderName(), "SunJCE");
+            System.err.println("Test AESOnlyFinal with fullBlock " + getProviderName() + "->SunJCE OK");
+            doTestAESOnlyFinal(algorithms[i], incompleteBlock, getProviderName(), "SunJCE");
+            System.err.println("Test AESOnlyFinal with incompelteBlock " + getProviderName() + "->SunJCE OK");
+            doTestAESOnlyFinal(algorithms[i], multipleFullBlocks, getProviderName(), "SunJCE");
+            System.err.println("Test  AESOnlyFinal with multipleFullBlocks " + getProviderName() + "->SunJCE OK");
 
-            doTestAESOnlyFinal(algorithms[i], fullBlock, "SunJCE", "OpenJCEPlus");
-            System.err.println("Test AESOnlyFinal with fullBlock SunJCE->OpenJCEPlus OK");
-            doTestAESOnlyFinal(algorithms[i], incompleteBlock, "SunJCE", "OpenJCEPlus");
-            System.err.println("Test AESOnlyFinal with incompelteBlock SunJCE->OpenJCEPlus OK");
-            doTestAESOnlyFinal(algorithms[i], multipleFullBlocks, "SunJCE", "OpenJCEPlus");
-            System.err.println("Test  AESOnlyFinal with multipleFullBlocks SunJCE->OpenJCEPlus");
+            doTestAESOnlyFinal(algorithms[i], fullBlock, "SunJCE", getProviderName());
+            System.err.println("Test AESOnlyFinal with fullBlock SunJCE->" + getProviderName() + " OK");
+            doTestAESOnlyFinal(algorithms[i], incompleteBlock, "SunJCE", getProviderName());
+            System.err.println("Test AESOnlyFinal with incompelteBlock SunJCE->" + getProviderName() + " OK");
+            doTestAESOnlyFinal(algorithms[i], multipleFullBlocks, "SunJCE", getProviderName());
+            System.err.println("Test  AESOnlyFinal with multipleFullBlocks SunJCE->" + getProviderName());
 
         }
     }
@@ -369,18 +369,18 @@ public class BaseTestAESInterop extends BaseTestJunit5Interop {
                 "AES/CBC/PKCS5Padding", "AES/CBC/NoPadding"};
         for (int i = 0; i < algorithms.length; i++) {
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i], fullBlock,
-                    "OpenJCEPlus", "SunJCE");
+                    getProviderName(), "SunJCE");
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i],
-                    incompleteBlock, "OpenJCEPlus", "SunJCE");
+                    incompleteBlock, getProviderName(), "SunJCE");
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i],
-                    multipleFullBlocks, "OpenJCEPlus", "SunJCE");
+                    multipleFullBlocks, getProviderName(), "SunJCE");
 
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i], fullBlock,
-                    "SunJCE", "OpenJCEPlus");
+                    "SunJCE", getProviderName());
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i],
-                    incompleteBlock, "SunJCE", "OpenJCEPlus");
+                    incompleteBlock, "SunJCE", getProviderName());
             doTestAESWithUpdateForEncryptionButOnlyFinalForDecryption(algorithms[i],
-                    multipleFullBlocks, "SunJCE", "OpenJCEPlus");
+                    multipleFullBlocks, "SunJCE", getProviderName());
         }
     }
 
@@ -440,19 +440,19 @@ public class BaseTestAESInterop extends BaseTestJunit5Interop {
         String[] algorithms = {/* "AES/CFB8/PKCS5Padding", */ "AES/CFB8/NoPadding",
                 "AES/CBC/PKCS5Padding", "AES/CBC/NoPadding"};
         for (int i = 0; i < algorithms.length; i++) {
-            doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], fullBlock, "OpenJCEPlus",
+            doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], fullBlock, getProviderName(),
                     "SunJCE");
             doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], incompleteBlock,
-                    "OpenJCEPlus", "SunJCE");
+                    getProviderName(), "SunJCE");
             doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], multipleFullBlocks,
-                    "OpenJCEPlus", "SunJCE");
+                    getProviderName(), "SunJCE");
 
             doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], fullBlock, "SunJCE",
-                    "OpenJCEPlus");
+                    getProviderName());
             doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], incompleteBlock, "SunJCE",
-                    "OpenJCEPlus");
+                    getProviderName());
             doTestAESWithUpdateEncryptionAndDecryption(algorithms[i], multipleFullBlocks, "SunJCE",
-                    "OpenJCEPlus");
+                    getProviderName());
         }
     }
 

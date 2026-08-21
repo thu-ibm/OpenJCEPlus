@@ -9,19 +9,16 @@
 package ibm.jceplus.junit.openjceplus;
 
 import ibm.jceplus.junit.base.BaseTestAESGCMWithKeyAndIvCheck;
-import ibm.jceplus.junit.tests.Tags;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-@Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @TestInstance(Lifecycle.PER_CLASS)
 public class TestAESGCMWithKeyAndIvCheck extends BaseTestAESGCMWithKeyAndIvCheck {
 
     @BeforeAll
     public void beforeAll() {
-        Utils.loadProviderOpenSSL();
-        setProviderName(Utils.OPENSSL_PROVIDER_NAME);
+        Utils.loadProviderTestSuite();
+        setProviderName(Utils.TEST_SUITE_PROVIDER_NAME);
     }
 }

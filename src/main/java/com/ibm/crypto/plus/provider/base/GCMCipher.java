@@ -150,11 +150,6 @@ public final class GCMCipher {
         this.isOpenSSL = nativeInterface instanceof com.ibm.crypto.plus.provider.openssl.NativeOpenSSLAdapter;
     }
 
-    /** Returns true if the active backend is OpenSSL. Used by AESGCMCipher to gate OpenSSL-only guards. */
-    public boolean isOpenSSLBackend() {
-        return isOpenSSL;
-    }
-
     // it is not synchronized since there are no shared OCK data structures used in the OCK call
     // except ICC_CTX which is thread safe
     public int doGCMFinal_Decrypt(byte[] key, byte[] iv, int tagLen,

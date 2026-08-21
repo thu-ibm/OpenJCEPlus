@@ -9,20 +9,17 @@
 package ibm.jceplus.junit.openjceplus;
 
 import ibm.jceplus.junit.base.BaseTestAESInterop;
-import ibm.jceplus.junit.tests.Tags;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-@Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @TestInstance(Lifecycle.PER_CLASS)
 public class TestAES256Interop extends BaseTestAESInterop {
 
     @BeforeAll
     public void beforeAll() {
-        Utils.loadProviderTestSuite();
-        setProviderName(Utils.TEST_SUITE_PROVIDER_NAME);
+        Utils.loadProviderOpenSSL();
+        setProviderName(Utils.OPENSSL_PROVIDER_NAME);
         setInteropProviderName(Utils.PROVIDER_SunJCE);
         setKeySize(256);
     }
