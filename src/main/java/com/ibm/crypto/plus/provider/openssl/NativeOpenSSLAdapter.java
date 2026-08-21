@@ -12,9 +12,6 @@ import com.ibm.crypto.plus.provider.base.NativeInterface;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import sun.security.util.Debug;
 
 public abstract class NativeOpenSSLAdapter implements NativeInterface {
@@ -39,17 +36,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     private OpenSSLContext osslContext = null;
     private boolean osslInitialized = false;
     private boolean useFIPSMode;
-
-    // Per-context last-used key+IV for single-shot GCM encrypt.
-    // do_GCM_encrypt calls GCM_init with the caller-supplied key+IV on every
-    // invocation, so the native state is always fresh.  The danger is that
-    // AESGCMCipher's existing requireReinit check only fires for explicit IVs;
-    // the internal-IV path (generateIV=true) advances the IV itself and is safe.
-    // We therefore only need to catch the explicit-IV case where the caller
-    // supplies the same key+IV twice without an intervening engineInit.
-    // Keyed by gcmCtx (context pointer); value is Arrays.hashCode(key) ^ Arrays.hashCode(iv).
-    private final Map<Long, Long> lastSingleShotKeyIV =
-            Collections.synchronizedMap(new HashMap<>());
 
     private String osslVersion = unobtainedValue;
     private String osslInstallPath = unobtainedValue;
@@ -538,14 +524,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     public int do_GCM_encrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] input, int inOffset,
             int inLen, byte[] ciphertext, int ciphertextOffset, byte[] aad, int aadLen, byte[] tag, int tagLen)
             throws OpenSSLException {
-        // Detect explicit-IV reuse: throw if the same key+IV combination is used
-        // twice on the same context without an intervening re-init.
-        long fingerprint = ((long) Arrays.hashCode(key) << 32) ^ (Arrays.hashCode(iv) & 0xFFFFFFFFL);
-        Long prev = lastSingleShotKeyIV.get(gcmCtx);
-        if (prev != null && prev == fingerprint) {
-            throw new IllegalStateException(
-                    "Must use either different key or iv for GCM encryption");
-        }
         if (ciphertextOffset < 0 || inLen < 0 || ciphertextOffset + inLen > ciphertext.length) {
             throw new OpenSSLException("GCM encrypt: ciphertext buffer too small or invalid offset");
         }
@@ -568,7 +546,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
             int cipherLen = Math.max(0, totalLen - nativeTagLen);
             System.arraycopy(combinedOutput, 0, ciphertext, ciphertextOffset, cipherLen);
             System.arraycopy(combinedOutput, cipherLen, tag, 0, tagLen);
-            lastSingleShotKeyIV.put(gcmCtx, fingerprint);
             return 0;
         } catch (IllegalArgumentException e) {
             throw new OpenSSLException("Invalid GCM encryption parameters: " + e.getMessage(), e);
@@ -724,7 +701,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     @Override
     public void free_GCM_ctx(long gcmContextId) throws OpenSSLException {
-        lastSingleShotKeyIV.remove(gcmContextId);
         NativeOpenSSLImplementation.CIPHER_delete(osslContext.getId(), gcmContextId);
     }
 

@@ -456,11 +456,15 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1encry
         }
 #endif
     } else {
-        // For zero-length plaintext, pass NULL input with length 0
+        // For zero-length plaintext: CCM mode in OpenSSL does not support
+        // EVP_CipherFinal_ex. The single EVP_CipherUpdate call with a valid
+        // (empty) buffer and inputLen=0 completes the CBC-MAC and produces
+        // the tag. Passing an empty byte array (not NULL) avoids JNI issues.
+        unsigned char emptyBuf[1] = {0};
         outLen = 0;
 
         if (EVP_CipherUpdate(ctx, (unsigned char*)(outputBytes + outputOffset),
-                             &outLen, NULL, 0) != 1) {
+                             &outLen, emptyBuf, 0) != 1) {
             cleanupIOArrays(env, NULL, NULL, output, outputBytes, JNI_FALSE);
             setPendingOpenSSLException(env, OPENSSL_CIPHER_UPDATE_FAILED,
                                   "Failed to process zero-length plaintext");
@@ -474,9 +478,13 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1encry
             gslogMessage("DETAIL_CCM OpenSSL Processed zero-length plaintext");
         }
 #endif
+        // For CCM with zero-length plaintext, skip EVP_CipherFinal_ex (not
+        // supported by CCM mode) and go directly to tag retrieval.
+        totalOutLen += outLen;
+        goto get_tag;
     }
 
-    // Finalize cipher
+    // Finalize cipher (CCM: this is a no-op but required for non-zero input)
     finalLen = 0;
 
     if (EVP_CipherFinal_ex(
@@ -491,6 +499,8 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1encry
     }
 
     totalOutLen += finalLen;
+
+get_tag:
 
     // Get the tag and append it to the output
     totalOutLen =
