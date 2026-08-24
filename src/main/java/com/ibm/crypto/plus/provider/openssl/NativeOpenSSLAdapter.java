@@ -587,43 +587,73 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         }
     }
 
+    /**
+     * Completes a multi-part GCM encryption (the "FinalForUpdate" path).
+     *
+     * <p>The {@code aad} parameter is intentionally ignored here.  AAD was already fed
+     * to the OpenSSL context during {@link #do_GCM_InitForUpdateEncrypt} via a zero-length
+     * GCM_update call.  Re-applying it in final would produce an incorrect authentication
+     * tag.  GCMCipher previously tracked an {@code initCalled} flag and set {@code aad = null}
+     * before this call; that flag has been removed and the suppression is handled here.
+     */
     @Override
     public int do_GCM_FinalForUpdateEncrypt(long gcmCtx, byte[] key, int keyLen, byte[] iv, int ivLen, byte[] input,
             int inOffset, int inLen, byte[] ciphertext, int ciphertextOffset, byte[] aad, int aadLen, byte[] tag,
             int tagLen) throws OpenSSLException {
+        // AAD was already consumed in do_GCM_InitForUpdateEncrypt; ignore aad here.
         try {
             int totalLen = NativeOpenSSLImplementation.GCM_encryptFinal(osslContext.getId(), gcmCtx,
-                    input, inOffset, inLen, ciphertext, ciphertextOffset, aad, aadLen, tagLen);
-            if (totalLen < 0) {
-                return totalLen;
-            }
+                    input, inOffset, inLen, ciphertext, ciphertextOffset, null, 0, tagLen);
             if (totalLen != inLen + tagLen) {
                 throw new OpenSSLException("GCM encrypt final: unexpected output length " + totalLen
                         + " (expected " + (inLen + tagLen) + ")");
             }
             System.arraycopy(ciphertext, ciphertextOffset + inLen, tag, 0, tagLen);
             return 0;
+        } catch (OpenSSLException e) {
+            throw e;
         } catch (Exception e) {
             throw new OpenSSLException(e.getMessage(), e);
         }
     }
 
+    /**
+     * Completes a multi-part GCM decryption (the "FinalForUpdate" path).
+     *
+     * <p>The {@code aad} parameter is intentionally ignored here — see
+     * {@link #do_GCM_FinalForUpdateEncrypt} for the rationale.
+     *
+     * <p>Tag-mismatch detection: the OCK backend returned a negative {@code rc} which
+     * GCMCipher previously checked and mapped to {@link javax.crypto.AEADBadTagException}.
+     * The OpenSSL backend instead throws an {@link OpenSSLException} directly from
+     * {@code GCM_decryptFinal}; that exception propagates up unchanged, so the caller
+     * does not need to check a return code for the tag-mismatch case.
+     */
     @Override
     public int do_GCM_FinalForUpdateDecrypt(long gcmCtx, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset, int plaintextlen, byte[] aad, int aadLen, int tagLen)
             throws OpenSSLException {
+        // AAD was already consumed in do_GCM_InitForUpdateDecrypt; ignore aad here.
+        // A tag-mismatch from OpenSSL surfaces as an exception from GCM_decryptFinal.
         try {
-            int result = NativeOpenSSLImplementation.GCM_decryptFinal(osslContext.getId(), gcmCtx,
-                    ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, aad, aadLen, tagLen);
-            if (result < 0) {
-                return result;
-            }
+            NativeOpenSSLImplementation.GCM_decryptFinal(osslContext.getId(), gcmCtx,
+                    ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, null, 0, tagLen);
             return 0;
+        } catch (OpenSSLException e) {
+            throw e;
         } catch (Exception e) {
             throw new OpenSSLException("GCM decrypt final failed: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Streams plaintext bytes through the active GCM encrypt context.
+     *
+     * <p>A negative return from {@code GCM_update} is treated as a hard failure and
+     * thrown as {@link OpenSSLException}.  The OCK backend never returns negative values
+     * from update calls, so this check is OpenSSL-specific; GCMCipher relies on a non-zero
+     * {@code rc} to detect errors and throw {@link com.ibm.crypto.plus.provider.base.NativeException}.
+     */
     @Override
     public int do_GCM_UpdForUpdateEncrypt(long gcmCtx, byte[] input, int inOffset, int inLen, byte[] ciphertext,
             int ciphertextOffset) throws OpenSSLException {
@@ -631,14 +661,23 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
             int outLen = NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 1,
                     input, inOffset, inLen, ciphertext, ciphertextOffset, null, 0);
             if (outLen < 0) {
-                return outLen;
+                throw new OpenSSLException("GCM update (encrypt) failed with code: " + outLen);
             }
             return 0;
+        } catch (OpenSSLException e) {
+            throw e;
         } catch (Exception e) {
             throw new OpenSSLException(e.getMessage(), e);
         }
     }
 
+    /**
+     * Streams ciphertext bytes through the active GCM decrypt context.
+     *
+     * <p>Same negative-rc handling as {@link #do_GCM_UpdForUpdateEncrypt}; a negative
+     * return from {@code GCM_update} throws {@link OpenSSLException} immediately rather
+     * than propagating a non-zero integer to the caller.
+     */
     @Override
     public int do_GCM_UpdForUpdateDecrypt(long gcmCtx, byte[] ciphertext, int cipherOffset, int cipherLen,
             byte[] plaintext, int plaintextOffset) throws OpenSSLException {
@@ -646,9 +685,11 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
             int outLen = NativeOpenSSLImplementation.GCM_update(osslContext.getId(), gcmCtx, 0,
                     ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, null, 0);
             if (outLen < 0) {
-                return outLen;
+                throw new OpenSSLException("GCM update (decrypt) failed with code: " + outLen);
             }
             return 0;
+        } catch (OpenSSLException e) {
+            throw e;
         } catch (Exception e) {
             throw new OpenSSLException(e.getMessage(), e);
         }
