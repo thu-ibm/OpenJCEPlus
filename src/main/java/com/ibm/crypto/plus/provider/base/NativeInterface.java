@@ -10,6 +10,7 @@ package com.ibm.crypto.plus.provider.base;
 
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
+import javax.crypto.BadPaddingException;
 
 public interface NativeInterface {
     public String getLibraryVersion() throws NativeException;
@@ -97,7 +98,7 @@ public interface NativeInterface {
 
     public int CIPHER_decryptFinal(long cipherId,
             byte[] ciphertext, int cipherOffset, int cipherLen, byte[] plaintext,
-            int plaintextOffset, boolean needsReinit) throws NativeException;
+            int plaintextOffset, boolean needsReinit) throws NativeException, BadPaddingException;
 
     public long checkHardwareSupport();
 

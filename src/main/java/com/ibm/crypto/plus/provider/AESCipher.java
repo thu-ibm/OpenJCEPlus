@@ -151,13 +151,6 @@ public final class AESCipher extends CipherSpi implements AESConstants {
         } catch (BadPaddingException | IllegalBlockSizeException | ShortBufferException exc) {
             throw exc;
         } catch (Exception e) {
-            // Translate native bad-padding errors into BadPaddingException so callers
-            // that catch BadPaddingException (e.g. PKCS5 padding tests) behave correctly.
-            Throwable cause = e.getCause() != null ? e.getCause() : e;
-            String msg = cause.getMessage();
-            if (!encrypting && msg != null && msg.toLowerCase().contains("bad padding")) {
-                throw new BadPaddingException(msg);
-            }
             throw provider.providerException("Failure in engineDoFinal", e);
         }
     }

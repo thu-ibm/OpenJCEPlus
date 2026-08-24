@@ -12,6 +12,7 @@ import com.ibm.crypto.plus.provider.base.NativeInterface;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
 import java.util.Arrays;
+import javax.crypto.BadPaddingException;
 import sun.security.util.Debug;
 
 public abstract class NativeOpenSSLAdapter implements NativeInterface {
@@ -385,9 +386,23 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     @Override
     public int CIPHER_decryptFinal(long cipherId, byte[] ciphertext, int cipherOffset, int cipherLen,
-            byte[] plaintext, int plaintextOffset, boolean needsReinit) throws OpenSSLException {
-        return NativeOpenSSLImplementation.CIPHER_decryptFinal(osslContext.getId(), cipherId,
-            ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, needsReinit);
+            byte[] plaintext, int plaintextOffset, boolean needsReinit)
+            throws OpenSSLException, BadPaddingException {
+        try {
+            return NativeOpenSSLImplementation.CIPHER_decryptFinal(osslContext.getId(), cipherId,
+                ciphertext, cipherOffset, cipherLen, plaintext, plaintextOffset, needsReinit);
+        } catch (OpenSSLException e) {
+            // OpenSSL reports PKCS padding errors as a native exception whose message
+            // contains "bad padding". Translate to BadPaddingException so callers that
+            // declare 'catch (BadPaddingException)' behave correctly, matching OCK semantics.
+            String msg = e.getMessage();
+            if (msg != null && msg.toLowerCase().contains("bad padding")) {
+                BadPaddingException bpe = new BadPaddingException(msg);
+                bpe.initCause(e);
+                throw bpe;
+            }
+            throw e;
+        }
     }
 
     @Override
