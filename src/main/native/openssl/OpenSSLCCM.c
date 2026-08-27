@@ -38,7 +38,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-/* CCM constants (formerly in OpenSSLCCM.h) */
+/* CCM constants */
 #define MAX_CCM_TAG_SIZE        16
 #define MIN_CCM_TAG_SIZE        4
 #define MAX_CCM_IV_SIZE         13

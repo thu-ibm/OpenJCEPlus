@@ -14,7 +14,7 @@ public final class ExtendedRandom {
 
     private OpenJCEPlusProvider provider;
     private NativeInterface nativeInterface;
-    final long ockPRNGContextId;
+    final long prngContextId;
 
     public static ExtendedRandom getInstance(String algName, OpenJCEPlusProvider provider)
             throws NativeException {
@@ -32,9 +32,9 @@ public final class ExtendedRandom {
     private ExtendedRandom(String algName, OpenJCEPlusProvider provider) throws NativeException {
         this.provider = provider;
         this.nativeInterface = NativeCryptoSelector.selectBackend(provider, "SecureRandom", algName + "DRBG");
-        this.ockPRNGContextId = this.nativeInterface.EXTRAND_create(algName);
+        this.prngContextId = this.nativeInterface.EXTRAND_create(algName);
 
-        this.provider.registerCleanable(this, cleanOCKResources(ockPRNGContextId, nativeInterface));
+        this.provider.registerCleanable(this, cleanNativeResources(prngContextId, nativeInterface));
     }
 
     public synchronized void nextBytes(byte[] bytes) throws NativeException {
@@ -43,7 +43,7 @@ public final class ExtendedRandom {
         }
 
         if (bytes.length > 0) {
-            this.nativeInterface.EXTRAND_nextBytes(ockPRNGContextId, bytes);
+            this.nativeInterface.EXTRAND_nextBytes(prngContextId, bytes);
         }
     }
 
@@ -53,15 +53,15 @@ public final class ExtendedRandom {
         }
 
         if (seed.length > 0) {
-            this.nativeInterface.EXTRAND_setSeed(ockPRNGContextId, seed);
+            this.nativeInterface.EXTRAND_setSeed(prngContextId, seed);
         }
     }
 
-    private Runnable cleanOCKResources(long ockPRNGContextId, NativeInterface nativeInterface) {
+    private Runnable cleanNativeResources(long prngContextId, NativeInterface nativeInterface) {
         return () -> {
             try {
-                if (ockPRNGContextId != 0) {
-                    nativeInterface.EXTRAND_delete(ockPRNGContextId);
+                if (prngContextId != 0) {
+                    nativeInterface.EXTRAND_delete(prngContextId);
                 }
             } catch (Exception e) {
                 if (OpenJCEPlusProvider.getDebug() != null) {
