@@ -14,7 +14,9 @@ JNI_CLASS = $(TOPDIR)\src\main\java\com\ibm\crypto\plus\provider\openssl\NativeO
 JNI_HEADER = com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h
 
 OBJS= \
+	BuildDate.obj \
 	Digest.obj \
+	StaticStub.obj \
 	Utils.obj
 
 TARGET = libopenjceplus_64.dll

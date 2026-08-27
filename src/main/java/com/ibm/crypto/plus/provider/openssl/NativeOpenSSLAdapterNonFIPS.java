@@ -17,7 +17,11 @@ public class NativeOpenSSLAdapterNonFIPS extends NativeOpenSSLAdapter {
 
     public static NativeOpenSSLAdapterNonFIPS getInstance() {
         if (instance == null) {
-            instance = new NativeOpenSSLAdapterNonFIPS();
+            synchronized (NativeOpenSSLAdapterNonFIPS.class) {
+                if (instance == null) {
+                    instance = new NativeOpenSSLAdapterNonFIPS();
+                }
+            }
         }
 
         return instance;

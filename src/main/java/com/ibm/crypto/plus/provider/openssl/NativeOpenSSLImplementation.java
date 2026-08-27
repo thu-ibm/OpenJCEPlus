@@ -249,6 +249,8 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
             byte[] ciphertext, int cipherOffset, int cipherLen, byte[] plaintext,
             int plaintextOffset, boolean needsReinit) throws OpenSSLException;
 
+    static public native long checkHardwareSupport(long osslContextId);
+
     static public native void CIPHER_delete(long osslContextId, long cipherId)
             throws OpenSSLException;
 

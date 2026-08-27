@@ -9,6 +9,7 @@
 package com.ibm.crypto.plus.provider.base;
 
 import com.ibm.crypto.plus.provider.OpenJCEPlusProvider;
+import com.ibm.crypto.plus.provider.SystemAccessUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,7 +22,8 @@ import javax.crypto.ShortBufferException;
 public final class GCMCipher {
 
     private static final String DISABLE_GCM_ACCELERATION = "com.ibm.crypto.provider.DisableGCMAcceleration";
-    private static final boolean disableGCMAcceleration = Boolean.parseBoolean(System.getProperty(DISABLE_GCM_ACCELERATION));
+    private static final boolean disableGCMAcceleration = Boolean.parseBoolean(
+            SystemAccessUtils.getSystemProperty(DISABLE_GCM_ACCELERATION, "false"));
     private static final String debPrefix = "GCMCipher";
 
     // This tracks if the HARDWARE actually supports GCM (Checked once)

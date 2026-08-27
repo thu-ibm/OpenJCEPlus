@@ -8,6 +8,7 @@
 
 package com.ibm.crypto.plus.provider.ock;
 
+import com.ibm.crypto.plus.provider.SystemAccessUtils;
 import com.ibm.crypto.plus.provider.base.NativeImplementation;
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -61,7 +62,7 @@ final class NativeOCKImplementation extends NativeImplementation {
     }
 
     static String getOCKLoadPath() {
-        String ockOverridePath = System.getProperty("ock.library.path");
+        String ockOverridePath = SystemAccessUtils.getSystemProperty("ock.library.path");
         if (ockOverridePath != null) {
             if (debug != null) {
                 debug.println("Loading ock library using value in property ock.library.path: "
@@ -73,8 +74,8 @@ final class NativeOCKImplementation extends NativeImplementation {
             debug.println("Library path not found for ock, use java home directory.");
         }
 
-        String javaHome = System.getProperty("java.home");
-        osName = System.getProperty("os.name");
+        String javaHome = SystemAccessUtils.getSystemProperty("java.home");
+        osName = SystemAccessUtils.getSystemProperty("os.name");
         String ockPath;
 
         if (osName.startsWith("Windows")) {
@@ -90,7 +91,7 @@ final class NativeOCKImplementation extends NativeImplementation {
     }
 
     static String getJGskitLoadPath() {
-        String jgskitOverridePath = System.getProperty("jgskit.library.path");
+        String jgskitOverridePath = SystemAccessUtils.getSystemProperty("jgskit.library.path");
         if (jgskitOverridePath != null) {
             if (debug != null) {
                 debug.println("Loading jgskit library using value in property jgskit.library.path: " + jgskitOverridePath);
@@ -101,8 +102,8 @@ final class NativeOCKImplementation extends NativeImplementation {
             debug.println("Libpath not found for jgskit, use java home directory.");
         }
 
-        String javaHome = System.getProperty("java.home");
-        osName = System.getProperty("os.name");
+        String javaHome = SystemAccessUtils.getSystemProperty("java.home");
+        osName = SystemAccessUtils.getSystemProperty("os.name");
         String jgskitPath;
 
         if (osName.startsWith("Windows")) {
@@ -118,8 +119,8 @@ final class NativeOCKImplementation extends NativeImplementation {
     }
 
     static void preloadJGskit() {
-        osName = System.getProperty("os.name");
-        osArch = System.getProperty("os.arch");
+        osName = SystemAccessUtils.getSystemProperty("os.name");
+        osArch = SystemAccessUtils.getSystemProperty("os.arch");
         String jgskitPath = getJGskitLoadPath();
         File loadFile = null;
         if (osName.startsWith("Windows") && osArch.equals("amd64")) {
@@ -138,8 +139,8 @@ final class NativeOCKImplementation extends NativeImplementation {
     }
 
     static void preloadOCK() {
-        osName = System.getProperty("os.name");
-        osArch = System.getProperty("os.arch");
+        osName = SystemAccessUtils.getSystemProperty("os.name");
+        osArch = SystemAccessUtils.getSystemProperty("os.arch");
         String ockPath = getOCKLoadPath();
         File loadFile = null;
 

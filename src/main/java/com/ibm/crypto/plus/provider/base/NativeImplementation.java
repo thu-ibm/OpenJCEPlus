@@ -8,6 +8,7 @@
 
 package com.ibm.crypto.plus.provider.base;
 
+import com.ibm.crypto.plus.provider.SystemAccessUtils;
 import java.io.File;
 import sun.security.util.Debug;
 
@@ -24,7 +25,7 @@ public abstract class NativeImplementation {
             // loaded by another ClassLoader
             //
             try {
-                System.load(libraryName);
+                SystemAccessUtils.loadLibrary(libraryName);
                 if (debug != null) {
                     debug.println("Loaded : " + libraryName);
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright IBM Corp. 2025
+ * Copyright IBM Corp. 2025, 2026
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms provided by IBM in the LICENSE file that accompanied
@@ -8,10 +8,10 @@
 
 package com.ibm.crypto.plus.provider.ock;
 
+import com.ibm.crypto.plus.provider.SystemAccessUtils;
 import com.ibm.crypto.plus.provider.base.NativeInterface;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
 import sun.security.util.Debug;
@@ -191,8 +191,8 @@ public abstract class NativeOCKAdapter implements NativeInterface {
         try {
             // Check to make sure that the OCK install path is within the JRE
             //
-            String ockLoadPath = new File(NativeOCKImplementation.getOCKLoadPath()).getCanonicalPath();
-            String ockInstallPath = new File(getLibraryInstallPath()).getCanonicalPath();
+            String ockLoadPath = SystemAccessUtils.getFileCanonicalPath(new File(NativeOCKImplementation.getOCKLoadPath()));
+            String ockInstallPath = SystemAccessUtils.getFileCanonicalPath(new File(getLibraryInstallPath()));
 
             if (debug != null) {
                 debug.println("dependent library load path : " + ockLoadPath);
@@ -248,7 +248,7 @@ public abstract class NativeOCKAdapter implements NativeInterface {
         try {
             String line;
             String versionMarker = "# ICC Version ";
-            br = new BufferedReader(new FileReader(ockSigFileName));
+            br = new BufferedReader(SystemAccessUtils.newFileReader(ockSigFileName));
             while ((line = br.readLine()) != null) {
                 if (line.startsWith(versionMarker)) {
                     String version = line.substring(versionMarker.length()).trim();
