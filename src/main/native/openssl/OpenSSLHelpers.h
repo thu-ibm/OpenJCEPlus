@@ -59,9 +59,9 @@ void logFunctionExit(const char* functionName);
 //============================================================================
 
 /**
- * Validate FIPS flag and create the appropriate OpenSSL context.
+ * Validate the context flag and return the appropriate OpenSSL context.
  * @param env JNI environment
- * @param fipsFlag FIPS mode flag (non-zero for FIPS)
+ * @param fipsFlag Context selector (pass 0)
  * @param functionName Calling function name for error reporting
  * @param outContext Output parameter for the context pointer
  * @return 1 on success, 0 on failure (exception thrown)
@@ -70,7 +70,7 @@ int validateAndGetContext(JNIEnv* env, jint fipsFlag, const char* functionName,
                           OpenSSLContext** outContext);
 
 /**
- * Wire the pre-created FIPS and non-FIPS contexts into the dispatch table.
+ * Wire pre-created contexts into the dispatch table.
  * Must be called once from JNI_OnLoad / initializeOpenSSL before any
  * cryptographic operations. Both pointers may be NULL to force on-demand init.
  */

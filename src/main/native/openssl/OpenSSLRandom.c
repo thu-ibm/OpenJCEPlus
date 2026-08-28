@@ -40,7 +40,7 @@ JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLIm
         return; // Nothing to do
     }
 
-    /* Resolve the correct library context (FIPS-isolated or default) */
+    /* Resolve the correct library context */
     if (!validateAndGetContext(env, (jint)(osslContextId - 1), "RAND_bytes", &context)) {
         return;
     }
@@ -52,8 +52,7 @@ JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLIm
         return;
     }
 
-    /* Use RAND_bytes_ex to generate bytes in the correct library context.
-     * In FIPS mode this ensures the FIPS provider's DRBG is used. */
+    /* Use RAND_bytes_ex to generate bytes in the correct library context. */
     rc = RAND_bytes_ex(context->libctx, (unsigned char *)bytesNative, (size_t)bytesLen, 0);
 
     if (rc != 1) {
@@ -185,10 +184,8 @@ JNIEXPORT void JNICALL Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLIm
 JNIEXPORT jint JNICALL Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_RAND_1status
   (JNIEnv *env, jclass cls, jlong osslContextId)
 {
-    /* Use the context-bound DRBG so that FIPS mode queries the FIPS DRBG.
-     * RAND_status() is a global function that ignores OSSL_LIB_CTX and would
-     * always reflect the default process context, giving a false-positive in
-     * FIPS mode when the FIPS DRBG has not yet been instantiated. */
+    /* Use the context-bound DRBG; RAND_status() is a global function that
+     * ignores OSSL_LIB_CTX and would always reflect the default context. */
     OpenSSLContext* context = NULL;
     if (!validateAndGetContext(env, (jint)(osslContextId - 1), "RAND_status", &context)) {
         return 0;
@@ -252,8 +249,7 @@ JNIEXPORT jlong JNICALL Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLI
     
     // Map Java algorithm names to OpenSSL EVP digest names.
     // OpenSSL's HASH-DRBG "digest" parameter must be an EVP_MD name;
-    // "SHA-256"/"SHA-512" are the canonical aliases recognised by all
-    // OpenSSL 3.x builds including those with the default and FIPS providers.
+    // "SHA-256"/"SHA-512" are the canonical aliases recognised by OpenSSL 3.x.
     const char *digestName;
     if (strcmp(algNameChars, "SHA256") == 0) {
         digestName = "SHA-256";

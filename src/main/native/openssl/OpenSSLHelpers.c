@@ -16,7 +16,7 @@
  *
  * The helpers are organized into functional groups:
  * - Logging: Debug logging with function entry/exit tracking
- * - Context validation: FIPS mode and context management
+ * - Context validation and management
  * - String handling: Safe UTF-8 string conversion and cleanup
  * - Byte array handling: Safe JNI array access and cleanup
  * - Validation: Parameter range and bounds checking
@@ -51,24 +51,10 @@ void logFunctionExit(const char* functionName) {
 // Context Validation
 //============================================================================
 
-/**
- * Validate the FIPS flag and return the adapter-owned OpenSSL context marker.
- *
- * The Java adapter owns the effective FIPS/non-FIPS context selection. Native
- * entry points use the flag passed from Java to select a lightweight context
- * marker that carries mode information only; OpenSSL objects are then fetched
- * against the corresponding provider configuration for that marker.
- *
- * @param env JNI environment
- * @param fipsFlag Non-zero for FIPS mode, zero for non-FIPS
- * @param functionName Name of calling function (for error reporting)
- * @param outContext Optional output parameter to receive context pointer (can be NULL)
- * @return 1 on success, 0 on failure (with exception set)
- */
-/* Real per-mode contexts initialised by initializeOpenSSLContexts().
+/* Contexts initialised by initializeOpenSSLContexts().
  * Pointers start NULL; they are set once from OpenSSLJNI.c on first use
  * so that EVP_CIPHER_fetch / EVP_MD_fetch / EVP_RAND_fetch use the correct
- * OSSL_LIB_CTX (FIPS or default provider) rather than the global context.
+ * OSSL_LIB_CTX rather than the global context.
  *
  * Access is protected by g_contextMutex to prevent race conditions when
  * multiple threads trigger context initialisation simultaneously. */

@@ -8,23 +8,15 @@
 
 /**
  * @file OpenSSLContext.h
- * @brief OpenSSL library context management for FIPS and non-FIPS modes.
+ * @brief OpenSSL library context structure and constants.
  *
  * This header defines the OpenSSL context structure and constants used
  * throughout the native code. The context manages OpenSSL library contexts
- * and providers, supporting both FIPS-approved and non-FIPS modes.
+ * and providers.
  *
  * In OpenSSL 3.0+, library contexts (OSSL_LIB_CTX) provide isolation
  * between different configurations, and providers supply cryptographic
  * algorithm implementations.
- *
- * Key concepts:
- * - FIPS mode: Uses FIPS-validated cryptographic implementations
- * - Non-FIPS mode: Uses standard OpenSSL implementations
- * - Providers: Pluggable modules that supply algorithm implementations
- *   - FIPS provider: FIPS 140-2/140-3 validated algorithms
- *   - Base provider: Basic algorithms (encoders, decoders)
- *   - Default provider: Full algorithm suite including advanced features
  */
 
 #ifndef _OPENSSL_CONTEXT_H
@@ -44,7 +36,7 @@
  * @{
  */
 
-/** Query constant for FIPS approved mode status */
+/** Query constant for FIPS approved mode status (always 0/false) */
 #define VALUE_FIPS_APPROVED_MODE 0
 
 /** Query constant for OpenSSL version string */
@@ -60,13 +52,12 @@
  * @brief OpenSSL library context structure.
  *
  * Maintains the state for an OpenSSL library context including
- * the library context itself and loaded providers. Separate contexts
- * are maintained for FIPS and non-FIPS modes.
+ * the library context itself and loaded providers.
  */
 typedef struct {
     jlong          id;          /**< Unique context identifier */
     OSSL_LIB_CTX*  libctx;      /**< OpenSSL library context */
-    OSSL_PROVIDER* fips;        /**< FIPS provider (FIPS mode only) */
+    OSSL_PROVIDER* fips;        /**< FIPS provider (unused, reserved) */
     OSSL_PROVIDER* base;        /**< Base provider (encoders, decoders) */
     OSSL_PROVIDER* defaultProv; /**< Default provider (full algorithm suite) */
 } OpenSSLContext;

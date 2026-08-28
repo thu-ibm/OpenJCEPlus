@@ -11,7 +11,7 @@
  * @brief Core utility functions for OpenSSL JNI integration.
  *
  * This header provides fundamental utilities for OpenSSL operations including:
- * - Context management (FIPS and non-FIPS modes)
+ * - Context management
  * - Exception handling and error reporting
  * - Debug logging infrastructure
  * - OpenSSL error string extraction
@@ -133,7 +133,7 @@ jclass getOpenSSLExceptionClass(JNIEnv* env);
  * Create a properly configured OpenSSL context.
  * Used internally; exposed for OpenSSLJNI.c to create and register contexts.
  * @param env JNI environment
- * @param isFIPS Non-zero for FIPS mode
+ * @param isFIPS Reserved; pass 0
  * @return Heap-allocated context, or NULL on error (exception thrown)
  */
 OpenSSLContext* createContext(JNIEnv* env, int isFIPS);
