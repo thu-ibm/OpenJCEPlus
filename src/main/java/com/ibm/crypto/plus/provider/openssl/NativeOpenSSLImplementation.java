@@ -28,7 +28,7 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     // If OpenSSL is dynamically loaded, whether to require that OpenSSL be
     // pre-loaded.
     //
-    static boolean requirePreloadOSSL = true;
+    private static final boolean requirePreloadOSSL = true;
 
     // Default library names
     //
@@ -36,7 +36,6 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     private static final String JGSKIT_LIBRARY_NAME = "libjgskit_openssl_64";
     private static String osName = null;
     private static String osArch = null;
-    private static String JVMFIPSmode = null;
 
     static {
         if (osslDynamicallyLoaded) {
@@ -344,8 +343,6 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
             throws OpenSSLException;
 
     static public native int do_GCM_FinalForUpdateDecrypt(long osslContextId, long gcmCtx,
-            /* byte[] key, int keyLen,
-             byte[] iv, int ivLen,*/
             byte[] ciphertext, int cipherOffset, int cipherLen, byte[] plaintext,
             int plaintextOffset, int plaintextlen, byte[] aad, int aadLen, int tagLen)
             throws OpenSSLException;
@@ -369,8 +366,6 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
 
     static public native void free_GCM_ctx(long osslContextId, long gcmContextId)
             throws OpenSSLException;
-
-    //static public native int get_GCM_TLSEnabled() throws OpenSSLException;
 
     static public native long create_GCM_context(long osslContextId) throws OpenSSLException;
 
@@ -564,7 +559,7 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     static public native long DIGEST_create(long osslContextId, String digestAlgo)
             throws OpenSSLException;
 
-    static public native long DIGEST_copy(long id, long digestId)
+    static public native long DIGEST_copy(long osslContextId, long digestId)
             throws OpenSSLException;
 
     static public native int DIGEST_update(long osslContextId, long digestId, byte[] input,

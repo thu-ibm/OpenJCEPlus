@@ -14,6 +14,8 @@ public class OpenSSLException extends NativeException {
     private static final long serialVersionUID = 1L;
 
     // These must match the values in OpenSSLExceptionCodes.h
+    /** Sentinel for exceptions constructed without an explicit error code. */
+    public static final int OPENSSL_NO_ERROR_CODE               = 0x00000000;
     public static final int OPENSSL_FIPS_MODE_INVALID           = 0x00000001;
     public static final int OPENSSL_LIBRARY_LOAD_FAILED         = 0x00000002;
     public static final int OPENSSL_PROVIDER_LOAD_FAILED        = 0x00000003;
@@ -25,6 +27,7 @@ public class OpenSSLException extends NativeException {
     public static final int OPENSSL_CIPHER_INIT_FAILED          = 0x00000009;
     public static final int OPENSSL_CIPHER_UPDATE_FAILED        = 0x0000000A;
     public static final int OPENSSL_CIPHER_FINAL_FAILED         = 0x0000000B;
+    // 0x0000000C and 0x0000000D are reserved for future use
     public static final int OPENSSL_CIPHER_TAG_MISMATCH         = 0x0000000E;
 
     // Digest error codes
@@ -83,7 +86,7 @@ public class OpenSSLException extends NativeException {
 
     public OpenSSLException(String message) {
         super(message);
-        this.errorCode = 0;
+        this.errorCode = OPENSSL_NO_ERROR_CODE;
     }
 
     public OpenSSLException(String message, int errorCode) {
@@ -102,6 +105,7 @@ public class OpenSSLException extends NativeException {
 
     public static String getErrorCodeString(int code) {
         switch (code) {
+            case OPENSSL_NO_ERROR_CODE:               return "OPENSSL_NO_ERROR_CODE";
             case OPENSSL_FIPS_MODE_INVALID:           return "OPENSSL_FIPS_MODE_INVALID";
             case OPENSSL_LIBRARY_LOAD_FAILED:         return "OPENSSL_LIBRARY_LOAD_FAILED";
             case OPENSSL_PROVIDER_LOAD_FAILED:        return "OPENSSL_PROVIDER_LOAD_FAILED";
@@ -161,8 +165,4 @@ public class OpenSSLException extends NativeException {
         return getErrorCodeString(errorCode);
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + " [Error code: " + errorCode + " - " + getErrorCodeString() + "]";
-    }
 }

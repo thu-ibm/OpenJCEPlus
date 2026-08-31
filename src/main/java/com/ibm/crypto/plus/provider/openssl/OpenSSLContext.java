@@ -12,8 +12,7 @@ public class OpenSSLContext {
     private long osslContextId;
     private boolean isFIPS;
 
-    public static OpenSSLContext createContext(long osslContextId, boolean isFIPS) throws OpenSSLException {
-
+    public static OpenSSLContext createContext(long osslContextId, boolean isFIPS) {
         return new OpenSSLContext(osslContextId, isFIPS);
     }
 

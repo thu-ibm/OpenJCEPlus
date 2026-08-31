@@ -12,14 +12,12 @@ import com.ibm.crypto.plus.provider.base.NativeInterface;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.security.ProviderException;
-import java.util.Arrays;
 import javax.crypto.BadPaddingException;
 import sun.security.util.Debug;
 
 public abstract class NativeOpenSSLAdapter implements NativeInterface {
-    // These code values must match those defined in Context.h.
+    // These code values must match those defined in StaticStub.c.
     //
-    private static final int VALUE_ID_FIPS_APPROVED_MODE = 0;
     private static final int VALUE_OSSL_INSTALL_PATH = 1;
     private static final int VALUE_OSSL_VERSION = 2;
 
@@ -30,22 +28,17 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
 
     private static final int DEFAULT_GCM_TAG_LEN = 16;
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
-    private static final long HKDF_DUMMY_CONTEXT_ID = 1L;
-
-    // whether to validate OpenSSL was loaded from JRE location
-    private static final boolean validateOSSLLocation = true;
 
     private OpenSSLContext osslContext = null;
     private boolean osslInitialized = false;
     private boolean useFIPSMode;
 
+    // unobtainedValue sentinel: identity (==) comparison detects "not yet fetched".
+    // Some values may be null once fetched, so we cannot use null as the sentinel.
     private String osslVersion = unobtainedValue;
     private String osslInstallPath = unobtainedValue;
 
-    // The following is a special String instance to indicate that a
-    // value has not yet been obtained.  We do this because some values
-    // may be null and we only want to query the value one time.
-    //
+    // Same sentinel for the static build-date string.
     private static String libraryBuildDate = unobtainedValue;
 
     NativeOpenSSLAdapter(boolean useFIPSMode) {
@@ -59,7 +52,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         // Leave this duplicate check in here. If two threads are both trying
         // to instantiate an OpenJCEPlus provider at the same time, we need to
         // ensure that the initialization only happens one time. We have
-        // made the method synchronizaed to ensure only one thread can execute
+        // made the method synchronized to ensure only one thread can execute
         // the method at a time.
         //
         if (osslInitialized) {
@@ -70,10 +63,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
             long osslContextId =  NativeOpenSSLImplementation.initializeOSSL(this.useFIPSMode);
             this.osslContext = OpenSSLContext.createContext(osslContextId, this.useFIPSMode);
             getLibraryBuildDate();
-
-            /*if (validateOSSLLocation) {
-                validateLibraryLocation();
-            }*/
 
             this.osslInitialized = true;
         } catch (OpenSSLException e) {
@@ -151,7 +140,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         return osslInstallPath;
     }
 
-
     private synchronized void obtainOpenSSLVersion() throws OpenSSLException {
         // Leave this duplicate check in here. If two threads are both trying
         // to get the value at the same time, we only want to call the native
@@ -176,10 +164,15 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         return new ProviderException(message, throwable);
     }
 
+    /**
+     * Validates that the OpenSSL install path is within the JRE directory.
+     * Not called during normal initialisation (OpenSSL ships separately from the JRE);
+     * retained to satisfy the {@link com.ibm.crypto.plus.provider.base.NativeInterface} contract.
+     */
     @Override
     public void validateLibraryLocation() throws ProviderException, OpenSSLException {
         try {
-            // Check to make sure that the OCK install path is within the JRE
+            // Check to make sure that the OpenSSL install path is within the JRE
             //
             String osslLoadPath = NativeOpenSSLImplementation.getOSSLLoadFile().getCanonicalPath();
             String osslInstallPath = new File(getLibraryInstallPath()).getCanonicalPath();
@@ -189,15 +182,20 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
                 debug.println("dependent library install path : " + osslInstallPath);
             }
 
-            if (osslInstallPath.startsWith(osslLoadPath) == false) {
-                if (debug != null) {
-                    debug.println("Dependent library was loaded from " + osslLoadPath + " and config files from " + osslInstallPath);
-                }
+            if (!osslInstallPath.startsWith(osslLoadPath)) {
+                throw new ProviderException("Dependent library was loaded from " + osslLoadPath
+                        + " but config files are from " + osslInstallPath);
             }
         } catch (java.io.IOException e) {
             throw new ProviderException("Incorrect file specification for dependent library", e);
         }
     }
+
+    /**
+     * Validates that the OpenSSL version meets the minimum required version.
+     * Not called during normal initialisation; retained to satisfy the
+     * {@link com.ibm.crypto.plus.provider.base.NativeInterface} contract.
+     */
 
     @Override
     public void validateLibraryVersion() throws ProviderException, OpenSSLException {
@@ -237,9 +235,13 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         return libraryBuildDate;
     }
 
+    /**
+     * No-op for the OpenSSL backend. Context initialisation is performed in
+     * {@link #initializeContext()} during construction; this method exists solely
+     * to satisfy the {@link com.ibm.crypto.plus.provider.base.NativeInterface} contract.
+     */
     @Override
     public long initialize(boolean isFIPS) throws OpenSSLException {
-        //return NativeOpenSSLImplementation.initializeOSSL(isFIPS);
         return 0;
     }
 
@@ -735,6 +737,7 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
     public long create_GCM_context(int keySize) throws OpenSSLException {
         String cipherName;
         switch (keySize) {
+            case 16: cipherName = "AES-128-GCM"; break;
             case 24: cipherName = "AES-192-GCM"; break;
             case 32: cipherName = "AES-256-GCM"; break;
             default: cipherName = "AES-128-GCM"; break;
