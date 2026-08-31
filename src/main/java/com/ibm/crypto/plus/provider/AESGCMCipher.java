@@ -1174,18 +1174,8 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             throw new IllegalStateException(
                     "AAD must be supplied before encryption/decryption starts");
         }
-
-        // JCE CipherSpi.engineUpdateAAD() contract: successive calls must concatenate
-        // their AAD rather than replace it.
-        if (this.authData == null) {
-            this.authData = new byte[len];
-            System.arraycopy(src, offset, authData, 0, len);
-        } else {
-            byte[] combined = new byte[this.authData.length + len];
-            System.arraycopy(this.authData, 0, combined, 0, this.authData.length);
-            System.arraycopy(src, offset, combined, this.authData.length, len);
-            this.authData = combined;
-        }
+        this.authData = new byte[len];
+        System.arraycopy(src, offset, authData, 0, len);
     }
 
     @Override
@@ -1204,18 +1194,9 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             throw new IllegalStateException(
                     "AAD must be supplied before encryption/decryption starts");
         }
-        // Same concatenation fix as the byte[] overload above: JCE requires successive
-        // updateAAD calls to append, not replace, the accumulated AAD.
         int remaining = src.remaining();
-        if (this.authData == null) {
-            this.authData = new byte[remaining];
-            src.get(authData, 0, remaining);
-        } else {
-            byte[] combined = new byte[this.authData.length + remaining];
-            System.arraycopy(this.authData, 0, combined, 0, this.authData.length);
-            src.get(combined, this.authData.length, remaining);
-            this.authData = combined;
-        }
+        this.authData = new byte[remaining];
+        src.get(authData, 0, remaining);
     }
 
     private int fillOutputBuffer(byte[] finalBuf, int finalOffset, byte[] output, int outOfs,
