@@ -53,7 +53,6 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
     private PrimitiveWrapper.ByteArray Key = new PrimitiveWrapper.ByteArray(null);
     private byte[] authData = null;
     private boolean updateCalled = false;
-    boolean finalCalled = false;  // Track if doFinal has been called since last init
 
     // Java 8 Cipher.class documentation does not require that an cipher.init is
     // called between successive encryption or decryption. However it requires
@@ -731,7 +730,6 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             this.initialized = true;
             this.initCalledInEncSeq = true;
             this.authData = null; // Before returning from internalInit(), restore AAD to uninitialized state
-            this.finalCalled = false; // Reset finalCalled flag on init
             this.updateCalled = false;
             this.sbeInLastFinalEncrypt = false;
             this.sbeInLastUpdateEncrypt = false;
@@ -1165,10 +1163,6 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
         }
-        // Prevent updateAAD after doFinal without re-init (encryption) — backend-agnostic JCE rule.
-        if (finalCalled && encrypting) {
-            throw new IllegalStateException("Cannot call updateAAD after doFinal - must call init first");
-        }
         checkReinit();
         if (updateCalled) {
             throw new IllegalStateException(
@@ -1184,10 +1178,6 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
 
         if (!initialized) {
             throw new IllegalStateException("Cipher has not been initialized");
-        }
-        // Prevent updateAAD after doFinal without re-init (encryption) — backend-agnostic JCE rule.
-        if (finalCalled && encrypting) {
-            throw new IllegalStateException("Cannot call updateAAD after doFinal - must call init first");
         }
         checkReinit();
         if (updateCalled) {
@@ -1402,9 +1392,6 @@ public final class AESGCMCipher extends CipherSpi implements AESConstants, GCMCo
             this.requireReinit = true;
             authData = null;
             this.aadDone = false;
-        } else {
-            // Mark that doFinal has been called - prevents updateAAD until next init for encryption
-            this.finalCalled = true;
         }
         initCalledInEncSeq = false;
         updateCalled = false;
