@@ -345,7 +345,7 @@ def runOpenJCEPlus(command, hardware, software) {
 
         def java_home = "export JAVA_HOME=$WORKSPACE/java/jdk;"
         def gskit_home = "export GSKIT_HOME=$WORKSPACE/openjceplus/OCK/jgsk_sdk;"
-        def openssl_home = "export OPENSSL_HOME=$WORKSPACE/openssl;"
+        def openssl_home = (software == "zos") ? "" : "export OPENSSL_HOME=$WORKSPACE/openssl;"
         def mavenPath = "$WORKSPACE/apache-maven-3.9.10/bin"
         def environment = "export PATH=${mavenPath}:\$PATH;"
 

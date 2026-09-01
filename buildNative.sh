@@ -26,8 +26,12 @@ fi
 
 if [ -z "$OPENSSL_HOME" ];
   then
-  echo "Error: OPENSSL_HOME is not defined or is empty";
-  exit;
+  if [ ${PLATFORM} != "s390-zos64" ];
+    then
+    echo "Error: OPENSSL_HOME is not defined or is empty";
+    exit;
+  fi
+  echo "Warning: OPENSSL_HOME is not defined or is empty; skipping OpenSSL native build";
 fi
 
 if [ -z "$PLATFORM" ];
@@ -63,7 +67,10 @@ cd src/main/native/ock
 ${make} -f jgskit.mak clean
 ${make} -f jgskit.mak
 
-cd ../openssl
+if [ -n "$OPENSSL_HOME" ];
+  then
+  cd ../openssl
 
-make -f openjceplus.mak clean
-make -f openjceplus.mak
+  make -f openjceplus.mak clean
+  make -f openjceplus.mak
+fi
