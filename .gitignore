@@ -61,3 +61,6 @@ AGENTS.md
 # Dev-local convenience build scripts (not tracked)
 buildNativeWin64OpenSSL.bat
 run_all_tests.bat
+
+# Dev-local standalone makefile (not tracked)
+src/main/native/openssl/openssl.win64.mak
