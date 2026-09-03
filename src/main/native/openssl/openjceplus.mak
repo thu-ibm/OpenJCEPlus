@@ -14,10 +14,16 @@ JNI_CLASS = ${TOPDIR}/src/main/java/com/ibm/crypto/plus/provider/openssl/NativeO
 JNI_HEADER = com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h
 
 OBJS = \
-	${HOSTOUT}/BuildDate.o \
+	${HOSTOUT}/OpenSSLJNI.o \
+	${HOSTOUT}/OpenSSLSymmetricCipher.o \
+	${HOSTOUT}/OpenSSLGCM.o \
+	${HOSTOUT}/OpenSSLCCM.o \
+	${HOSTOUT}/OpenSSLKeyWrap.o \
+	${HOSTOUT}/OpenSSLRandom.o \
+	${HOSTOUT}/OpenSSLUtils.o \
+	${HOSTOUT}/OpenSSLHelpers.o \
 	${HOSTOUT}/Digest.o \
-	${HOSTOUT}/StaticStub.o \
-	${HOSTOUT}/Utils.o
+	${HOSTOUT}/BuildDate.o
 
 LIB_FOLDER = lib
 ifeq (${PLATFORM},x86-linux64)

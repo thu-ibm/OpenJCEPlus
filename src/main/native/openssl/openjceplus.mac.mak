@@ -24,10 +24,16 @@ endif
 TARGET_LIBS := -L ${OPENSSL_LIB_LOCATION} -l ${OPENSSL_LIB}
 
 OBJS = \
-	${HOSTOUT}/BuildDate.o \
+	${HOSTOUT}/OpenSSLJNI.o \
+	${HOSTOUT}/OpenSSLSymmetricCipher.o \
+	${HOSTOUT}/OpenSSLGCM.o \
+	${HOSTOUT}/OpenSSLCCM.o \
+	${HOSTOUT}/OpenSSLKeyWrap.o \
+	${HOSTOUT}/OpenSSLRandom.o \
+	${HOSTOUT}/OpenSSLUtils.o \
+	${HOSTOUT}/OpenSSLHelpers.o \
 	${HOSTOUT}/Digest.o \
-	${HOSTOUT}/StaticStub.o \
-	${HOSTOUT}/Utils.o
+	${HOSTOUT}/BuildDate.o
 
 TARGET = ${HOSTOUT}/libopenjceplus.dylib
 
