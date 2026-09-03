@@ -235,13 +235,10 @@ public final class CCMCipher {
             //OCKDebug.Msg (debPrefix, methodName, "key.length :" + key.length + " iv.length :" + iv.length + " inputOffset :" + inputOffset);
             //OCKDebug.Msg (debPrefix, methodName, " inputLen :" + inputLen + " aadLen :" + aadLen + " tagLen :" + tagLen);
 
-            // Create tempInput sized exactly to inputLen (not input.length - inputOffset).
-            // Allocating input.length - inputOffset would over-allocate when inputOffset > 0,
-            // causing the native do_CCM_decrypt call to see trailing zero bytes it did not
-            // encrypt, which corrupts the output.
+            // Create tempInput
             byte[] tempInput = new byte[inputLen];
             // Copy contents of input from inputOffset for length inputLen into tempInput
-            System.arraycopy(input, inputOffset, tempInput, 0, inputLen);
+            System.arraycopy(input, inputOffset, tempInput, 0, inputLen); // inputLen should be good
 
             // Create tempOutput
             byte[] tempOutput = new byte[len + outputOffset]; // len from call to getOutputSizeLegacy() above
@@ -379,8 +376,12 @@ public final class CCMCipher {
 
         } else {
 
-            // Create tempInput sized exactly to inputLen (not input.length - inputOffset).
-            // See corresponding comment in doCCMFinal_Decrypt for the rationale.
+            // Create tempInput sized to inputLen, not input.length - inputOffset.
+            // On OCK this else branch is never reached (CCMHardwareFunctionPtr != -1 takes
+            // the FastJNI path above). On OpenSSL (CCMHardwareFunctionPtr == -1) this is
+            // the only path. pr-1492 uses input.length - inputOffset here, which is wrong
+            // when inputLen < input.length - inputOffset (pooled/sliced buffer): the native
+            // call would encrypt extra trailing bytes, overrunning the output buffer.
             byte[] tempInput = new byte[inputLen];
             // Copy contents of input from inputOffset for length inputLen into tempInput
             System.arraycopy(input, inputOffset, tempInput, 0, inputLen);

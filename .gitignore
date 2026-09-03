@@ -57,3 +57,7 @@ jmh.lock
 # Ignore AI files
 .bob
 AGENTS.md
+
+# Dev-local convenience build scripts (not tracked)
+buildNativeWin64OpenSSL.bat
+run_all_tests.bat
