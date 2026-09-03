@@ -202,6 +202,11 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         String[] expectedVersion = getExpectedLibraryVersion().split("\\.");
         String[] actualVersion = getLibraryVersion().split("\\.");
 
+        if (debug != null) {
+            debug.println("Expected OpenSSL version : " + getExpectedLibraryVersion());
+            debug.println("Actual OpenSSL version : " + getLibraryVersion());
+        }
+
         int majorExpected = Integer.parseInt(expectedVersion[0]);
         int majorActual = Integer.parseInt(actualVersion[0]);
         int minorExpected = Integer.parseInt(expectedVersion[1]);

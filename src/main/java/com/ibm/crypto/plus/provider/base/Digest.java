@@ -73,10 +73,11 @@ public final class Digest implements Cloneable {
     void getContext() throws NativeException {
         ConcurrentLinkedQueueLong[] contexts = contextsPerBackend.get(this.nativeInterface);
         Integer[] runtimeContextNum = runtimeContextNumPerBackend.get(this.nativeInterface);
-        if (contexts == null) {
+        if ((contexts == null) || (runtimeContextNum == null)) {
             synchronized (Digest.class) {
                 contexts = contextsPerBackend.get(this.nativeInterface);
-                if (contexts == null) {
+                runtimeContextNum = runtimeContextNumPerBackend.get(this.nativeInterface);
+                if ((contexts == null) || (runtimeContextNum == null)) {
                     contexts = new ConcurrentLinkedQueueLong[numShaAlgos];
                     runtimeContextNum = new Integer[numShaAlgos];
 
@@ -86,8 +87,6 @@ public final class Digest implements Cloneable {
                     }
                     contextsPerBackend.put(this.nativeInterface, contexts);
                     runtimeContextNumPerBackend.put(this.nativeInterface, runtimeContextNum);
-                } else {
-                    runtimeContextNum = runtimeContextNumPerBackend.get(this.nativeInterface);
                 }
             }
         }
