@@ -14,10 +14,17 @@ JNI_CLASS = $(TOPDIR)/src/main/java/com/ibm/crypto/plus/provider/openssl/NativeO
 JNI_HEADER = com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h
 
 OBJS= \
-	$(HOSTOUT)/BuildDate.obj \
+	$(HOSTOUT)/OpenSSLNativeInterface.obj \
+	$(HOSTOUT)/OpenSSLSymmetricCipher.obj \
+	$(HOSTOUT)/OpenSSLGCM.obj \
+	$(HOSTOUT)/OpenSSLCCM.obj \
+	$(HOSTOUT)/OpenSSLKeyWrap.obj \
+	$(HOSTOUT)/OpenSSLRandom.obj \
+	$(HOSTOUT)/OpenSSLSignature.obj \
+	$(HOSTOUT)/OpenSSLUtils.obj \
+	$(HOSTOUT)/OpenSSLHelpers.obj \
 	$(HOSTOUT)/Digest.obj \
-	$(HOSTOUT)/StaticStub.obj \
-	$(HOSTOUT)/Utils.obj
+	$(HOSTOUT)/BuildDate.obj
 
 ifndef OPENSSL_LIB_LOCATION
 	OPENSSL_LIB_LOCATION = ${OPENSSL_HOME}/lib

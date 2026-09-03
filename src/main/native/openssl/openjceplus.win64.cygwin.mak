@@ -34,6 +34,7 @@ OBJS = \
 	OpenSSLCCM.obj \
 	OpenSSLKeyWrap.obj \
 	OpenSSLRandom.obj \
+	OpenSSLSignature.obj \
 	OpenSSLUtils.obj \
 	OpenSSLHelpers.obj \
 	Digest.obj \

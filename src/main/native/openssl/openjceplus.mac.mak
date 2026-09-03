@@ -30,6 +30,7 @@ OBJS = \
 	${HOSTOUT}/OpenSSLCCM.o \
 	${HOSTOUT}/OpenSSLKeyWrap.o \
 	${HOSTOUT}/OpenSSLRandom.o \
+	${HOSTOUT}/OpenSSLSignature.o \
 	${HOSTOUT}/OpenSSLUtils.o \
 	${HOSTOUT}/OpenSSLHelpers.o \
 	${HOSTOUT}/Digest.o \
