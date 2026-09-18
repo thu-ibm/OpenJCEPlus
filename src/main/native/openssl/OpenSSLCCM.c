@@ -43,8 +43,9 @@
 #define MIN_CCM_TAG_SIZE        4
 #define MAX_CCM_IV_SIZE         13
 #define MIN_CCM_IV_SIZE         7
-#define OPENSSL_TAG_MISMATCH_ERROR -6
+/* OPENSSL_TAG_MISMATCH_ERROR is defined in OpenSSLGCM.h - do not redefine */
 
+#include "OpenSSLGCM.h"
 #include "OpenSSLContext.h"
 #include "OpenSSLSymmetricCipher.h"
 #include "OpenSSLExceptionCodes.h"
@@ -91,17 +92,14 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1init(
 
     keyBytes = getByteArrayElementsSafe(env, key, functionName, "key");
     if (keyBytes == NULL) {
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get key bytes");
         logFunctionExit(functionName);
         return;
     }
 
     ivBytes = getByteArrayElementsSafe(env, iv, functionName, "IV");
     if (ivBytes == NULL) {
-        cleanupByteArrays(env, key, keyBytes, NULL, NULL);
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get IV bytes");
+        /* C-5: getByteArrayElementsSafe already set the exception */
+        cleanupByteArray(env, key, keyBytes, JNI_ABORT);
         logFunctionExit(functionName);
         return;
     }
@@ -261,8 +259,6 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1updat
 
     inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
     if (inputBytes == NULL) {
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get input bytes");
         logFunctionExit(functionName);
         return -1;
     }
@@ -280,8 +276,6 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1updat
     outputBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outputBytes == NULL) {
         cleanupIOArrays(env, input, inputBytes, NULL, NULL, JNI_FALSE);
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
         logFunctionExit(functionName);
         return -1;
     }

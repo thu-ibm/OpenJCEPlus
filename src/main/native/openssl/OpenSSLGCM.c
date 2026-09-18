@@ -198,7 +198,6 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_GCM_1updat
     int                outLen;
     jsize              inputLength;
     jbyte*             inputBytes;
-    jsize              outputLength;
     jbyte*             outputBytes;
 
     logFunctionEntry(functionName);
@@ -245,8 +244,6 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_GCM_1updat
 
     inputBytes = getByteArrayElementsSafe(env, input, functionName, "input");
     if (inputBytes == NULL) {
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get input bytes");
         logFunctionExit(functionName);
         return -1;
     }
@@ -259,25 +256,15 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_GCM_1updat
         return -1;
     }
 
-    outputLength = (*env)->GetArrayLength(env, output);
-
-    /* Validate parameters and protect against integer overflow in pointer
-     * arithmetic, and ensure output buffer is large enough */
-    if (outputOffset < 0 || inputLen < 0 || outputOffset > outputLength ||
-        outputOffset > INT_MAX - inputLen ||
-        outputOffset + inputLen > outputLength) {
+    if (!validateOutputBuffer(env, output, outputOffset, inputLen, functionName,
+                              "Invalid parameters or output buffer too small")) {
         cleanupIOArrays(env, input, inputBytes, NULL, NULL, JNI_FALSE);
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Invalid parameters or integer overflow");
-        logFunctionExit(functionName);
         return -1;
     }
 
     outputBytes = getByteArrayElementsSafe(env, output, functionName, "output");
     if (outputBytes == NULL) {
         cleanupIOArrays(env, input, inputBytes, NULL, NULL, JNI_FALSE);
-        setPendingOpenSSLException(env, OPENSSL_UNSPECIFIED,
-                              "Failed to get output bytes");
         logFunctionExit(functionName);
         return -1;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright IBM Corp. 2025
+ * Copyright IBM Corp. 2026
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms provided by IBM in the LICENSE file that accompanied
@@ -158,7 +158,7 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1in
 
     if (cipherCtx->key != NULL) {
         memset(cipherCtx->key, 0, cipherCtx->keyLen);
-        free(cipherCtx->key);
+        FREE_AND_NULL(cipherCtx->key);
     }
     cipherCtx->keyLen = keyLen;
     cipherCtx->key    = (unsigned char*)mallocSafe(
@@ -185,20 +185,27 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1in
 
         if (cipherCtx->iv != NULL) {
             memset(cipherCtx->iv, 0, cipherCtx->ivLen);
-            free(cipherCtx->iv);
+            FREE_AND_NULL(cipherCtx->iv);
         }
         cipherCtx->ivLen = ivLen;
-        cipherCtx->iv    = (unsigned char*)mallocSafe(
-            env, ivLen, "Failed to allocate memory for IV");
+        /* C-6: guard against mallocSafe(env, 0, ...) for zero-length IV */
+        if (ivLen == 0) {
+            cipherCtx->iv = NULL;
+        } else {
+            cipherCtx->iv = (unsigned char*)mallocSafe(
+                env, ivLen, "Failed to allocate memory for IV");
+        }
 
-        if (cipherCtx->iv == NULL) {
+        if (ivLen > 0 && cipherCtx->iv == NULL) {
             memset(keyBytes, 0, keyLen);
             memset(ivBytes, 0, ivLen);
             cleanupByteArrays(env, key, keyBytes, iv, ivBytes);
             logFunctionExit(functionName);
             return;
         }
-        memcpy(cipherCtx->iv, ivBytes, ivLen);
+        if (ivLen > 0) {
+            memcpy(cipherCtx->iv, ivBytes, ivLen);
+        }
     }
 
     if (encrypt) {
@@ -439,10 +446,15 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_decryptUpdate";
+    CipherContext* cipherCtx = NULL;
+    jsize inputLength;
+    jsize outputLength;
+    jbyte* inBytes;
+    jbyte* outBytes;
+    int outLen = 0;
 
     logFunctionEntry(functionName);
 
-    CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, (jint)(osslContextId - 1), cipherId, functionName,
                                &cipherCtx)) {
         return -1;
@@ -466,8 +478,8 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
         }
     }
 
-    jsize inputLength  = (*env)->GetArrayLength(env, input);
-    jsize outputLength = (*env)->GetArrayLength(env, output);
+    inputLength  = (*env)->GetArrayLength(env, input);
+    outputLength = (*env)->GetArrayLength(env, output);
 
     if (!validateOffsetAndLength(env, inputLength, inputOffset, inputLen,
                                  functionName, "input")) {
@@ -483,22 +495,20 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
         return -1;
     }
 
-    jbyte* inBytes =
+    inBytes =
         getByteArrayElementsSafe(env, input, functionName, "input");
     if (inBytes == NULL) {
         logFunctionExit(functionName);
         return -1;
     }
 
-    jbyte* outBytes =
+    outBytes =
         getByteArrayElementsSafe(env, output, functionName, "output");
     if (outBytes == NULL) {
         cleanupByteArray(env, input, inBytes, JNI_ABORT);
         logFunctionExit(functionName);
         return -1;
     }
-
-    int outLen = 0;
 
     if (EVP_DecryptUpdate(
             cipherCtx->ctx, (unsigned char*)(outBytes + outputOffset), &outLen,
@@ -535,10 +545,11 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1en
     jboolean needsReinit) {
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_encryptFinal";
+    CipherContext* cipherCtx = NULL;
+    int totalOutLen = 0;
 
     logFunctionEntry(functionName);
 
-    CipherContext* cipherCtx = NULL;
     if (!validateCipherContext(env, (jint)(osslContextId - 1), cipherId, functionName,
                                &cipherCtx)) {
         return -1;
@@ -570,8 +581,6 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1en
                               "Output buffer too small for ciphertext and padding")) {
         return -1;
     }
-
-    int totalOutLen = 0;
 
     if (input != NULL && inputLen > 0) {
         jsize inputLength = (*env)->GetArrayLength(env, input);
@@ -634,7 +643,7 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1en
                               "Failed to finalize cipher");
         logOpenSSLError("EVP_EncryptFinal_ex");
         logFunctionExit(functionName);
-        return -2;
+        return -1;
     }
 
     totalOutLen += finalOutLen;
@@ -666,14 +675,14 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
     static const char* functionName =
         "OpenSSLNativeInterface.CIPHER_decryptFinal";
     CipherContext* cipherCtx = NULL;
-    int            totalOutLen = 0;
-    jsize          inputLength;
-    jbyte*         inBytes;
-    jbyte*         outBytes;
-    int            outLen;
-    int            finalOutLen;
-    int            result;
-    unsigned long  err;
+    int totalOutLen = 0;
+    jsize inputLength;
+    jbyte* inBytes;
+    jbyte* outBytes;
+    int outLen;
+    int finalOutLen;
+    int result;
+    unsigned long err;
 
     logFunctionEntry(functionName);
 
@@ -741,7 +750,7 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
                                   "Failed to update cipher");
             logOpenSSLError("EVP_DecryptUpdate");
             logFunctionExit(functionName);
-            return -3;
+            return -1;
         }
 
         totalOutLen += outLen;
@@ -764,18 +773,15 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
 
         err = ERR_peek_error();
 
-        if (ERR_GET_REASON(err) == EVP_R_BAD_DECRYPT) {
-            setPendingOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
-                                  "Bad padding");
-            logFunctionExit(functionName);
-            return -5;
-        } else {
-            setPendingOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
-                                  "Failed to finalize cipher");
+        setPendingOpenSSLException(env, OPENSSL_CIPHER_FINAL_FAILED,
+                              ERR_GET_REASON(err) == EVP_R_BAD_DECRYPT
+                                  ? "Bad padding"
+                                  : "Failed to finalize cipher");
+        if (ERR_GET_REASON(err) != EVP_R_BAD_DECRYPT) {
             logOpenSSLError("EVP_DecryptFinal_ex");
-            logFunctionExit(functionName);
-            return -4;
         }
+        logFunctionExit(functionName);
+        return -1;
     }
 
     totalOutLen += finalOutLen;
@@ -823,11 +829,11 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CIPHER_1de
 
     if (cipherCtx->key != NULL) {
         memset(cipherCtx->key, 0, cipherCtx->keyLen);
-        free(cipherCtx->key);
+        FREE_AND_NULL(cipherCtx->key);
     }
     if (cipherCtx->iv != NULL) {
         memset(cipherCtx->iv, 0, cipherCtx->ivLen);
-        free(cipherCtx->iv);
+        FREE_AND_NULL(cipherCtx->iv);
     }
 
     if (cipherCtx->cipher != NULL) {

@@ -215,6 +215,36 @@ static jclass    openSSLExceptionClass               = NULL;
 static jmethodID openSSLExceptionConstructor         = NULL;
 static jmethodID openSSLExceptionConstructorWithCode = NULL;
 
+/* R-2: Called from JNI_OnLoad to eagerly cache the exception class GlobalRef
+ * and both constructors. This eliminates the lazy-init data race that would
+ * occur if two threads threw exceptions before any prior call. */
+void initOpenSSLExceptionClass(JNIEnv* env) {
+    if (openSSLExceptionClass != NULL) {
+        return; /* Already initialised */
+    }
+    jclass localRef = (*env)->FindClass(
+        env, "com/ibm/crypto/plus/provider/openssl/OpenSSLException");
+    if (localRef == NULL) {
+        return; /* FindClass threw NoClassDefFoundError — nothing we can do */
+    }
+    jclass globalRef = (*env)->NewGlobalRef(env, localRef);
+    (*env)->DeleteLocalRef(env, localRef);
+    if (globalRef == NULL) {
+        return; /* OutOfMemoryError already thrown */
+    }
+    jmethodID ctor1 = (*env)->GetMethodID(
+        env, globalRef, "<init>", "(Ljava/lang/String;)V");
+    jmethodID ctor2 = (*env)->GetMethodID(
+        env, globalRef, "<init>", "(Ljava/lang/String;I)V");
+    if (ctor1 == NULL || ctor2 == NULL) {
+        (*env)->DeleteGlobalRef(env, globalRef);
+        return; /* GetMethodID failed */
+    }
+    openSSLExceptionClass               = globalRef;
+    openSSLExceptionConstructor         = ctor1;
+    openSSLExceptionConstructorWithCode = ctor2;
+}
+
 /* Called by JNI_OnUnload to release the global reference. */
 void cleanupOpenSSLExceptionClass(JNIEnv* env) {
     if (openSSLExceptionClass != NULL) {
@@ -234,16 +264,19 @@ void setPendingOpenSSLException(JNIEnv* env, int code, const char* msg) {
         return;
     }
 
+    /* R-2: openSSLExceptionClass is initialised by initOpenSSLExceptionClass()
+     * called from JNI_OnLoad. Fall back to lazy init only if somehow not yet
+     * done (e.g. direct native call in tests). */
     if (openSSLExceptionClass == NULL) {
-        openSSLExceptionClass = (*env)->FindClass(
+        jclass localRef = (*env)->FindClass(
             env, "com/ibm/crypto/plus/provider/openssl/OpenSSLException");
-        if (openSSLExceptionClass == NULL) {
-            return;  // Exception already thrown
+        if (localRef == NULL) {
+            return;  /* Exception already thrown */
         }
-        openSSLExceptionClass =
-            (*env)->NewGlobalRef(env, openSSLExceptionClass);
+        openSSLExceptionClass = (*env)->NewGlobalRef(env, localRef);
+        (*env)->DeleteLocalRef(env, localRef);
         if (openSSLExceptionClass == NULL) {
-            return;  // NewGlobalRef failed (OutOfMemoryError)
+            return;  /* NewGlobalRef failed (OutOfMemoryError) */
         }
         openSSLExceptionConstructor = (*env)->GetMethodID(
             env, openSSLExceptionClass, "<init>", "(Ljava/lang/String;)V");
@@ -251,7 +284,7 @@ void setPendingOpenSSLException(JNIEnv* env, int code, const char* msg) {
             env, openSSLExceptionClass, "<init>", "(Ljava/lang/String;I)V");
         if (openSSLExceptionConstructor == NULL ||
             openSSLExceptionConstructorWithCode == NULL) {
-            return;  // GetMethodID failed (exception already set)
+            return;  /* GetMethodID failed (exception already set) */
         }
     }
 

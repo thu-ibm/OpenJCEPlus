@@ -111,6 +111,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
         fflush(stderr);
     }
 
+    /* R-2: Eagerly cache OpenSSLException GlobalRef and constructors. */
+    if (env != NULL) {
+        initOpenSSLExceptionClass(env);
+    }
+
     return JNI_VERSION_1_8;
 }
 

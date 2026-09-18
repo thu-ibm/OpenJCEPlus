@@ -91,6 +91,14 @@ int gslogFunctionExit(const char* functionName);
 void setPendingOpenSSLException(JNIEnv* env, int code, const char* msg);
 
 /**
+ * Eagerly initialise the cached GlobalRef for OpenSSLException and its
+ * constructors. Must be called from JNI_OnLoad before any cryptographic
+ * operations to eliminate the lazy-init data race.
+ * @param env JNI environment (must be valid at load time)
+ */
+void initOpenSSLExceptionClass(JNIEnv* env);
+
+/**
  * Delete the cached GlobalRef for OpenSSLException.
  * Must be called from JNI_OnUnload to prevent a dangling reference if the
  * library is ever unloaded and reloaded.

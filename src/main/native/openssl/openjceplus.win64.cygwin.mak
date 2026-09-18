@@ -35,6 +35,11 @@ OBJS = \
 	OpenSSLKeyWrap.obj \
 	OpenSSLRandom.obj \
 	OpenSSLSignature.obj \
+	OpenSSLRSAPSS.obj \
+	OpenSSLECKey.obj \
+	OpenSSLXECKey.obj \
+	OpenSSLRSAKey.obj \
+	OpenSSLDSAKey.obj \
 	OpenSSLUtils.obj \
 	OpenSSLHelpers.obj \
 	Digest.obj \

@@ -211,6 +211,32 @@
 /** @} */  // end of KeyPairGen_Errors
 
 /**
+ * @defgroup EC_Errors EC Key Error Codes
+ * @{
+ */
+
+/** Failed to generate EC key pair */
+#define OPENSSL_EC_GENERATE_FAILED 0x00000035
+
+/** Failed to create EC private key from bytes */
+#define OPENSSL_EC_CREATE_PRIVATE_KEY_FAILED 0x00000036
+
+/** Failed to create EC public key from bytes */
+#define OPENSSL_EC_CREATE_PUBLIC_KEY_FAILED 0x00000037
+
+/** @} */  // end of EC_Errors
+
+/**
+ * @defgroup RSA_Errors RSA Key/Cipher Error Codes
+ * @{
+ */
+
+/** RSA key or cipher operation failed */
+#define OPENSSL_RSA_FAILED 0x00000038
+
+/** @} */  // end of RSA_Errors
+
+/**
  * @defgroup Context_Errors Context and Parameter Error Codes
  * @{
  */
