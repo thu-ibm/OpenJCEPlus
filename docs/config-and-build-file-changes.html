@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Config &amp; Build File Changes vs pr-1492</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;color:#1f2328;background:#fff;padding:24px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:19px;font-weight:600;margin-bottom:4px}
+  .sub{color:#57606a;font-size:13px;margin-bottom:28px}
+  h2{font-size:15px;font-weight:600;margin:32px 0 8px;padding-bottom:5px;border-bottom:1px solid #e5e7eb}
+  h3{font-size:13px;font-weight:600;margin:16px 0 4px;color:#1f2328}
+  h4{font-size:12px;font-weight:600;margin:12px 0 4px;color:#57606a}
+  p{margin:4px 0 8px}
+  ul,ol{margin:4px 0 8px;padding-left:20px}
+  li{margin:2px 0}
+  code{background:#f7f8fa;border:1px solid #e5e7eb;padding:1px 5px;border-radius:3px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px 12px;font-size:12px;font-family:Consolas,monospace;overflow-x:auto;margin:6px 0 10px;white-space:pre}
+  .add{color:#1a7f37}
+  .del{color:#cf222e}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 18px}
+  th{background:#f7f8fa;text-align:left;padding:6px 8px;border:1px solid #e5e7eb;font-weight:600}
+  td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;margin-right:3px}
+  .t-new{background:#e8f4fd;color:#0969da}
+  .t-change{background:#fff3e0;color:#b05e00}
+  .note{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:8px 12px;font-size:13px;margin:10px 0 14px}
+  .box{background:#f0faf0;border-left:3px solid #1a7f37;padding:6px 10px;font-size:13px;margin:6px 0 12px}
+  .warn{background:#fffbec;border-left:3px solid #f0b429;padding:6px 10px;font-size:13px;margin:6px 0 12px}
+  footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Config &amp; Build File Changes vs pr-1492</h1>
+<p class="sub">Branch <code>thu/openssl-aes</code> — non-Java file changes: <code>pom.xml</code>, <code>*.config</code>, makefiles, build scripts, <code>README.md</code></p>
+
+<div class="note">
+  <strong>Legend: </strong>
+  <span class="tag t-new">New</span> file added in this branch &nbsp;
+  <span class="tag t-change">Changed</span> file modified from pr-1492
+</div>
+
+
+
+<h2>1 · pom.xml</h2>
+<span class="tag t-change">Changed</span>
+
+<h3>1a — <code>TestOpenJCEPlus</code> excluded from default surefire run</h3>
+<p>pr-1492 ran the OpenSSL suite class <code>TestOpenJCEPlus</code> as part of the default test execution. This branch adds it to the surefire <code>&lt;excludes&gt;</code> list alongside the other suite classes that must be invoked explicitly:</p>
+<pre><span class="add">+ **/ibm/jceplus/junit/suites/TestOpenJCEPlus.java,</span></pre>
+<p><strong>Why:</strong> <code>TestOpenJCEPlus</code> requires <code>-Djgskit.library.path</code> pointing at the OpenSSL native library. Without that property the entire test suite errors out before any test runs. Excluding it from the default run prevents CI failures on machines that only have OCK configured. It is still included when explicitly requested with <code>-Dtest=ibm.jceplus.junit.suites.TestOpenJCEPlus</code> or via <code>-Dgroups=OpenJCEPlus_OpenSSL</code>.</p>
+
+<h3>1b — <code>printStdoutOnSuccess</code> / <code>printStderrOnSuccess</code> — unchanged (<code>false</code>)</h3>
+<p>These remain at the pr-1492 default of <code>false</code> in both the primary and performance-test surefire executions. No change is made in this branch.</p>
+
+
+
+<h2>2 · src/test/OpenSSLOnly.config</h2>
+<span class="tag t-change">Changed</span>
+<p>This file is the provider configuration loaded when running OpenSSL-backend tests. pr-1492 had only <code>MessageDigest</code> services configured; this branch expands it significantly.</p>
+
+<h3>2a — Provider name corrected</h3>
+<pre><span class="del">- name = OpenSSL</span>
+<span class="add">+ name = OpenJCEPlus-OpenSSL</span></pre>
+<p><strong>Why:</strong> The <code>name</code> field becomes the provider name returned by <code>Provider.getName()</code> after the config is applied. Tests that call <code>Cipher.getInstance("AES/GCM/NoPadding", "OpenJCEPlus-OpenSSL")</code> require this exact string. The pr-1492 value <code>"OpenSSL"</code> caused <code>NoSuchProviderException</code> in all tests that looked up the provider by name.</p>
+
+<h3>2b — <code>NativeProvider</code> attribute value corrected</h3>
+<pre><span class="del">- MessageDigest.MD5.attr.add.NativeProvider = OPENSSL</span>
+<span class="add">+ MessageDigest.MD5.attr.add.NativeProvider = OpenSSL</span></pre>
+<p>Same fix applied to all 13 <code>MessageDigest</code> services. <strong>Why:</strong> The <code>NativeCryptoSelector</code> dispatches based on the value of this attribute; it compares against the string <code>"OpenSSL"</code> (case-sensitive). The all-caps <code>"OPENSSL"</code> in pr-1492 caused the selector to fall back to OCK for every digest operation even when the OpenSSL config was loaded.</p>
+
+<h3>2c — <code>SecureRandom</code> services added</h3>
+<pre><span class="add">+ Service.SecureRandom.SHA256DRBG = com.ibm.crypto.plus.provider.HASHDRBG$SHA256DRBG
++ SecureRandom.SHA256DRBG.alias.add = HASHDRBG, SHA2DRBG
++ SecureRandom.SHA256DRBG.attr.add.ThreadSafe = true
++ SecureRandom.SHA256DRBG.attr.add.NativeProvider = OpenSSL
++ (+ SHA512DRBG equivalents)</span></pre>
+<p><strong>Why:</strong> <code>AESCipher.engineInit</code> generates a random IV using <code>SecureRandom.getInstance(..., provider)</code> when no IV is supplied. If <code>SecureRandom</code> is not registered under the OpenSSL provider, the <code>getInstance</code> call throws <code>NoSuchAlgorithmException</code> and every AES encrypt-without-IV test fails.</p>
+
+<h3>2d — <code>KeyGenerator</code> services added</h3>
+<pre><span class="add">+ Service.KeyGenerator.AES = com.ibm.crypto.plus.provider.AESKeyGenerator
++ Service.KeyGenerator.DESede = com.ibm.crypto.plus.provider.DESedeKeyGenerator</span></pre>
+<p><strong>Why:</strong> Tests that call <code>KeyGenerator.getInstance("AES", providerName)</code> require the service to be registered under the OpenSSL provider. Without it they get <code>NoSuchAlgorithmException</code> before any cipher operation begins. <code>DESede</code> is needed specifically by the AES KeyWrap tests that verify an invalid key algorithm is rejected. Both implementations are pure Java — no native code required for either.</p>
+
+<h3>2e — <code>AlgorithmParameters</code> and <code>AlgorithmParameterGenerator</code> services added</h3>
+<pre><span class="add">+ Service.AlgorithmParameters.AES   = com.ibm.crypto.plus.provider.AESParameters
++ Service.AlgorithmParameters.GCM   = com.ibm.crypto.plus.provider.GCMParameters
++ Service.AlgorithmParameters.CCM   = com.ibm.crypto.plus.provider.CCMParameters
++ Service.AlgorithmParameterGenerator.GCM = ...
++ Service.AlgorithmParameterGenerator.CCM = ...</span></pre>
+<p><strong>Why:</strong> <code>AESCipher.engineGetParameters()</code> calls <code>AlgorithmParameters.getInstance("AES", provider)</code>. Similarly <code>AESGCMCipher</code> and <code>AESCCMCipher</code> use <code>GCMParameters</code> / <code>CCMParameters</code>. Without these registrations, <code>Cipher.getParameters()</code> would throw and a variety of GCM/CCM tests that check IV extraction would fail. All five implementations are pure Java — no native code required.</p>
+
+<h3>2f — AES Cipher services added</h3>
+<pre><span class="add">+ Cipher.AES.attr.add.NativeProvider = OpenSSL
++ Service.Cipher.AES = com.ibm.crypto.plus.provider.AESCipher
+
++ Cipher.AES/GCM/NoPadding.attr.add.NativeProvider = OpenSSL
++ Service.Cipher.AES/GCM/NoPadding = com.ibm.crypto.plus.provider.AESGCMCipher
+
++ Cipher.AES/CCM/NoPadding.attr.add.NativeProvider = OpenSSL
++ Service.Cipher.AES/CCM/NoPadding = com.ibm.crypto.plus.provider.AESCCMCipher
+
++ (+ 10 AES KeyWrap variants: KW/KWP x AES/AES_128/AES_192/AES_256/AESWrap)</span></pre>
+<p><strong>Why:</strong> pr-1492's config registered only digests. Without explicit <code>Cipher</code> service registrations, <code>Cipher.getInstance("AES/GCM/NoPadding", "OpenJCEPlus-OpenSSL")</code> throws <code>NoSuchAlgorithmException</code> and every AES test fails. Each service registration also sets <code>NativeProvider = OpenSSL</code> so that <code>NativeCryptoSelector</code> dispatches to the OpenSSL adapter rather than OCK.</p>
+<p>The KeyWrap variants cover all alias forms the tests reference: <code>AESWrap</code>, <code>AESWrapPad</code>, <code>AESWrap_128</code>, <code>AESWrapPad_128</code>, etc.</p>
+
+
+
+<h2>3 · src/test/OCKOnly.config</h2>
+<span class="tag t-change">Changed</span>
+<h3>Provider name made unambiguous</h3>
+<pre><span class="del">- name = OCK</span>
+<span class="add">+ name = OpenJCEPlus-OCK</span></pre>
+<p><strong>Why:</strong> With both <code>OCKOnly.config</code> and <code>OpenSSLOnly.config</code> active in the same JVM (e.g. when both providers are tested in one Maven run), the short name <code>"OCK"</code> is ambiguous — it does not match the provider name the tests look up (<code>"OpenJCEPlus"</code>). The fully-qualified name <code>"OpenJCEPlus-OCK"</code> is consistent with the pattern used by the OpenSSL config and avoids provider-lookup confusion.</p>
+
+
+
+<h2>4 · Makefiles — <code>openjceplus.*.mak</code></h2>
+
+<h3>4a — Linux/Mac: <code>openjceplus.mak</code>, <code>openjceplus.mac.mak</code></h3>
+<span class="tag t-change">Changed</span>
+<p>The <code>OBJS</code> list has been replaced to match the Windows build exactly. The pr-1492 baseline listed only 4 objects (digest only); this branch builds all 10 AES cipher objects:</p>
+<pre><span class="del">- ${HOSTOUT}/BuildDate.o
+- ${HOSTOUT}/Digest.o
+- ${HOSTOUT}/StaticStub.o
+- ${HOSTOUT}/Utils.o</span>
+<span class="add">+ ${HOSTOUT}/OpenSSLJNI.o
++ ${HOSTOUT}/OpenSSLSymmetricCipher.o
++ ${HOSTOUT}/OpenSSLGCM.o
++ ${HOSTOUT}/OpenSSLCCM.o
++ ${HOSTOUT}/OpenSSLKeyWrap.o
++ ${HOSTOUT}/OpenSSLRandom.o
++ ${HOSTOUT}/OpenSSLUtils.o
++ ${HOSTOUT}/OpenSSLHelpers.o
++ ${HOSTOUT}/Digest.o
++ ${HOSTOUT}/BuildDate.o</span></pre>
+
+<table>
+  <tr><th>Object</th><th>Source</th><th>Purpose</th></tr>
+  <tr><td><code>OpenSSLJNI.o</code></td><td><code>OpenSSLJNI.c</code></td><td>All JNI entry points (replaces <code>StaticStub</code> + <code>Utils</code>)</td></tr>
+  <tr><td><code>OpenSSLSymmetricCipher.o</code></td><td><code>OpenSSLSymmetricCipher.c</code></td><td>AES-CBC, CTR, OFB, CFB, ECB EVP wrappers</td></tr>
+  <tr><td><code>OpenSSLGCM.o</code></td><td><code>OpenSSLGCM.c</code></td><td>GCM primitives</td></tr>
+  <tr><td><code>OpenSSLCCM.o</code></td><td><code>OpenSSLCCM.c</code></td><td>CCM primitives</td></tr>
+  <tr><td><code>OpenSSLKeyWrap.o</code></td><td><code>OpenSSLKeyWrap.c</code></td><td>AES key wrap/unwrap</td></tr>
+  <tr><td><code>OpenSSLRandom.o</code></td><td><code>OpenSSLRandom.c</code></td><td>RAND/EXTRAND (DRBG)</td></tr>
+  <tr><td><code>OpenSSLUtils.o</code></td><td><code>OpenSSLUtils.c</code></td><td>Shared utility functions</td></tr>
+  <tr><td><code>OpenSSLHelpers.o</code></td><td><code>OpenSSLHelpers.c</code></td><td>Context management and error helpers</td></tr>
+  <tr><td><code>Digest.o</code></td><td><code>Digest.c</code></td><td>MessageDigest native implementations</td></tr>
+  <tr><td><code>BuildDate.o</code></td><td><code>BuildDate.c</code></td><td><code>getLibraryBuildDate()</code>; rebuilt every run via <code>FORCE</code></td></tr>
+</table>
+<p><strong>Why <code>StaticStub</code> and <code>Utils</code> were removed:</strong> <code>OpenSSLJNI.c</code> provides all the JNI entry points that <code>StaticStub.c</code> and the pr-1492 <code>Utils.c</code> previously supplied (<code>initializeOSSL</code>, <code>CTX_getValue</code>, etc.). Keeping them would cause duplicate symbol linker errors.</p>
+<p>The existing pattern rule <code>${HOSTOUT}/%.o : %.c</code> in <code>common.mak</code> and <code>common.mac.mak</code> handles all new objects automatically — source filenames match object names directly on Linux/Mac.</p>
+
+<h3>4b — Windows (primary build entry point): <code>openjceplus.win64.cygwin.mak</code></h3>
+<span class="tag t-change">Changed (rewritten)</span>
+<p>This file was <strong>fully rewritten</strong> as a self-contained, nmake-compatible makefile that builds all 10 OpenSSL objects directly into <code>libjgskit_openssl_64.dll</code>. It no longer delegates to <code>common.win64.cygwin.mak</code> via <code>!INCLUDE</code>. It is the Windows equivalent of <code>jgskit.win64.cygwin.mak</code> for OCK, and is called from <code>buildNativeWin64.bat</code>.</p>
+
+<h4>Object files compiled</h4>
+<table>
+  <tr><th>Object</th><th>Source</th><th>Purpose</th></tr>
+  <tr><td><code>OpenSSLNativeInterface.obj</code></td><td><code>OpenSSLJNI.c</code></td><td>All JNI entry points; explicit rule because source filename differs from object name</td></tr>
+  <tr><td><code>OpenSSLSymmetricCipher.obj</code></td><td><code>OpenSSLSymmetricCipher.c</code></td><td>AES-CBC, CTR, OFB, CFB, ECB EVP wrappers</td></tr>
+  <tr><td><code>OpenSSLGCM.obj</code></td><td><code>OpenSSLGCM.c</code></td><td>GCM primitives</td></tr>
+  <tr><td><code>OpenSSLCCM.obj</code></td><td><code>OpenSSLCCM.c</code></td><td>CCM primitives</td></tr>
+  <tr><td><code>OpenSSLKeyWrap.obj</code></td><td><code>OpenSSLKeyWrap.c</code></td><td>AES key wrap/unwrap</td></tr>
+  <tr><td><code>OpenSSLRandom.obj</code></td><td><code>OpenSSLRandom.c</code></td><td>RAND/EXTRAND (DRBG)</td></tr>
+  <tr><td><code>OpenSSLUtils.obj</code></td><td><code>OpenSSLUtils.c</code></td><td>Shared utility functions</td></tr>
+  <tr><td><code>OpenSSLHelpers.obj</code></td><td><code>OpenSSLHelpers.c</code></td><td>Context management and error helpers</td></tr>
+  <tr><td><code>Digest.obj</code></td><td><code>Digest.c</code></td><td>MessageDigest native implementations</td></tr>
+  <tr><td><code>BuildDate.obj</code></td><td><code>BuildDate.c</code></td><td><code>getLibraryBuildDate()</code>; rebuilt every run via <code>FORCE</code></td></tr>
+</table>
+
+<h4>Why it was rewritten (not just amended)</h4>
+<p>The original file delegated to <code>common.win64.cygwin.mak</code> via <code>!INCLUDE</code>. That shared makefile contained GNU-make-only constructs (<code>?=</code> conditional assignment, <code>ifneq</code>/<code>endif</code>, order-only <code>|</code> prerequisites) which are not supported by nmake. This caused the build to stop after compiling only one object file. The rewrite replaces the delegation pattern with an inline, nmake-compatible ruleset, adding a <code>headers</code> target that runs <code>javac -h</code> to regenerate JNI header files before compilation.</p>
+
+<h4>Also fixed: <code>common.win64.cygwin.mak</code></h4>
+<p><code>-I.</code> was added to the <code>.c.obj</code> inference rule so that local header files in the OpenSSL source directory are found during compilation.</p>
+
+
+
+<h2>5 · openssl.win64.mak</h2>
+<span class="tag t-change">Gitignored — dev-local standalone makefile</span>
+<p>This file is <strong>not tracked</strong> in the repository. It has been added to <code>.gitignore</code> as a dev-local standalone makefile. The canonical Windows build entry point for the OpenSSL DLL is the rewritten <code>openjceplus.win64.cygwin.mak</code> (see §4b), which is called from <code>buildNativeWin64.bat</code> alongside the OCK makefile. <code>openssl.win64.mak</code> was retained locally during development as a standalone alternative but is superseded and no longer needed in the tracked tree.</p>
+
+
+
+<h2>6 · buildNativeWin64OpenSSL.bat</h2>
+<span class="tag t-change">Gitignored — dev-local convenience script</span>
+<p>This file is <strong>not tracked</strong> in the repository. It has been added to <code>.gitignore</code> as a dev-local convenience script. The canonical Windows build entry point for the OpenSSL DLL is <code>buildNativeWin64.bat</code>, which now calls <code>openjceplus.win64.cygwin.mak</code> (rewritten — see §4b).</p>
+
+<h3>Why gitignored</h3>
+<p><code>buildNativeWin64OpenSSL.bat</code> was created during development as a standalone script that invoked <code>openssl.win64.mak</code> directly. With <code>openjceplus.win64.cygwin.mak</code> rewritten to be self-contained, the OpenSSL DLL is now built by <code>buildNativeWin64.bat</code> in the same pass as the OCK DLL — consistent with how OCK uses <code>jgskit.win64.cygwin.mak</code>. The standalone script is no longer needed in CI or as a tracked file. Local copies remain untracked for developer convenience.</p>
+
+
+
+<h2>7 · README.md</h2>
+<span class="tag t-change">Changed</span>
+
+<h3>7a — <code>OpenJCEPlus</code> tag description clarified</h3>
+<pre><span class="del">- `OpenJCEPlus` - Run tests tagged for the OpenJCEPlus provider</span>
+<span class="add">+ `OpenJCEPlus` - Run tests tagged for the OpenJCEPlus provider (OCK backend)</span></pre>
+<p>Clarifies that this tag runs OCK-backend tests, distinguishing it from the new <code>OpenJCEPlus_OpenSSL</code> tag.</p>
+
+<h3>7b — New <code>OpenJCEPlus_OpenSSL</code> tag documented</h3>
+<pre><span class="add">+ `OpenJCEPlus_OpenSSL` - Run tests tagged for the OpenSSL backend</span></pre>
+
+<h3>7c — "Run OpenSSL backend tests" section added</h3>
+<p>A new subsection under "Run performance tests" explains:</p>
+<ul>
+  <li>Prerequisites: OpenSSL installation + <code>jgskit</code> OpenSSL native library built</li>
+  <li>How to run <em>only</em> OpenSSL tests: <code>-Dtest=ibm.jceplus.junit.suites.TestOpenJCEPlus -Dgroups=OpenJCEPlus_OpenSSL</code></li>
+  <li>Linux/Mac command with <code>-Djgskit.library.path</code></li>
+  <li>Windows command equivalent</li>
+  <li>How to run OpenSSL + OCK tests together in one Maven pass (omit <code>-Dtest</code> and <code>-Dgroups</code>; <code>TestOpenJCEPlus</code> is already included alongside <code>TestAll</code>)</li>
+</ul>
+
+
+
+<h2>8 · Summary</h2>
+<table>
+  <tr><th>File</th><th>Category</th><th>Change</th></tr>
+  <tr><td><code>pom.xml</code></td><td><span class="tag t-change">Changed</span></td><td>Exclude <code>TestOpenJCEPlus</code> from default run; <code>printStdoutOnSuccess</code>/<code>printStderrOnSuccess</code> kept <code>false</code></td></tr>
+  <tr><td><code>src/test/OpenSSLOnly.config</code></td><td><span class="tag t-change">Changed</span></td><td>Provider name fixed; <code>NativeProvider</code> case fixed; SecureRandom, KeyGenerator, AlgorithmParameters, AES Ciphers, and KeyWrap services added</td></tr>
+  <tr><td><code>src/test/OCKOnly.config</code></td><td><span class="tag t-change">Changed</span></td><td>Provider name changed from <code>OCK</code> to <code>OpenJCEPlus-OCK</code></td></tr>
+  <tr><td><code>openjceplus.mak</code> (Linux)</td><td><span class="tag t-change">Changed</span></td><td>OBJS replaced: 4 digest-only objects &rarr; 10 AES cipher objects matching Windows build; <code>StaticStub.o</code>/<code>Utils.o</code> removed, <code>OpenSSLJNI.o</code> + 7 AES objects added</td></tr>
+  <tr><td><code>openjceplus.mac.mak</code></td><td><span class="tag t-change">Changed</span></td><td>Same as Linux — OBJS aligned with Windows</td></tr>
+  <tr><td><code>openjceplus.win64.cygwin.mak</code></td><td><span class="tag t-change">Changed (rewritten)</span></td><td>Fully rewritten as self-contained nmake makefile; builds all 10 OpenSSL objects into <code>libjgskit_openssl_64.dll</code>; replaces delegation to <code>common.win64.cygwin.mak</code>; includes <code>headers</code>, <code>FORCE</code>, and explicit <code>OpenSSLNativeInterface.obj</code> rules</td></tr>
+  <tr><td><code>common.win64.cygwin.mak</code></td><td><span class="tag t-change">Changed</span></td><td><code>-I.</code> added to <code>.c.obj</code> inference rule so local headers in the OpenSSL directory are found</td></tr>
+  <tr><td><code>openssl.win64.mak</code></td><td>Gitignored</td><td>Dev-local standalone makefile; not tracked; superseded by the rewritten <code>openjceplus.win64.cygwin.mak</code></td></tr>
+  <tr><td><code>buildNativeWin64OpenSSL.bat</code></td><td>Gitignored</td><td>Dev-local convenience script; not tracked; canonical build is <code>buildNativeWin64.bat</code></td></tr>
+  <tr><td><code>README.md</code></td><td><span class="tag t-change">Changed</span></td><td>Tag descriptions updated; new "Run OpenSSL backend tests" subsection with Linux/Windows/combined-run instructions</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

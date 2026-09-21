@@ -1,0 +1,987 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenJCEPlus OpenSSL — Signature Algorithm Implementation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    margin: 0;
+    padding: 24px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+  h2 { font-size: 17px; font-weight: 700; margin: 32px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+  h3 { font-size: 14px; font-weight: 700; margin: 20px 0 6px; color: #1f2328; }
+  h4 { font-size: 13px; font-weight: 600; margin: 14px 0 4px; color: #57606a; }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 10px; padding-left: 22px; }
+  li { margin-bottom: 3px; }
+  a { color: #3b82d4; }
+
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+
+  code, .mono {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+  }
+  code {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-all;
+  }
+  pre {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 5px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+
+  /* Algorithm family cards */
+  .family {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .family-header {
+    background: #f7f8fa;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .family-title { font-size: 15px; font-weight: 700; }
+  .family-subtitle { font-size: 12px; color: #57606a; }
+  .family-body { padding: 14px 16px; }
+
+  /* Layer flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 10px 0 14px;
+  }
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .flow-cell {
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 7px 12px;
+    font-size: 12px;
+    background: #fff;
+    flex: 1;
+  }
+  .flow-cell.java { background: #eef4ff; border-color: #b6d0f5; }
+  .flow-cell.base { background: #f0f9f0; border-color: #a3d5a3; }
+  .flow-cell.adapter { background: #fff8ec; border-color: #f0cc7c; }
+  .flow-cell.native { background: #fdf0f0; border-color: #f0a0a0; }
+  .flow-cell .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #57606a; display: block; margin-bottom: 2px; }
+  .flow-cell .name { font-weight: 600; }
+  .flow-arrow {
+    text-align: center;
+    font-size: 14px;
+    color: #57606a;
+    line-height: 1;
+    padding: 3px 0;
+  }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 13px; }
+  th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; }
+  td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  /* Pill badges */
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 3px;
+  }
+  .badge-streaming  { background: #dbeafe; color: #1e40af; }
+  .badge-oneshot    { background: #dcfce7; color: #166534; }
+  .badge-prehashed  { background: #fef9c3; color: #854d0e; }
+  .badge-rsa        { background: #ede9fe; color: #5b21b6; }
+
+  /* Note box */
+  .note {
+    background: #f7f8fa;
+    border-left: 3px solid #3b82d4;
+    padding: 9px 12px;
+    margin: 10px 0 14px;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .note strong { color: #3b82d4; }
+
+  /* Section divider */
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 32px 0; }
+
+  .toc { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 5px; padding: 12px 16px; margin-bottom: 28px; }
+  .toc h3 { margin: 0 0 8px; font-size: 13px; }
+  .toc ol { margin: 0; padding-left: 18px; }
+  .toc li { font-size: 13px; margin-bottom: 3px; }
+
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Signature Algorithm Implementation</h1>
+<p class="subtitle">OpenJCEPlus · OpenSSL backend · branch <code>thu/openssl-aes</code></p>
+
+<!-- ===== INTRODUCTION ===== -->
+<h2 id="intro">Introduction</h2>
+
+<p>
+  A <strong>digital signature</strong> is a cryptographic mechanism that provides three
+  security guarantees simultaneously: <em>authenticity</em> (the data came from the holder of
+  a specific private key), <em>integrity</em> (the data has not been altered since it was
+  signed), and <em>non-repudiation</em> (the signer cannot later deny having signed it).
+  The process always involves two complementary operations:
+</p>
+<ul>
+  <li><strong>Sign</strong> — the private key holder computes a signature over a message
+      (or its digest), producing a compact byte string that accompanies the data.</li>
+  <li><strong>Verify</strong> — any party with the corresponding public key can check that
+      the signature is valid for the given message.</li>
+</ul>
+
+<p>
+  OpenJCEPlus exposes digital signatures through the standard Java Cryptography Architecture
+  (JCA) <code>java.security.Signature</code> API. The OpenSSL backend implements the
+  following algorithm families:
+</p>
+
+<table>
+  <tr><th>Family</th><th>Standard</th><th>Key type</th><th>Typical use</th></tr>
+  <tr>
+    <td><strong>RSA</strong></td>
+    <td>PKCS#1 v1.5 (RFC 8017)</td>
+    <td>RSA public/private key pair</td>
+    <td>TLS certificates, code signing, email (S/MIME)</td>
+  </tr>
+  <tr>
+    <td><strong>RSA-PSS</strong></td>
+    <td>RSASSA-PSS (RFC 8017 §8.1)</td>
+    <td>RSA public/private key pair</td>
+    <td>Preferred RSA signature scheme; stronger security proof than PKCS#1 v1.5</td>
+  </tr>
+  <tr>
+    <td><strong>DSA</strong></td>
+    <td>FIPS 186-4 / 186-5</td>
+    <td>DSA public/private key pair (DL group)</td>
+    <td>Legacy government and enterprise PKI</td>
+  </tr>
+  <tr>
+    <td><strong>ECDSA</strong></td>
+    <td>FIPS 186-4 / SEC1</td>
+    <td>EC public/private key pair (named curve)</td>
+    <td>TLS 1.3, code signing, modern PKI; smaller keys than RSA</td>
+  </tr>
+  <tr>
+    <td><strong>EdDSA</strong></td>
+    <td>RFC 8032 (Ed25519, Ed448)</td>
+    <td>Edwards-curve key pair</td>
+    <td>SSH, TLS 1.3, high-performance signing; deterministic, no random nonce</td>
+  </tr>
+</table>
+
+<h3>How a signature algorithm works</h3>
+<p>
+  Every family follows the same high-level structure, but differs in how the
+  digest and the signing primitive interact:
+</p>
+
+<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:16px;">
+  <div style="background:#f7f8fa;padding:9px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:13px;">
+    Typical sign flow — SHA256withRSA as an example
+  </div>
+  <div style="padding:12px 14px;">
+    <div style="display:flex;gap:0;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed #e5e7eb;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#eef4ff;border:1px solid #b6d0f5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</div>
+        <div><strong>Digest</strong> — SHA-256 is computed over the message bytes (incrementally via <code>update()</code> calls).</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed #e5e7eb;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#f0f9f0;border:1px solid #a3d5a3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</div>
+        <div><strong>DigestInfo wrap</strong> — the raw digest is prefixed with an ASN.1 DigestInfo structure identifying the hash algorithm.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed #e5e7eb;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#fff8ec;border:1px solid #f0cc7c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</div>
+        <div><strong>PKCS#1 pad</strong> — the padded value is extended to the RSA modulus length using PKCS#1 v1.5 type-1 padding.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#fdf0f0;border:1px solid #f0a0a0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">4</div>
+        <div><strong>RSA private-key operation</strong> — the padded value is raised to the private exponent modulo n, producing the signature.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p>
+  Verification reverses the process: the public exponent recovers the padded DigestInfo,
+  the receiver independently digests the message, and the two digests are compared.
+</p>
+
+<h3>Digest algorithms</h3>
+<p>
+  All hash-based signature families (RSA, DSA, ECDSA) support both SHA-2 and SHA-3 digest
+  variants. EdDSA uses an internal hash that is fixed per curve and is not configurable:
+  Ed25519 uses SHA-512 internally; Ed448 uses SHAKE256.
+</p>
+<table>
+  <tr><th>Digest</th><th>Output (bits)</th><th>Used with</th></tr>
+  <tr><td>SHA-1</td><td>160</td><td>RSA, DSA, ECDSA (legacy)</td></tr>
+  <tr><td>SHA-224 / SHA3-224</td><td>224</td><td>RSA, DSA, ECDSA</td></tr>
+  <tr><td>SHA-256 / SHA3-256</td><td>256</td><td>RSA, DSA, ECDSA, RSAPSS (default)</td></tr>
+  <tr><td>SHA-384 / SHA3-384</td><td>384</td><td>RSA, DSA, ECDSA</td></tr>
+  <tr><td>SHA-512 / SHA3-512</td><td>512</td><td>RSA, DSA, ECDSA</td></tr>
+  <tr><td>SHA-512 (internal)</td><td>512</td><td>Ed25519 (fixed, not configurable)</td></tr>
+  <tr><td>SHAKE256 (internal)</td><td>912</td><td>Ed448 (fixed, not configurable)</td></tr>
+</table>
+
+<h3>Security properties at a glance</h3>
+<table>
+  <tr><th>Algorithm</th><th>Deterministic?</th><th>Random nonce?</th><th>Signature size</th><th>Notes</th></tr>
+  <tr>
+    <td>SHA*withRSA</td>
+    <td>Yes</td>
+    <td>No</td>
+    <td>= modulus size (e.g. 256 B for RSA-2048)</td>
+    <td>Deterministic; same message always produces same sig</td>
+  </tr>
+  <tr>
+    <td>RSAPSS</td>
+    <td>No (randomized salt)</td>
+    <td>Yes — salt</td>
+    <td>= modulus size</td>
+    <td>Stronger security proof; salt makes each sig unique</td>
+  </tr>
+  <tr>
+    <td>SHA*withDSA</td>
+    <td>No (RFC 6979: optionally det.)</td>
+    <td>Yes — per-sig k</td>
+    <td>~40–72 bytes (ASN.1 DER encoded r,s)</td>
+    <td>Reusing k leaks the private key — critical implementation concern</td>
+  </tr>
+  <tr>
+    <td>SHA*withECDSA</td>
+    <td>No (RFC 6979: optionally det.)</td>
+    <td>Yes — per-sig k</td>
+    <td>~48–140 bytes (depends on curve; DER r,s)</td>
+    <td>Same k-reuse risk as DSA; smaller keys than RSA for same security level</td>
+  </tr>
+  <tr>
+    <td>Ed25519 / Ed448</td>
+    <td>Yes</td>
+    <td>No</td>
+    <td>64 bytes (Ed25519) / 114 bytes (Ed448)</td>
+    <td>Deterministic by design; immune to bad RNG; very fast</td>
+  </tr>
+</table>
+
+<hr class="divider" />
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#arch">Architecture overview</a></li>
+    <li><a href="#rsa">RSA signatures</a></li>
+    <li><a href="#rsapss">RSA-PSS (RSASSA-PSS)</a></li>
+    <li><a href="#dsa">DSA signatures</a></li>
+    <li><a href="#ecdsa">ECDSA signatures</a></li>
+    <li><a href="#eddsa">EdDSA (Ed25519 / Ed448)</a></li>
+    <li><a href="#generic">Generic native signature context</a></li>
+    <li><a href="#comparison">Algorithm comparison table</a></li>
+    <li><a href="#models">Streaming vs one-shot model</a></li>
+    <li><a href="#openssl">OpenSSL API reference</a></li>
+  </ol>
+</div>
+
+
+<h2 id="arch">1 · Architecture Overview</h2>
+<p>
+  All signature algorithms follow a four-layer delegation chain. The entry point is always a standard
+  JCE <code>SignatureSpi</code> subclass. State is maintained in Java base helpers, which call
+  the OpenSSL adapter, which in turn dispatches to native C functions.
+</p>
+
+<div class="flow">
+  <div class="flow-row">
+    <div class="flow-cell java">
+      <span class="label">Java / JCE</span>
+      <span class="name">RSASignature, DSASignature, ECDSASignature, EdDSASignature, RSAPSSSignature …</span>
+      <div style="font-size:11px;color:#57606a;margin-top:3px">extends <code>SignatureSpi</code> — converts JCA keys, calls base helpers</div>
+    </div>
+  </div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-row">
+    <div class="flow-cell base">
+      <span class="label">Base helpers</span>
+      <span class="name">base.Signature, base.SignatureRSAPSS, base.SignatureEdDSA, base.SignatureDSANONE, base.SignatureRSASSL</span>
+      <div style="font-size:11px;color:#57606a;margin-top:3px">maintain native context handles, own the update/sign/verify lifecycle</div>
+    </div>
+  </div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-row">
+    <div class="flow-cell adapter">
+      <span class="label">OpenSSL Adapter</span>
+      <span class="name">NativeOpenSSLAdapter — delegates to NativeOpenSSLImplementation (static native methods)</span>
+      <div style="font-size:11px;color:#57606a;margin-top:3px">dispatches by PKEY type (RSA/DSA/EC) using <code>PKEY_getBaseId</code></div>
+    </div>
+  </div>
+  <div class="flow-arrow">↓</div>
+  <div class="flow-row">
+    <div class="flow-cell native">
+      <span class="label">Native C (OpenSSL 3.x)</span>
+      <span class="name">OpenSSLSignature.c · OpenSSLRSAPSS.c · OpenSSLRSAKey.c · OpenSSLDSAKey.c · OpenSSLECKey.c</span>
+      <div style="font-size:11px;color:#57606a;margin-top:3px">calls EVP_DigestSign*, EVP_DigestVerify*, DSA_sign/verify, RSA_sign/verify</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Key routing</strong> — The generic <code>SIGNATURE_sign</code> / <code>SIGNATURE_verify</code>
+  path in <code>NativeOpenSSLAdapter</code> inspects the PKEY type with
+  <code>PKEY_getBaseId()</code> and routes to the algorithm-specific native path:
+  RSA → <code>RSAKEY_signDigestCtx</code>, DSA → <code>DSAKEY_signDigestCtx</code>,
+  EC → finalizes digest then calls <code>ECKEY_signDatawithECDSA</code>.
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="rsa">2 · RSA Signatures</h2>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">SHA*withRSA family</span>
+    <span class="family-subtitle">PKCS#1 v1.5 padding · streaming digest model</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-streaming">Streaming</span>
+
+    <h4>Supported algorithms</h4>
+    <p>
+      <code>SHA1withRSA</code>, <code>SHA224withRSA</code>, <code>SHA256withRSA</code>,
+      <code>SHA384withRSA</code>, <code>SHA512withRSA</code>, <code>SHA3-224withRSA</code>,
+      <code>SHA3-256withRSA</code>, <code>SHA3-384withRSA</code>, <code>SHA3-512withRSA</code>
+    </p>
+
+    <h4>Java class hierarchy</h4>
+    <pre>RSASignature (abstract, extends SignatureSpi)
+  ├─ RSASignature.SHA1withRSA
+  ├─ RSASignature.SHA224withRSA
+  ├─ RSASignature.SHA256withRSA
+  └─ … (one nested class per digest)
+       ↓ constructs
+       base.Signature (holds Digest + RSAKey handle)</pre>
+
+    <h4>Delegation chain</h4>
+    <table>
+      <tr><th>Java call</th><th>Base helper</th><th>Native method</th></tr>
+      <tr><td><code>engineUpdate(b, off, len)</code></td><td><code>digest.update(b,off,len)</code></td><td><code>DIGEST_update(digestId, …)</code></td></tr>
+      <tr><td><code>engineSign()</code></td><td><code>signature.sign()</code></td><td><code>RSAKEY_signDigestCtx(digestId, pkeyId)</code></td></tr>
+      <tr><td><code>engineVerify(sig)</code></td><td><code>signature.verify(sig)</code></td><td><code>RSAKEY_verifyDigestCtx(digestId, sig, pkeyId)</code></td></tr>
+    </table>
+
+    <h4>Native implementation — <code>OpenSSLRSAKey.c</code></h4>
+    <p>
+      <code>RSAKEY_signDigestCtx</code> finalizes the live <code>EVP_MD_CTX</code>
+      (via <code>EVP_DigestFinal_ex</code>), wraps the digest in a DigestInfo ASN.1 structure,
+      then applies PKCS#1 v1.5 signature via <code>RSA_sign</code> or equivalent.
+      <code>RSAKEY_verifyDigestCtx</code> mirrors the process with <code>RSA_verify</code>.
+    </p>
+  </div>
+</div>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">NONEwithRSA</span>
+    <span class="family-subtitle">Pre-hashed · raw RSA with PKCS#1 padding</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-prehashed">Pre-hashed</span>
+
+    <p>
+      <code>RSASignatureNONE</code> buffers the entire input in a
+      <code>ByteArrayOutputStream</code>, then encrypts with <code>RSACipher</code> using
+      <code>RSAPadding.PKCS1Padding</code>. Signing calls <code>privateEncrypt</code>;
+      verification calls <code>publicDecrypt</code> and compares the result byte-by-byte
+      with the accumulated input.
+    </p>
+    <p>No separate digest operation — the caller is expected to supply pre-digested data.</p>
+  </div>
+</div>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">RSAforSSL</span>
+    <span class="family-subtitle">MD5+SHA-1 combined · SSL/TLS handshake legacy</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-prehashed">Pre-hashed</span>
+
+    <p>Two parallel implementations exist:</p>
+    <table>
+      <tr><th>Class</th><th>Path</th><th>Native OpenSSL call</th></tr>
+      <tr>
+        <td><code>RSASignatureSSL</code></td>
+        <td>Buffers input, truncates to 36 bytes, uses <code>RSACipher.privateEncrypt</code></td>
+        <td>RSA PKCS#1 via cipher layer</td>
+      </tr>
+      <tr>
+        <td><code>RSASignatureSSL_I2</code><br /><em>(preferred)</em></td>
+        <td>Buffers input → <code>base.SignatureRSASSL</code> → native</td>
+        <td><code>RSASSL_SIGNATURE_sign(digest, rsaKeyId)</code></td>
+      </tr>
+    </table>
+
+    <h4>Native — <code>OpenSSLRSAKey.c</code></h4>
+    <pre>/* Signing */
+RSA* rsa = EVP_PKEY_get1_RSA(privKey);
+RSA_sign(NID_md5_sha1, digest, digestLen, sigBuf, &amp;outLen, rsa);
+
+/* Verification */
+RSA* rsa = EVP_PKEY_get1_RSA(pubKey);
+RSA_verify(NID_md5_sha1, digest, digestLen, sig, sigLen, rsa);</pre>
+    <p>
+      <code>NID_md5_sha1</code> is the concatenation of MD5 and SHA-1 hashes (36 bytes total),
+      which is the digest used in TLS 1.0/1.1 ServerKeyExchange messages.
+    </p>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="rsapss">3 · RSA-PSS (RSASSA-PSS)</h2>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">RSAPSS / RSASSA-PSS</span>
+    <span class="family-subtitle">Probabilistic Signature Scheme · configurable salt &amp; MGF1</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-streaming">Streaming</span>
+
+    <h4>Java class hierarchy</h4>
+    <pre>RSAPSSSignature (extends SignatureSpi)
+  ↓ owns
+  base.SignatureRSAPSS
+    ↓ holds native handle (rsaPssId → OpenSSLRSAPSSContext*)
+    ↓ calls
+    NativeOpenSSLAdapter.RSAPSS_*</pre>
+
+    <h4>Parameters</h4>
+    <p>
+      Configured via <code>PSSParameterSpec</code>. Defaults to SHA-256 / MGF1(SHA-256) / salt=32.
+      All four components are configurable:
+    </p>
+    <ul>
+      <li>Message digest algorithm (e.g., <code>SHA-256</code>)</li>
+      <li>MGF1 digest algorithm (may differ from message digest)</li>
+      <li>Salt length (bytes)</li>
+      <li>Trailer field (always 1 in practice)</li>
+    </ul>
+
+    <h4>Native context lifecycle</h4>
+    <pre>/* Context creation */
+RSAPSS_createContext(digestAlgo, mgf1SpecAlgo)
+  → allocates OpenSSLRSAPSSContext
+  → EVP_MD_fetch(digestAlgo)
+  → EVP_MD_fetch(mgf1SpecAlgo)
+  → EVP_MD_CTX_new()
+
+/* Sign init */
+RSAPSS_signInit(rsaPssId, privKeyId, saltlen, convert)
+  → EVP_DigestSignInit(mdCtx, &amp;pkeyCtx, md, NULL, privKey)
+  → EVP_PKEY_CTX_set_rsa_padding(pkeyCtx, RSA_PKCS1_PSS_PADDING)
+  → EVP_PKEY_CTX_set_rsa_pss_saltlen(pkeyCtx, saltlen)
+  → EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, mgf1Md)
+
+/* Streaming update */
+RSAPSS_digestUpdate(rsaPssId, data, offset, length)
+  → EVP_DigestSignUpdate(mdCtx, data, length)   // sign mode
+  → EVP_DigestVerifyUpdate(mdCtx, data, length) // verify mode
+
+/* Sign final */
+RSAPSS_signFinal(rsaPssId, outBuf, sigLen)
+  → EVP_DigestSignFinal(mdCtx, sigBuf, &amp;sigLen)
+
+/* Verify final */
+RSAPSS_verifyFinal(rsaPssId, sigBytes, sigLen)
+  → EVP_DigestVerifyFinal(mdCtx, sig, sigLen)
+  // 1=valid, 0=invalid sig, other=error
+
+/* Reset */
+RSAPSS_reset(rsaPssId)
+  → re-runs rsapss_init_impl with same key/mode/saltlen
+
+/* Release */
+RSAPSS_releaseContext(rsaPssId)
+  → EVP_MD_CTX_free + EVP_MD_free + free(ctx)</pre>
+
+    <div class="note">
+      <strong>Note:</strong> The PSS context does <em>not</em> own the <code>EVP_PKEY</code>.
+      The caller (Java) owns the key; the context only holds a borrowed reference.
+      The <code>EVP_PKEY_CTX</code> within the <code>EVP_MD_CTX</code> is managed by OpenSSL.
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="dsa">4 · DSA Signatures</h2>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">SHA*withDSA family</span>
+    <span class="family-subtitle">Streaming digest · prehash then DSA_sign</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-streaming">Streaming</span>
+
+    <h4>Supported algorithms</h4>
+    <p>
+      <code>SHA1withDSA</code>, <code>SHA224withDSA</code>, <code>SHA256withDSA</code>,
+      <code>SHA384withDSA</code>, <code>SHA512withDSA</code>,
+      <code>SHA3-224withDSA</code> … <code>SHA3-512withDSA</code>
+    </p>
+
+    <h4>FIPS mode restriction</h4>
+    <p>DSA <em>signing</em> is disabled in FIPS mode — an exception is thrown from
+    <code>DSASignature.engineInitSign</code>. Verification is still allowed.</p>
+
+    <h4>Native — <code>OpenSSLDSAKey.c</code></h4>
+    <pre>/* Digest-context sign */
+DSAKEY_signDigestCtx(osslContextId, digestId, pkeyId)
+  → EVP_DigestFinal_ex(digestCtx, digest, &amp;len)  // finalize running digest
+  → DSA* dsa = EVP_PKEY_get1_DSA(pkey)
+  → int nid  = EVP_MD_CTX_get_type(digestCtx)
+  → DSA_sign(nid, digest, digestLen, sig, &amp;sigLen, dsa)
+
+/* Digest-context verify */
+DSAKEY_verifyDigestCtx(osslContextId, digestId, sigBytes, sigLen, pkeyId)
+  → EVP_DigestFinal_ex(digestCtx, digest, &amp;len)
+  → DSA_verify(nid, digest, digestLen, sig, sigLen, dsa)</pre>
+  </div>
+</div>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">NONEwithDSA</span>
+    <span class="family-subtitle">Pre-hashed · fixed 20-byte input</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-prehashed">Pre-hashed</span>
+
+    <p>
+      <code>DSASignatureNONE</code> maintains a fixed 20-byte buffer. It rejects any attempt
+      to supply data of a different length with a <code>SignatureException</code>.
+      Delegates to <code>base.SignatureDSANONE</code> → <code>DSANONE_SIGNATURE_sign/verify</code>.
+    </p>
+    <pre>/* Native */
+DSAKEY_signData(digestId=NID_undef, digest, digestLen, pkeyId)
+  → DSA_sign(NID_undef, digest, 20, sig, &amp;sigLen, dsa)
+
+DSAKEY_verifyData(digestId=NID_undef, digest, digestLen, sig, sigLen, pkeyId)
+  → DSA_verify(NID_undef, digest, 20, sig, sigLen, dsa)</pre>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="ecdsa">5 · ECDSA Signatures</h2>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">SHA*withECDSA family</span>
+    <span class="family-subtitle">Streaming digest · digest finalized then signed via generic context</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-streaming">Streaming</span>
+
+    <h4>Supported algorithms</h4>
+    <p>
+      <code>SHA1withECDSA</code>, <code>SHA224withECDSA</code>, <code>SHA256withECDSA</code>,
+      <code>SHA384withECDSA</code>, <code>SHA512withECDSA</code>,
+      <code>SHA3-224withECDSA</code> … <code>SHA3-512withECDSA</code>
+    </p>
+
+    <h4>Two-phase signing flow</h4>
+    <p>
+      Unlike RSA and DSA, ECDSA in the OpenSSL adapter does <em>not</em> call a single
+      <code>signDigestCtx</code> function. Instead it <em>finalizes the digest in Java-space</em>
+      and then creates a temporary generic <code>NONEwithECDSA</code> native context:
+    </p>
+    <pre>/* Adapter — SIGNATURE_sign with EC key */
+
+// 1. Finalize the running digest
+byte[] digestBytes = DIGEST_digest(digestId);
+
+// 2. Get private key bytes (SEC1 DER)
+byte[] sec1 = ECKEY_getPrivateKeyBytes(pkeyId);
+
+// 3. Create a one-shot NONEwithECDSA context
+long sigCtx = SIGNATURE_create(sec1, "NONEwithECDSA", mode=0 /*sign*/);
+
+// 4. Feed the digest as "data"
+SIGNATURE_update(sigCtx, digestBytes, 0, digestBytes.length);
+
+// 5. Produce the signature
+byte[] sig = SIGNATURE_sign(sigCtx);
+
+// 6. Release
+SIGNATURE_delete(sigCtx);</pre>
+
+    <h4>Verification — SPKI reconstruction</h4>
+    <pre>// 1. Get raw EC public point (04 x y…)
+byte[] point = ECKEY_getPublicKeyBytes(pkeyId);
+
+// 2. Get ECParameters DER
+byte[] params = ECKEY_getParameters(pkeyId);
+
+// 3. Build SubjectPublicKeyInfo (SPKI) DER manually
+//    in NativeOpenSSLAdapter.buildSPKIforEC(...)
+
+// 4. Create NONEwithECDSA verify context
+long sigCtx = SIGNATURE_create(spki, "NONEwithECDSA", mode=1 /*verify*/);
+
+// 5. Update with digest bytes
+SIGNATURE_update(sigCtx, digestBytes, 0, digestBytes.length);
+
+// 6. Verify
+boolean ok = SIGNATURE_verify(sigCtx, sigBytes);
+SIGNATURE_delete(sigCtx);</pre>
+  </div>
+</div>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">NONEwithECDSA</span>
+    <span class="family-subtitle">Pre-hashed · buffers input · ASN.1 re-encoding</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-prehashed">Pre-hashed</span>
+
+    <p>
+      <code>DatawithECDSA</code> buffers the entire message. On signing, it calls
+      <code>ECKey.signDatawithECDSA</code> which uses the generic
+      <code>NONEwithECDSA</code> native context path. The returned ECDSA ASN.1 DER is
+      re-parsed to remove any trailing zero padding that some OpenSSL versions may add:
+    </p>
+    <pre>// Strip provider-specific padding from DER SEQUENCE { INTEGER r, INTEGER s }
+DerValue[] integers = in.getSequence(2);
+// re-encode canonically</pre>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="eddsa">6 · EdDSA (Ed25519 / Ed448)</h2>
+
+<div class="family">
+  <div class="family-header">
+    <span class="family-title">EdDSA / Ed25519 / Ed448</span>
+    <span class="family-subtitle">One-shot · no separate digest · internally deterministic</span>
+  </div>
+  <div class="family-body">
+    <span class="badge badge-oneshot">One-shot</span>
+
+    <h4>Java class hierarchy</h4>
+    <pre>EdDSASignature (abstract, extends SignatureSpi)
+  ├─ EdDSASignature.Ed25519
+  ├─ EdDSASignature.Ed448
+  └─ EdDSASignature.EdDSA
+       ↓ owns
+       base.SignatureEdDSA (holds EVP_PKEY* handle as pkeyId)
+         ↓ calls
+         NativeOpenSSLAdapter.SIGNATUREEdDSA_signOneShot / verifyOneShot</pre>
+
+    <h4>Message buffering</h4>
+    <p>
+      Although EdDSA is fundamentally one-shot, JCA's <code>SignatureSpi</code> requires
+      <code>engineUpdate</code> support. <code>EdDSASignature</code> solves this by
+      accumulating <em>all</em> update bytes in a <code>ByteArrayOutputStream</code>
+      and passing the complete message to native in a single call.
+    </p>
+
+    <h4>Parameter restrictions</h4>
+    <p>Ed25519/Ed448 in this implementation are pure (non-prehashed) and context-free:</p>
+    <ul>
+      <li>Pre-hash mode (<code>isPrehash()</code> = true) → <code>InvalidAlgorithmParameterException</code></li>
+      <li>Non-empty context string → <code>InvalidAlgorithmParameterException</code></li>
+    </ul>
+
+    <h4>Native — <code>OpenSSLSignature.c</code></h4>
+    <pre>/* One-shot sign — SIGNATUREEdDSA_signOneShot */
+EVP_MD_CTX* mdCtx = EVP_MD_CTX_new();
+EVP_DigestSignInit(mdCtx, &amp;pkeyCtx, NULL /*no md*/, NULL, pkey);
+EVP_DigestSign(mdCtx, NULL, &amp;sigLen, data, dataLen);  // get length
+EVP_DigestSign(mdCtx, sigBuf, &amp;sigLen, data, dataLen); // produce sig
+EVP_MD_CTX_free(mdCtx);
+
+/* One-shot verify — SIGNATUREEdDSA_verifyOneShot */
+EVP_MD_CTX* mdCtx = EVP_MD_CTX_new();
+EVP_DigestVerifyInit(mdCtx, &amp;pkeyCtx, NULL, NULL, pkey);
+int rc = EVP_DigestVerify(mdCtx, sig, sigLen, data, dataLen);
+EVP_MD_CTX_free(mdCtx); // returns 1=ok, 0=bad sig, other=error</pre>
+
+    <h4>Generic context path (alternative)</h4>
+    <p>
+      EdDSA can also be invoked through the generic <code>SIGNATURE_create</code> context
+      (passing <code>"Ed25519"</code> or <code>"Ed448"</code> as the algorithm). In that path,
+      <code>OpenSSLSignature.c</code> detects <code>isEdDSA=1</code> and accumulates update
+      bytes in a native heap buffer, then calls <code>EVP_DigestSign</code> one-shot at the
+      end.
+    </p>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2 id="generic">7 · Generic Native Signature Context</h2>
+<p>
+  <code>OpenSSLSignature.c</code> implements a reusable low-level context
+  (<code>OpenSSLSignatureContext</code>) that all algorithm families can use. It is the
+  C-side counterpart of the <code>SIGNATURE_create / update / sign / verify / reset / delete</code>
+  Java API.
+</p>
+
+<pre>typedef struct {
+    EVP_MD_CTX*   mdCtx;            // digest+sign context
+    EVP_PKEY*     pkey;             // loaded from DER bytes
+    const EVP_MD* md;               // fetched digest algorithm
+    int           mode;             // 0=sign, 1=verify
+    int           signatureSize;    // EVP_PKEY_get_size()
+    EVP_PKEY_CTX* pkeyCtx;          // for PSS param configuration
+    int           isEdDSA;          // 1 if Ed25519/Ed448
+    unsigned char* dataBuffer;      // accumulated EdDSA message
+    size_t         dataBufferSize;
+    size_t         dataBufferCapacity;
+} OpenSSLSignatureContext;</pre>
+
+<h4>Context creation — <code>SIGNATURE_create</code></h4>
+<p>Parses the algorithm name string and sets up the context:</p>
+<table>
+  <tr><th>Algorithm token</th><th>Action</th></tr>
+  <tr><td><code>SHA256withRSA</code>, <code>SHA256withECDSA</code>, etc.</td><td>Parse digest prefix; fetch MD with <code>EVP_MD_fetch</code></td></tr>
+  <tr><td><code>NONEwith*</code></td><td>Set <code>digestName=NULL</code>; no digest fetch</td></tr>
+  <tr><td><code>Ed25519</code>, <code>Ed448</code></td><td>Set <code>isEdDSA=1</code>; no digest; allocate data buffer</td></tr>
+</table>
+<p>Key loading:</p>
+<ul>
+  <li>mode 0 (sign): <code>d2i_PrivateKey_bio</code> — PKCS#8 private key DER</li>
+  <li>mode 1 (verify): <code>d2i_PUBKEY_bio</code> — SubjectPublicKeyInfo DER</li>
+</ul>
+<p>After loading, initializes with <code>EVP_DigestSignInit</code> or <code>EVP_DigestVerifyInit</code>.</p>
+
+<h4>Reset — <code>SIGNATURE_reset</code></h4>
+<p>
+  Calls <code>EVP_MD_CTX_reset</code> then re-runs <code>EVP_DigestSignInit</code> /
+  <code>EVP_DigestVerifyInit</code> with the same key and digest. This lets the
+  same native context be reused for multiple operations without allocating a new one.
+</p>
+
+<hr class="divider" />
+
+
+<h2 id="comparison">8 · Algorithm Comparison Table</h2>
+<table>
+  <tr>
+    <th>Algorithm</th>
+    <th>Java class</th>
+    <th>Model</th>
+    <th>Key type</th>
+    <th>Native C file</th>
+    <th>Core OpenSSL call</th>
+  </tr>
+  <tr>
+    <td><code>SHA*withRSA</code></td>
+    <td><code>RSASignature</code></td>
+    <td><span class="badge badge-streaming">Streaming</span></td>
+    <td>RSAKey (EVP_PKEY)</td>
+    <td><code>OpenSSLRSAKey.c</code></td>
+    <td><code>RSAKEY_signDigestCtx</code></td>
+  </tr>
+  <tr>
+    <td><code>NONEwithRSA</code></td>
+    <td><code>RSASignatureNONE</code></td>
+    <td><span class="badge badge-prehashed">Pre-hashed</span></td>
+    <td>RSAKey</td>
+    <td>RSACipher layer</td>
+    <td>PKCS#1 encrypt/decrypt</td>
+  </tr>
+  <tr>
+    <td><code>RSAforSSL</code></td>
+    <td><code>RSASignatureSSL_I2</code></td>
+    <td><span class="badge badge-prehashed">Pre-hashed</span></td>
+    <td>RSAKey (RSA*)</td>
+    <td><code>OpenSSLRSAKey.c</code></td>
+    <td><code>RSA_sign/verify(NID_md5_sha1)</code></td>
+  </tr>
+  <tr>
+    <td><code>RSAPSS</code></td>
+    <td><code>RSAPSSSignature</code></td>
+    <td><span class="badge badge-streaming">Streaming</span></td>
+    <td>RSAKey (EVP_PKEY)</td>
+    <td><code>OpenSSLRSAPSS.c</code></td>
+    <td><code>EVP_DigestSign/VerifyFinal</code></td>
+  </tr>
+  <tr>
+    <td><code>SHA*withDSA</code></td>
+    <td><code>DSASignature</code></td>
+    <td><span class="badge badge-streaming">Streaming</span></td>
+    <td>DSAKey (DSA*)</td>
+    <td><code>OpenSSLDSAKey.c</code></td>
+    <td><code>DSA_sign/verify</code></td>
+  </tr>
+  <tr>
+    <td><code>NONEwithDSA</code></td>
+    <td><code>DSASignatureNONE</code></td>
+    <td><span class="badge badge-prehashed">Pre-hashed</span></td>
+    <td>DSAKey (DSA*)</td>
+    <td><code>OpenSSLDSAKey.c</code></td>
+    <td><code>DSA_sign(NID_undef)</code></td>
+  </tr>
+  <tr>
+    <td><code>SHA*withECDSA</code></td>
+    <td><code>ECDSASignature</code></td>
+    <td><span class="badge badge-streaming">Streaming</span></td>
+    <td>ECKey (EVP_PKEY)</td>
+    <td><code>OpenSSLSignature.c</code></td>
+    <td>Generic <code>NONEwithECDSA</code> context</td>
+  </tr>
+  <tr>
+    <td><code>NONEwithECDSA</code></td>
+    <td><code>DatawithECDSA</code></td>
+    <td><span class="badge badge-prehashed">Pre-hashed</span></td>
+    <td>ECKey (EVP_PKEY)</td>
+    <td><code>OpenSSLSignature.c</code></td>
+    <td>Generic <code>NONEwithECDSA</code> context</td>
+  </tr>
+  <tr>
+    <td><code>Ed25519 / Ed448 / EdDSA</code></td>
+    <td><code>EdDSASignature</code></td>
+    <td><span class="badge badge-oneshot">One-shot</span></td>
+    <td>XECKey (EVP_PKEY)</td>
+    <td><code>OpenSSLSignature.c</code></td>
+    <td><code>EVP_DigestSign/Verify</code></td>
+  </tr>
+</table>
+
+<hr class="divider" />
+
+
+<h2 id="models">9 · Streaming vs One-shot vs Pre-hashed</h2>
+
+<h3>Streaming digest model</h3>
+<p>Used by SHA*withRSA, SHA*withDSA, SHA*withECDSA, RSAPSS.</p>
+<pre>// Java / JCA caller
+sig.initSign(privateKey);
+sig.update(data, 0, data.length);   // can call multiple times
+byte[] signature = sig.sign();
+
+// Internal flow:
+//   update → digest.update → DIGEST_update(digestCtx, data)
+//   sign   → SIGNATURE_sign(digestCtx, pkeyId)
+//          → finalize digest in native, then sign with key</pre>
+<p>
+  The digest context (<code>digestId</code>) is a long-lived native handle.
+  The signature operation finalizes it, which exhausts it — the digest is reset after
+  each sign or verify call so the context is ready for reuse.
+</p>
+
+<h3>One-shot model (EdDSA)</h3>
+<p>Used only by EdDSA algorithms.</p>
+<pre>// Java / JCA caller
+sig.initSign(privateKey);
+sig.update(part1);   // buffered in ByteArrayOutputStream
+sig.update(part2);   // buffered
+byte[] signature = sig.sign();
+
+// Internal flow:
+//   sign → concat all buffered parts → SIGNATUREEdDSA_signOneShot(pkeyId, allData)
+//         → EVP_DigestSign(mdCtx, NULL, &amp;len, data, dataLen)  // get length
+//         → EVP_DigestSign(mdCtx, sig, &amp;len, data, dataLen)   // produce sig</pre>
+<p>
+  EdDSA is inherently one-shot because the algorithm internally hashes the message
+  with a specific scheme (SHA-512 for Ed25519). There is no way to feed it incrementally
+  to OpenSSL; the complete message must be supplied in one call.
+</p>
+
+<h3>Pre-hashed model</h3>
+<p>Used by NONEwith* algorithms and RSAforSSL.</p>
+<pre>// Java / JCA caller — caller provides pre-digested data
+sig.initSign(privateKey);
+sig.update(digestBytes);  // exactly the digest, not the message
+byte[] signature = sig.sign();
+
+// Internal flow:
+//   sign → collect digestBytes → DSANONE_SIGNATURE_sign(digestBytes, dsaKeyId)
+//         → DSA_sign(NID_undef, digest, 20, sig, &amp;sigLen, dsa)</pre>
+<p>
+  No digest context is used. The native function receives the raw digest bytes directly.
+</p>
+
+<hr class="divider" />
+
+
+<h2 id="openssl">10 · OpenSSL API Reference</h2>
+<table>
+  <tr><th>OpenSSL function</th><th>Used by</th><th>Purpose</th></tr>
+  <tr><td><code>EVP_DigestSignInit</code></td><td>All streaming sign paths; RSA-PSS; EdDSA init</td><td>Bind key + digest to a sign context</td></tr>
+  <tr><td><code>EVP_DigestVerifyInit</code></td><td>All streaming verify paths; RSA-PSS; EdDSA verify init</td><td>Bind key + digest to a verify context</td></tr>
+  <tr><td><code>EVP_DigestSignUpdate</code></td><td>Streaming sign (RSA, ECDSA via context, RSAPSS)</td><td>Feed message bytes incrementally</td></tr>
+  <tr><td><code>EVP_DigestVerifyUpdate</code></td><td>Streaming verify (RSA, ECDSA via context, RSAPSS)</td><td>Feed message bytes incrementally</td></tr>
+  <tr><td><code>EVP_DigestSignFinal</code></td><td>Streaming RSA, ECDSA, RSAPSS</td><td>Produce final signature bytes</td></tr>
+  <tr><td><code>EVP_DigestVerifyFinal</code></td><td>Streaming RSA, ECDSA, RSAPSS</td><td>Verify final signature bytes</td></tr>
+  <tr><td><code>EVP_DigestSign</code></td><td>EdDSA one-shot sign</td><td>Sign entire message in one call</td></tr>
+  <tr><td><code>EVP_DigestVerify</code></td><td>EdDSA one-shot verify</td><td>Verify entire message in one call</td></tr>
+  <tr><td><code>EVP_DigestFinal_ex</code></td><td>DSA digest-ctx path</td><td>Finalize digest to raw bytes</td></tr>
+  <tr><td><code>DSA_sign(nid, …)</code></td><td>SHA*withDSA, NONEwithDSA</td><td>Sign prehashed data with DSA key</td></tr>
+  <tr><td><code>DSA_verify(nid, …)</code></td><td>SHA*withDSA, NONEwithDSA</td><td>Verify DSA signature over prehash</td></tr>
+  <tr><td><code>RSA_sign(NID_md5_sha1, …)</code></td><td>RSAforSSL</td><td>SSL-style RSA sign (MD5+SHA-1)</td></tr>
+  <tr><td><code>RSA_verify(NID_md5_sha1, …)</code></td><td>RSAforSSL</td><td>SSL-style RSA verify</td></tr>
+  <tr><td><code>EVP_PKEY_CTX_set_rsa_padding</code></td><td>RSAPSS init; generic PSS config</td><td>Set RSA_PKCS1_PSS_PADDING</td></tr>
+  <tr><td><code>EVP_PKEY_CTX_set_rsa_pss_saltlen</code></td><td>RSAPSS init</td><td>Configure PSS salt length</td></tr>
+  <tr><td><code>EVP_PKEY_CTX_set_rsa_mgf1_md</code></td><td>RSAPSS init</td><td>Configure MGF1 digest</td></tr>
+  <tr><td><code>d2i_PrivateKey_bio</code></td><td>Generic signature context creation</td><td>Load PKCS#8 private key DER</td></tr>
+  <tr><td><code>d2i_PUBKEY_bio</code></td><td>Generic signature context creation</td><td>Load SubjectPublicKeyInfo DER</td></tr>
+  <tr><td><code>EVP_MD_fetch</code></td><td>Context creation</td><td>Fetch digest algorithm by name</td></tr>
+  <tr><td><code>EVP_PKEY_get_size</code></td><td>Context creation</td><td>Get maximum signature size</td></tr>
+  <tr><td><code>EVP_MD_CTX_reset</code></td><td>SIGNATURE_reset</td><td>Reset context for reuse</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

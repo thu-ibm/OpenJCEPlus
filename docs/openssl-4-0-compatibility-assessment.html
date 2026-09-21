@@ -1,0 +1,218 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenSSL 4.0 Compatibility Assessment</title>
+<style>
+  :root {
+    --bg-color: #ffffff;
+    --surface-color: #f7f8fa;
+    --border-color: #e5e7eb;
+    --text-color: #1f2328;
+    --muted-color: #57606a;
+    --accent-color: #3b82d4;
+    --danger-color: #cf222e;
+    --warning-bg: #fff8c5;
+    --warning-border: #d4a72c;
+  }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    max-width: 760px;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+  }
+
+  h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+
+  p {
+    margin: 0 0 12px 0;
+  }
+
+  .meta-box {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  .meta-box p {
+    margin: 2px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px 0;
+    font-size: 13px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+  }
+
+  th {
+    background-color: var(--surface-color);
+    font-weight: 600;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+
+  .deprecated-badge {
+    color: var(--danger-color);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  ul {
+    margin: 0 0 12px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  .footer {
+    margin-top: 36px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted-color);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>OpenSSL 4.0 Compatibility Assessment</h1>
+  
+  <div class="meta-box">
+    <p><strong>Target Directory:</strong> <code>src/main/native/openssl/</code></p>
+    <p><strong>Status:</strong> Deprecated in OpenSSL 3.0 / Incompatible in OpenSSL 4.0</p>
+    <p><strong>Scope:</strong> Native OpenJCEPlus cryptographic bindings</p>
+  </div>
+
+  <p>OpenSSL 3.0 formally deprecated direct access to low-level cryptographic structures (such as <code>RSA</code>, <code>DSA</code>, <code>EC_KEY</code>, and <code>HMAC_CTX</code>) in favor of opaque provider-based EVP abstractions. OpenSSL 4.0 removes these deprecated legacy APIs entirely. Below is the breakdown of non-compatible elements across the codebase.</p>
+
+  <h2>1. Summary of Incompatible Areas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Deprecated / Incompatible API Usage</th>
+        <th>Required Modern Alternative</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>OpenSSLDSAKey.c</code></td>
+        <td><code>DSA*</code>, <code>DSA_new</code>, <code>DSA_free</code>, <code>DSA_generate_*</code>, <code>DSA_sign</code>, <code>DSA_verify</code>, <code>i2d_DSA*</code>, <code>d2i_DSA*</code>, <code>EVP_PKEY_set1_DSA</code>, <code>EVP_PKEY_get1_DSA</code></td>
+        <td><code>EVP_PKEY_keygen</code>, <code>EVP_PKEY_paramgen</code>, <code>EVP_PKEY_fromdata</code>, <code>EVP_PKEY_todata</code>, <code>EVP_DigestSign*</code></td>
+      </tr>
+      <tr>
+        <td><code>OpenSSLRSAKey.c</code></td>
+        <td><code>RSA*</code>, <code>RSA_new</code>, <code>RSA_free</code>, <code>RSA_public_encrypt</code>, <code>RSA_private_decrypt</code>, <code>RSA_sign</code>, <code>RSA_verify</code>, <code>i2d_RSA*</code>, <code>d2i_RSA*</code>, <code>EVP_PKEY_assign_RSA</code>, <code>EVP_PKEY_get1_RSA</code></td>
+        <td><code>EVP_PKEY_encrypt</code>, <code>EVP_PKEY_decrypt</code>, <code>EVP_PKEY_sign</code>, <code>EVP_PKEY_verify</code>, <code>EVP_PKEY_fromdata</code> / <code>d2i_PrivateKey</code></td>
+      </tr>
+      <tr>
+        <td><code>OpenSSLECKey.c</code></td>
+        <td><code>EC_KEY*</code>, <code>EC_KEY_new</code>, <code>EC_KEY_free</code>, <code>EC_KEY_set_group</code>, <code>EC_KEY_set_public_key</code>, <code>EC_POINT_*</code>, <code>d2i_ECPKParameters</code>, <code>i2d_ECParameters</code>, <code>EVP_PKEY_set1_EC_KEY</code>, <code>EVP_PKEY_get1_EC_KEY</code></td>
+        <td><code>EVP_PKEY_get_octet_string_param</code>, <code>EVP_PKEY_get_utf8_string_param</code>, <code>EVP_PKEY_fromdata</code>, <code>d2i_PUBKEY</code> / <code>i2d_PUBKEY</code></td>
+      </tr>
+      <tr>
+        <td><code>OpenSSLHelpers.c</code><br /><code>OpenSSLHelpers.h</code></td>
+        <td><code>HMAC_CTX*</code>, <code>HMAC_CTX_new()</code>, <code>HMAC_CTX_free()</code></td>
+        <td><code>EVP_MAC*</code>, <code>EVP_MAC_CTX*</code> via <code>EVP_MAC_fetch(libctx, "HMAC", NULL)</code></td>
+      </tr>
+      <tr>
+        <td><code>openjceplus.mak</code></td>
+        <td>Hardcoded library soname version <code>OPENSSL_LIB_VERSION = 3</code> (links against <code>libcrypto64.so.3</code>)</td>
+        <td>Update build configuration to dynamically adapt or target version <code>4</code> (<code>libcrypto.so.4</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Detailed File-by-File Breakdown</h2>
+
+  <h3>A. DSA Implementation (<code>OpenSSLDSAKey.c</code>)</h3>
+  <ul>
+    <li><strong>Raw Key Lifecycle &amp; Parameters:</strong> <code>DSA_new()</code>, <code>DSA_free()</code>, <code>DSA_generate_parameters_ex()</code>, <code>DSA_generate_key()</code> are deprecated and omitted in 4.0.</li>
+    <li><strong>Serialization:</strong> <code>d2i_DSAPrivateKey</code>, <code>i2d_DSAPrivateKey</code>, <code>d2i_DSAPublicKey</code>, <code>i2d_DSAPublicKey</code>, <code>d2i_DSAparams</code>, <code>i2d_DSAparams</code> parse/serialize directly to legacy <code>DSA</code> structs.</li>
+    <li><strong>Signing / Verifying:</strong> <code>DSA_sign()</code>, <code>DSA_verify()</code>, <code>DSA_size()</code> operate on raw structures rather than provider-backed <code>EVP_PKEY</code> contexts.</li>
+    <li><strong>EVP Bridges:</strong> <code>EVP_PKEY_set1_DSA()</code> and <code>EVP_PKEY_get1_DSA()</code> are removed.</li>
+  </ul>
+
+  <h3>B. RSA Implementation (<code>OpenSSLRSAKey.c</code>)</h3>
+  <ul>
+    <li><strong>Raw Key Extraction:</strong> Frequent use of <code>EVP_PKEY_get1_RSA()</code> and <code>EVP_PKEY_assign_RSA()</code> to unwrap <code>EVP_PKEY</code> into <code>RSA*</code>.</li>
+    <li><strong>Cipher Operations:</strong> <code>RSA_public_encrypt()</code> and <code>RSA_private_decrypt()</code> must be migrated to <code>EVP_PKEY_encrypt_init()</code> / <code>EVP_PKEY_encrypt()</code> and <code>EVP_PKEY_decrypt_init()</code> / <code>EVP_PKEY_decrypt()</code>.</li>
+    <li><strong>Sign / Verify:</strong> <code>RSA_sign()</code> and <code>RSA_verify()</code> (including raw signature formatting with <code>NID_md5_sha1</code>) must use <code>EVP_PKEY_sign()</code> / <code>EVP_PKEY_verify()</code>.</li>
+  </ul>
+
+  <h3>C. EC Implementation (<code>OpenSSLECKey.c</code>)</h3>
+  <ul>
+    <li><strong>EC_KEY &amp; EC_POINT Functions:</strong> <code>EC_KEY_new()</code>, <code>EC_KEY_free()</code>, <code>EC_KEY_set_public_key()</code>, <code>EC_POINT_oct2point()</code>, and <code>EC_POINT_point2oct()</code> are removed.</li>
+    <li><strong>Curve &amp; Parameter Encodings:</strong> <code>d2i_ECPKParameters()</code>, <code>i2d_ECPKParameters()</code>, and <code>i2d_ECParameters()</code> manipulate legacy ASN.1 curve structures directly.</li>
+    <li><strong>Modern Replacement:</strong> Standardize on <code>OSSL_PARAM</code> key creation via <code>EVP_PKEY_fromdata()</code> and export via <code>EVP_PKEY_todata()</code> or <code>EVP_PKEY_get_octet_string_param()</code>.</li>
+  </ul>
+
+  <h3>D. HMAC Utilities (<code>OpenSSLHelpers.c</code> / <code>OpenSSLHelpers.h</code>)</h3>
+  <ul>
+    <li><code>createHMACCtxSafe()</code> utilizes legacy <code>HMAC_CTX_new()</code>. In OpenSSL 3.0+ / 4.0, HMAC is implemented via the <code>EVP_MAC</code> interface.</li>
+  </ul>
+
+  <h2>3. Migration Roadmap to OpenSSL 4.0</h2>
+  <ul>
+    <li><strong>Step 1 (EVP_PKEY Modernization):</strong> Eliminate all <code>EVP_PKEY_get1_*</code> and <code>EVP_PKEY_set1_*</code> calls; keep keys encapsulated within <code>EVP_PKEY*</code>.</li>
+    <li><strong>Step 2 (OSSL_PARAM Adoption):</strong> Use <code>OSSL_PARAM</code> builders for setting and extracting public/private key coordinates, moduli, and curve parameters.</li>
+    <li><strong>Step 3 (EVP_MAC Transition):</strong> Replace legacy HMAC context helpers with <code>EVP_MAC_fetch()</code> and <code>EVP_MAC_CTX</code>.</li>
+    <li><strong>Step 4 (Build Target Updates):</strong> Parameterize shared library soname versioning in makefiles.</li>
+  </ul>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Native Code — Signature Algorithms</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 36px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 40px 0 4px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  h2 .file { font-size: 12px; font-weight: 400; color: #57606a; margin-left: 8px; }
+  h2 .tag { font-size: 11px; font-weight: 500; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1px 8px; margin-left: 8px; color: #57606a; vertical-align: middle; }
+  .fn-desc { color: #57606a; font-size: 13px; margin-bottom: 16px; }
+  .entry { margin: 20px 0; }
+  .code-block {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: "Consolas", "Menlo", "Courier New", monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #1f2328;
+    margin-bottom: 8px;
+  }
+  .explanation { font-size: 14px; color: #1f2328; padding-left: 4px; }
+  hr.entry-sep { border: none; border-top: 1px dashed #e5e7eb; margin: 20px 0; }
+  .note { background: #f7f8fa; border-left: 3px solid #3b82d4; padding: 8px 12px; font-size: 13px; color: #57606a; margin: 16px 0; border-radius: 0 4px 4px 0; }
+  .warn { background: #fffbf0; border-left: 3px solid #d97706; padding: 8px 12px; font-size: 13px; color: #57606a; margin: 16px 0; border-radius: 0 4px 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 6px 10px; vertical-align: top; }
+  .toc { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px; padding: 14px 18px; margin-bottom: 32px; font-size: 13px; }
+  .toc h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 3px 0; }
+  .toc .group { font-weight: 600; color: #57606a; margin-top: 6px; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Native Code — Signature Algorithm Explanations</h1>
+<p class="subtitle">OpenJCEPlus OpenSSL backend · branch thu/openssl-aes · OpenSSLSignature.c &amp; OpenSSLRSAPSS.c</p>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li class="group">Overview &amp; data structures</li>
+    <li>OpenSSLSignatureContext struct</li>
+    <li>OpenSSLRSAPSSContext struct</li>
+    <li class="group">General signature API (OpenSSLSignature.c)</li>
+    <li><code>SIGNATURE_create</code> — algorithm parsing &amp; context setup</li>
+    <li><code>SIGNATURE_update</code> — streaming vs EdDSA buffering</li>
+    <li><code>SIGNATURE_sign</code> — finalise and produce signature bytes</li>
+    <li><code>SIGNATURE_verify</code> — finalise and check signature</li>
+    <li><code>SIGNATURE_reset</code> — reinitialise for reuse</li>
+    <li><code>SIGNATURE_setPSSParams</code> — RSA-PSS parameter wiring</li>
+    <li><code>SIGNATURE_delete</code> — resource cleanup</li>
+    <li class="group">EdDSA one-shot API (OpenSSLSignature.c)</li>
+    <li><code>SIGNATUREEdDSA_signOneShot</code></li>
+    <li><code>SIGNATUREEdDSA_verifyOneShot</code></li>
+    <li class="group">RSA-PSS dedicated API (OpenSSLRSAPSS.c)</li>
+    <li><code>RSAPSS_createContext</code></li>
+    <li><code>RSAPSS_signInit</code> / <code>RSAPSS_verifyInit</code></li>
+    <li><code>RSAPSS_digestUpdate</code></li>
+    <li><code>RSAPSS_signFinal</code> / <code>RSAPSS_verifyFinal</code></li>
+    <li><code>RSAPSS_reset</code> / <code>RSAPSS_releaseContext</code></li>
+  </ol>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>Overview — two C files, two APIs</h2>
+<p class="fn-desc">Signature algorithms are split across two C files with distinct API contracts:</p>
+<table>
+  <tr><th>File</th><th>Purpose</th><th>Java entry point</th></tr>
+  <tr><td><code>OpenSSLSignature.c</code></td><td>Universal streaming API for RSA, ECDSA, DSA, EdDSA. One context type handles all algorithms.</td><td><code>NativeOpenSSLImplementation.SIGNATURE_*</code></td></tr>
+  <tr><td><code>OpenSSLRSAPSS.c</code></td><td>Dedicated RSA-PSS API, mirroring OCK's <code>RsaPss.c</code> contract. Separate context type, key is bound at init time not create time.</td><td><code>NativeOpenSSLImplementation.RSAPSS_*</code></td></tr>
+</table>
+
+<div class="note">Both files use the same underlying OpenSSL EVP streaming functions (<code>EVP_DigestSign*</code> / <code>EVP_DigestVerify*</code>). The split exists because the Java layer's <code>SignatureRSAPSS.java</code> was already written against a different OCK contract (key passed at init, not at create).</div>
+
+
+<!-- ======================================================================== -->
+<h2>1. OpenSSLSignatureContext struct <span class="file">OpenSSLSignature.c</span></h2>
+<p class="fn-desc">The C struct that Java holds as an opaque <code>jlong</code> handle for all general signature operations.</p>
+
+<div class="entry">
+<div class="code-block">typedef struct {
+    EVP_MD_CTX*    mdCtx;             // Streaming digest/signature state machine
+    EVP_PKEY*      pkey;              // The key (private for sign, public for verify)
+    const EVP_MD*  md;                // Fetched digest algorithm (NULL for EdDSA)
+    int            mode;              // SIGNATURE_MODE_SIGN (1) or VERIFY (2)
+    int            signatureSize;     // Max bytes from EVP_PKEY_get_size
+    EVP_PKEY_CTX*  pkeyCtx;           // Key-algorithm context (owned by mdCtx)
+    int            isEdDSA;           // 1 if Ed25519/Ed448, 0 otherwise
+    unsigned char* dataBuffer;        // EdDSA accumulation buffer (NULL otherwise)
+    size_t         dataBufferSize;    // Bytes currently buffered
+    size_t         dataBufferCapacity;// Allocated buffer capacity
+} OpenSSLSignatureContext;</div>
+<p class="explanation">Most fields apply to all algorithms. The <code>dataBuffer</code> / <code>dataBufferSize</code> / <code>dataBufferCapacity</code> triple only exists for EdDSA — that algorithm mandates a one-shot API (<code>EVP_DigestSign</code>) which requires all data at once, so updates are accumulated in this growable buffer and flushed at sign/verify time.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>2. OpenSSLRSAPSSContext struct <span class="file">OpenSSLRSAPSS.c</span></h2>
+<p class="fn-desc">The dedicated RSA-PSS context. Unlike <code>OpenSSLSignatureContext</code>, the key is not stored at create time — it is bound separately at <code>signInit</code>/<code>verifyInit</code>.</p>
+
+<div class="entry">
+<div class="code-block">typedef struct {
+    EVP_MD_CTX*   mdCtx;         // Streaming digest/signature context
+    EVP_PKEY*     pkey;          // Bound key (NOT owned; caller owns the key)
+    EVP_PKEY_CTX* pkeyCtx;       // PSS parameter context (owned by mdCtx)
+    const EVP_MD* md;            // Message digest (owned)
+    const EVP_MD* mgf1Md;        // MGF1 digest (owned)
+    int           mode;          // RSAPSS_MODE_SIGN (1) or VERIFY (2)
+    int           saltlen;       // PSS salt length (stored for reset)
+    int           sigLen;        // EVP_PKEY_get_size at init time
+    char          digestName[64];// For reset: re-fetch digest by name
+    char          mgf1Name[64];  // For reset: re-fetch MGF1 digest by name
+} OpenSSLRSAPSSContext;</div>
+<p class="explanation">Two digests (<code>md</code> and <code>mgf1Md</code>) are stored because RSA-PSS requires them independently: <code>md</code> hashes the message, <code>mgf1Md</code> drives the mask-generation function. They are usually the same algorithm, but the Java layer allows them to differ. Both are fetched at <code>createContext</code> time so the expensive <code>EVP_MD_fetch</code> call is not repeated on every sign/verify. The <code>pkey</code> is explicitly <em>not</em> owned — the caller's Java key object holds the <code>EVP_PKEY*</code> handle via a separate key-file context, so <code>releaseContext</code> must not free it.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>3. SIGNATURE_create <span class="file">OpenSSLSignature.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Creates a fully initialised <code>OpenSSLSignatureContext</code> ready for update calls. Performs algorithm string parsing, key loading, digest fetching, and the first <code>EVP_DigestSignInit</code>/<code>EVP_DigestVerifyInit</code> call.</p>
+
+<div class="entry">
+<div class="code-block">if (strstr(algoName, "Ed25519") != NULL || strstr(algoName, "Ed448") != NULL) {
+    digestName = NULL;  // EdDSA has no separate digest
+} else if (strstr(algoName, "with") != NULL) {
+    // Extract digest from "SHA256withRSA", "SHA256withECDSA", etc.
+    const char* withPos = strstr(algoName, "with");
+    strncpy(digestBuffer, algoName, withPos - algoName);
+    if (strcmp(digestBuffer, "NONE") == 0)
+        digestName = NULL;  // Pre-hashed data, no digest needed
+    else
+        digestName = digestBuffer;
+} else {
+    digestName = algoName;  // Bare digest name like "SHA256"
+}</div>
+<p class="explanation">Parses the Java algorithm string into an OpenSSL digest name. Three distinct patterns: (1) EdDSA has no configurable digest — it is baked into the curve specification. (2) <code>"DigestwithKeyType"</code> format — the part before <code>"with"</code> is the digest; if it is <code>"NONE"</code> the caller will feed pre-hashed data directly and no hashing is done here. (3) A bare digest name used for raw signing. This parsing avoids passing the full Java algorithm string to OpenSSL, which does not understand the <code>"with"</code> convention.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">signatureCtx->isEdDSA = (strstr(algoName, "Ed25519") || strstr(algoName, "Ed448")) ? 1 : 0;
+if (signatureCtx->isEdDSA) {
+    signatureCtx->dataBufferCapacity = 4096;
+    signatureCtx->dataBuffer = malloc(signatureCtx->dataBufferCapacity);
+    signatureCtx->dataBufferSize = 0;
+}</div>
+<p class="explanation">Pre-allocates the EdDSA data buffer at create time rather than on the first update. The 4096-byte initial capacity covers most messages without reallocation; the buffer doubles on overflow. This is structurally different from all other algorithms, which stream data through OpenSSL immediately on each update call.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">pkey = d2i_PrivateKey_bio(bio, NULL);   // PKCS#8 DER private key
+// or
+pkey = d2i_PUBKEY_bio(bio, NULL);       // X.509 SubjectPublicKeyInfo public key</div>
+<p class="explanation">Keys arrive from Java as DER-encoded byte arrays. <code>d2i_PrivateKey_bio</code> decodes PKCS#8 PrivateKeyInfo (the format Java's <code>getEncoded()</code> produces for private keys). <code>d2i_PUBKEY_bio</code> decodes X.509 SubjectPublicKeyInfo (the format for public keys). Both return an <code>EVP_PKEY*</code> regardless of key type — RSA, EC, DSA, and EdDSA keys all go through the same path.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">if (isPrivateKey) {
+    result = EVP_DigestSignInit(signatureCtx->mdCtx, &signatureCtx->pkeyCtx,
+                                signatureCtx->md, NULL, signatureCtx->pkey);
+} else {
+    result = EVP_DigestVerifyInit(signatureCtx->mdCtx, &signatureCtx->pkeyCtx,
+                                  signatureCtx->md, NULL, signatureCtx->pkey);
+}</div>
+<p class="explanation">The first and most important OpenSSL call. <code>EVP_DigestSignInit</code> wires together the digest algorithm (<code>signatureCtx->md</code>), the key, and the message-digest context into a single streaming state machine. Passing <code>NULL</code> for <code>md</code> is valid for EdDSA — the curve dictates the hash internally. The <code>&signatureCtx->pkeyCtx</code> out-parameter is needed later by <code>SIGNATURE_setPSSParams</code> to configure RSA-PSS options. It is owned by <code>mdCtx</code> and freed automatically when <code>EVP_MD_CTX_free</code> is called.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">signatureCtx->signatureSize = EVP_PKEY_get_size(signatureCtx->pkey);</div>
+<p class="explanation">Queries the maximum signature size once at create time. For RSA this is the key modulus size in bytes (e.g. 256 for RSA-2048). For ECDSA it is the maximum DER-encoded signature length. Querying here rather than at sign time avoids an awkward <code>EVP_DigestSignFinal(ctx, NULL, &amp;len)</code> pattern, which for some algorithms (ECDSA) can corrupt the context state by finalising it prematurely.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>4. SIGNATURE_update <span class="file">OpenSSLSignature.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Feeds a chunk of message data into the signature context. The implementation branches on <code>isEdDSA</code> — the two paths are fundamentally different.</p>
+
+<div class="entry">
+<div class="code-block">// EdDSA path: buffer the data
+if (signatureCtx->isEdDSA) {
+    size_t requiredSize = signatureCtx->dataBufferSize + dataLen;
+    if (requiredSize > signatureCtx->dataBufferCapacity) {
+        size_t newCapacity = max(signatureCtx->dataBufferCapacity * 2, requiredSize);
+        signatureCtx->dataBuffer = realloc(signatureCtx->dataBuffer, newCapacity);
+        signatureCtx->dataBufferCapacity = newCapacity;
+    }
+    memcpy(signatureCtx->dataBuffer + signatureCtx->dataBufferSize,
+           dataBytes + offset, dataLen);
+    signatureCtx->dataBufferSize += dataLen;
+}</div>
+<p class="explanation">Ed25519 and Ed448 use the PureEdDSA construction: they hash the message internally as part of the signature algorithm, so OpenSSL does not expose a streaming update API for them. <code>EVP_DigestSign</code> requires all data at once. The buffer doubles on overflow to amortise <code>realloc</code> cost — an O(n log n) total allocation for n bytes of input.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">// Non-EdDSA path: stream directly through OpenSSL
+if (signatureCtx->mode == SIGNATURE_MODE_SIGN) {
+    result = EVP_DigestSignUpdate(signatureCtx->mdCtx,
+                                  dataBytes + offset, dataLen);
+} else {
+    result = EVP_DigestVerifyUpdate(signatureCtx->mdCtx,
+                                    dataBytes + offset, dataLen);
+}</div>
+<p class="explanation">RSA, ECDSA, and DSA use <code>EVP_DigestSignUpdate</code>/<code>EVP_DigestVerifyUpdate</code>, which feed data into the running hash state inside <code>mdCtx</code>. Multiple calls are safe and each chunk is processed incrementally. Data bytes are released with <code>JNI_ABORT</code> immediately after — they are consumed and not needed further.</p>
+</div>
+
+<div class="note"><strong>EdDSA vs streaming:</strong> The buffer accumulation in update means EdDSA memory usage grows with message size. RSA/ECDSA/DSA use constant memory regardless of message size — they hash on the fly.</div>
+
+
+<!-- ======================================================================== -->
+<h2>5. SIGNATURE_sign <span class="file">OpenSSLSignature.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Finalises the signing operation and returns the signature as a new Java byte array. Two code paths again — EdDSA one-shot vs streaming final.</p>
+
+<div class="entry">
+<div class="code-block">size_t sigLen = (size_t)signatureCtx->signatureSize;
+unsigned char* signatureBuffer = malloc(sigLen);</div>
+<p class="explanation">Allocates a C buffer first, sized to the pre-queried maximum. The actual signature may be smaller (e.g. ECDSA produces variable-length DER), so <code>sigLen</code> is updated by <code>EVP_DigestSignFinal</code> to the actual number of bytes written. A C buffer is used rather than pinning a Java array because the actual size is not known until after the call.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">// EdDSA one-shot
+result = EVP_DigestSign(signatureCtx->mdCtx, signatureBuffer, &sigLen,
+                        signatureCtx->dataBuffer, signatureCtx->dataBufferSize);</div>
+<p class="explanation"><code>EVP_DigestSign</code> performs hash+sign atomically in a single call. The accumulated <code>dataBuffer</code> is passed as the complete message. This is the only API EdDSA supports — there is no <code>EVP_DigestSignUpdate</code> / <code>EVP_DigestSignFinal</code> sequence for EdDSA in OpenSSL 3.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">// Non-EdDSA streaming final
+result = EVP_DigestSignFinal(signatureCtx->mdCtx, signatureBuffer, &sigLen);</div>
+<p class="explanation">Finalises the running hash and applies the private key operation. For RSA this is modular exponentiation with PKCS#1 v1.5 or PSS padding. For ECDSA it is the (r, s) computation over the hash. The context is left in an undefined state after this call — <code>SIGNATURE_reset</code> must be called before reuse.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">jbyteArray signatureBytes = (*env)->NewByteArray(env, (jsize)sigLen);
+(*env)->SetByteArrayRegion(env, signatureBytes, 0, (jsize)sigLen, (jbyte*)signatureBuffer);
+free(signatureBuffer);</div>
+<p class="explanation">Creates the Java output array at the <em>actual</em> signature size (post-final), not the maximum. Uses the copy-in pattern (<code>SetByteArrayRegion</code>) rather than pinning, because the C buffer is allocated and freed here rather than being a pinned Java array. The C buffer is freed immediately after the copy — key material does not linger.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>6. SIGNATURE_verify <span class="file">OpenSSLSignature.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Finalises verification. Returns 1 (valid), 0 (invalid — not an error), or -1 (error — exception pending). The three-way return value is intentional and important.</p>
+
+<div class="entry">
+<div class="code-block">// EdDSA one-shot
+result = EVP_DigestVerify(signatureCtx->mdCtx, sigBytes, sigLen,
+                          signatureCtx->dataBuffer, signatureCtx->dataBufferSize);
+// Non-EdDSA
+result = EVP_DigestVerifyFinal(signatureCtx->mdCtx, sigBytes, sigLen);</div>
+<p class="explanation">Same EdDSA / streaming split as sign. The signature bytes from Java are fed directly without copying — they are read-only and released with <code>JNI_ABORT</code> after the call.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">if (result == 1) return 1;       // Valid — signature matches
+if (result == 0) return 0;       // Invalid — signature does not match (NOT an error)
+// result < 0 or other: genuine error
+setPendingOpenSSLException(...);
+return -1;</div>
+<p class="explanation">OpenSSL's <code>EVP_DigestVerifyFinal</code> returns exactly 1 for success and 0 for a clean signature mismatch. Any other value (typically -1) signals an internal error such as a bad key or corrupted context. The Java caller (<code>Signature.verify()</code>) returns <code>false</code> for both 0 and -1 to the application, but the -1 path also throws a <code>SignatureException</code>. Treating 0 as an exception would break every "wrong key" or "tampered data" test.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>7. SIGNATURE_reset <span class="file">OpenSSLSignature.c</span> <span class="tag">medium value</span></h2>
+<p class="fn-desc">Reinitialises the context for another sign or verify operation with the same key and algorithm. Called by the Java layer after each complete sign/verify cycle.</p>
+
+<div class="entry">
+<div class="code-block">if (signatureCtx->isEdDSA && signatureCtx->dataBuffer != NULL) {
+    signatureCtx->dataBufferSize = 0;  // Clear buffer without freeing
+}
+
+EVP_MD_CTX_reset(signatureCtx->mdCtx);
+
+if (signatureCtx->mode == SIGNATURE_MODE_SIGN) {
+    EVP_DigestSignInit(signatureCtx->mdCtx, &signatureCtx->pkeyCtx,
+                       signatureCtx->md, NULL, signatureCtx->pkey);
+} else {
+    EVP_DigestVerifyInit(signatureCtx->mdCtx, &signatureCtx->pkeyCtx,
+                         signatureCtx->md, NULL, signatureCtx->pkey);
+}</div>
+<p class="explanation">Three steps: (1) Reset the EdDSA data buffer to zero bytes but keep the allocation alive for reuse. (2) <code>EVP_MD_CTX_reset</code> wipes the message-digest state and releases the internal <code>EVP_PKEY_CTX*</code>. This call is required before <code>EVP_DigestSignInit</code> on an already-initialised context — attempting to re-init without reset causes an error in OpenSSL 3.x. (3) Re-init with the same key and digest that were set at create time, restoring the context to exactly the state it was in after <code>SIGNATURE_create</code>.</p>
+</div>
+
+<div class="warn"><strong>Why not reuse without reset?</strong> After <code>EVP_DigestSignFinal</code> the <code>EVP_MD_CTX</code> is in a finalised state — calling <code>EVP_DigestSignUpdate</code> on it returns an error. <code>EVP_MD_CTX_reset</code> + re-init is the only safe way to reuse the context. Skipping this was the root cause of sign-after-sign failures during early testing.</div>
+
+
+<!-- ======================================================================== -->
+<h2>8. SIGNATURE_setPSSParams <span class="file">OpenSSLSignature.c</span> <span class="tag">medium value</span></h2>
+<p class="fn-desc">Configures RSA-PSS parameters on a context that was created for RSA. Called by the Java layer after <code>SIGNATURE_create</code> whenever a PSS parameter spec is provided.</p>
+
+<div class="entry">
+<div class="code-block">EVP_PKEY_CTX_set_rsa_padding(signatureCtx->pkeyCtx, RSA_PKCS1_PSS_PADDING);</div>
+<p class="explanation">Switches the RSA key context from the default PKCS#1 v1.5 padding to PSS. Must be called before the salt-length and MGF1-digest calls, because those parameters are only meaningful once PSS mode is active. The <code>pkeyCtx</code> pointer was captured from <code>EVP_DigestSignInit</code> at create time for exactly this purpose.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">EVP_PKEY_CTX_set_rsa_pss_saltlen(signatureCtx->pkeyCtx, saltLen);</div>
+<p class="explanation">Sets the PSS salt length. Special sentinel values: <code>RSA_PSS_SALTLEN_DIGEST</code> (salt = digest length) and <code>RSA_PSS_SALTLEN_MAX</code> (salt as long as possible given key size). The Java layer passes these as integer constants identical to OpenSSL's — no translation needed.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">const EVP_MD* mgf1Md = fetchDigestSafe(env, context, mgf1Name, ...);
+EVP_PKEY_CTX_set_rsa_mgf1_md(signatureCtx->pkeyCtx, mgf1Md);
+EVP_MD_free((EVP_MD*)mgf1Md);  // Free immediately — OpenSSL makes its own copy</div>
+<p class="explanation">Fetches the MGF1 digest by name, sets it on the PSS context, then immediately frees it. This is correct: <code>EVP_PKEY_CTX_set_rsa_mgf1_md</code> increments the EVP_MD's internal reference count, so freeing the caller's reference does not invalidate OpenSSL's copy. Not freeing it here would leak the EVP_MD object.</p>
+</div>
+
+<div class="note"><strong>Ordering constraint:</strong> <code>setPSSParams</code> must be called <em>after</em> <code>SIGNATURE_create</code> but <em>before</em> the first <code>SIGNATURE_update</code>. Changing PSS parameters mid-stream is not supported and would corrupt the hash state.</div>
+
+
+<!-- ======================================================================== -->
+<h2>9. SIGNATURE_delete <span class="file">OpenSSLSignature.c</span></h2>
+<p class="fn-desc">Frees all resources owned by the context. Called from the Java finaliser / explicit close.</p>
+
+<div class="entry">
+<div class="code-block">EVP_MD_CTX_free(signatureCtx->mdCtx);  // Also frees pkeyCtx
+signatureCtx->pkeyCtx = NULL;           // Mark as freed (already gone)
+EVP_MD_free((EVP_MD*)signatureCtx->md);
+EVP_PKEY_free(signatureCtx->pkey);
+FREE_AND_NULL(signatureCtx->dataBuffer);
+free(signatureCtx);</div>
+<p class="explanation">Ownership is clear: <code>mdCtx</code> owns <code>pkeyCtx</code> internally, so freeing <code>mdCtx</code> also frees the key-algorithm context. The <code>md</code> (digest) was fetched with <code>EVP_MD_fetch</code> and must be freed explicitly with <code>EVP_MD_free</code>. The <code>pkey</code> was loaded from the Java key bytes and is fully owned here. Setting <code>pkeyCtx = NULL</code> after freeing <code>mdCtx</code> is defensive — guards against any stale pointer dereference if delete is called twice.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>10. SIGNATUREEdDSA_signOneShot / verifyOneShot <span class="file">OpenSSLSignature.c</span> <span class="tag">medium value</span></h2>
+<p class="fn-desc">Alternative EdDSA API that takes an <code>EVP_PKEY*</code> handle directly (not encoded bytes). Used by the Java <code>EdDSASignature</code> class which holds a native key handle rather than re-encoding keys for each operation.</p>
+
+<div class="entry">
+<div class="code-block">/* signOneShot: two-call EVP_DigestSign pattern */
+// First call: query size
+EVP_DigestSign(mdCtx, NULL, &sigLen, dataNat, dataLen);
+// Second call: actually sign
+unsigned char* sigBuf = malloc(sigLen);
+EVP_DigestSign(mdCtx, sigBuf, &sigLen, dataNat, dataLen);</div>
+<p class="explanation">Unlike <code>SIGNATURE_sign</code> which uses a pre-queried max size, this path calls <code>EVP_DigestSign</code> twice. The first call with a NULL output pointer queries the exact signature size. The second call writes the actual signature. For Ed25519 the size is always 64 bytes and both calls succeed with the same value, but using the query pattern is correct for future EdDSA variants. The <code>mdCtx</code> is created and destroyed within this function — no reuse.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">/* verifyOneShot */
+int rc = EVP_DigestVerify(mdCtx, sigNat, sigLen, dataNat, dataLen);
+// rc == 1: valid,  rc == 0: invalid,  other: error
+if (rc == 1) return JNI_TRUE;
+if (rc != 0) { setPendingOpenSSLException(...); }
+return JNI_FALSE;</div>
+<p class="explanation">Returns <code>jboolean</code> rather than <code>jint</code> — this API is only called by EdDSA verification which maps directly to Java's <code>boolean verify()</code>. The three-way OpenSSL result is collapsed into true / false / exception, consistent with how <code>SIGNATURE_verify</code> handles it for the streaming path.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>11. RSAPSS_createContext <span class="file">OpenSSLRSAPSS.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Allocates an <code>OpenSSLRSAPSSContext</code> and pre-fetches both digest algorithms. No key is bound here — key binding happens at <code>signInit</code>/<code>verifyInit</code>. This separation mirrors the OCK API contract that the Java layer was already written against.</p>
+
+<div class="entry">
+<div class="code-block">strncpy(ctx->digestName, digestName, sizeof(ctx->digestName) - 1);
+strncpy(ctx->mgf1Name,   mgf1Name,   sizeof(ctx->mgf1Name)   - 1);
+
+ctx->md     = fetchDigestSafe(env, context, digestName, ...);
+ctx->mgf1Md = fetchDigestSafe(env, context, mgf1Name, ...);</div>
+<p class="explanation">Digest names are copied into fixed-size fields so that <code>RSAPSS_reset</code> can re-fetch them without requiring the Java layer to pass them again. The digests are fetched once and stored — <code>EVP_MD_fetch</code> is not cheap and would be wasteful to call on every sign/verify cycle.</p>
+</div>
+
+<div class="note">Key difference from <code>SIGNATURE_create</code>: no key and no <code>EVP_DigestSignInit</code> at this stage. The context is in a "configured but not yet bound" state after <code>createContext</code>.</div>
+
+
+<!-- ======================================================================== -->
+<h2>12. RSAPSS_signInit / verifyInit <span class="file">OpenSSLRSAPSS.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Binds a key to the context and runs the full PSS parameter initialisation. Both delegate to the shared <code>rsapss_init_impl</code> helper.</p>
+
+<div class="entry">
+<div class="code-block">static int rsapss_init_impl(JNIEnv* env, OpenSSLRSAPSSContext* ctx,
+                             EVP_PKEY* pkey, int mode, int saltlen, ...) {
+    EVP_MD_CTX_reset(ctx->mdCtx);     // Wipe any previous state
+    ctx->pkeyCtx = NULL;
+
+    // Init sign or verify
+    EVP_DigestSignInit(ctx->mdCtx, &ctx->pkeyCtx, ctx->md, NULL, pkey);
+
+    // Set PSS padding + salt length + MGF1 digest in order
+    EVP_PKEY_CTX_set_rsa_padding(ctx->pkeyCtx, RSA_PKCS1_PSS_PADDING);
+    EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx->pkeyCtx, saltlen);
+    if (ctx->mgf1Md != NULL)
+        EVP_PKEY_CTX_set_rsa_mgf1_md(ctx->pkeyCtx, ctx->mgf1Md);
+
+    ctx->mode    = mode;
+    ctx->pkey    = pkey;   // Store for reset (not owned)
+    ctx->saltlen = saltlen; // Store for reset
+}</div>
+<p class="explanation">The three PSS parameter calls must come in this exact order after <code>EVP_DigestSignInit</code>: padding first, then salt length, then MGF1. Setting them before init has no effect because the <code>pkeyCtx</code> does not exist yet. The salt length and key are stored so <code>RSAPSS_reset</code> can reproduce this exact state without the caller providing them again.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">ctx->sigLen = EVP_PKEY_get_size(pkey);</div>
+<p class="explanation">The maximum RSA signature size is the key modulus length in bytes (key size / 8). Queried here, at init time, because the key is first bound here. Stored in the context so <code>RSAPSS_getSigLen</code> can return it cheaply without re-querying.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>13. RSAPSS_digestUpdate <span class="file">OpenSSLRSAPSS.c</span></h2>
+<p class="fn-desc">Feeds a chunk of message data. Simpler than <code>SIGNATURE_update</code> — no EdDSA buffering path needed here.</p>
+
+<div class="entry">
+<div class="code-block">if (ctx->mode == RSAPSS_MODE_SIGN)
+    EVP_DigestSignUpdate(ctx->mdCtx, dataNat + offset, dataLen);
+else
+    EVP_DigestVerifyUpdate(ctx->mdCtx, dataNat + offset, dataLen);
+cleanupByteArray(env, data, dataNat, JNI_ABORT);</div>
+<p class="explanation">Direct streaming update — no EdDSA special case. RSA-PSS always uses the full streaming API. Data bytes are released with <code>JNI_ABORT</code>: read-only, no writeback needed.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>14. RSAPSS_signFinal / verifyFinal <span class="file">OpenSSLRSAPSS.c</span> <span class="tag">high value</span></h2>
+<p class="fn-desc">Finalise and produce or verify the RSA-PSS signature. Unlike <code>SIGNATURE_sign</code>, the caller pre-allocates the output buffer.</p>
+
+<div class="entry">
+<div class="code-block">// signFinal — caller provides buffer
+unsigned char* sigBuf = malloc(length);
+size_t sigLen = (size_t)length;
+EVP_DigestSignFinal(ctx->mdCtx, sigBuf, &sigLen);
+(*env)->SetByteArrayRegion(env, signature, 0, (jsize)sigLen, (jbyte*)sigBuf);
+free(sigBuf);</div>
+<p class="explanation">The Java caller (SignatureRSAPSS) calls <code>RSAPSS_getSigLen</code> first, allocates a Java byte array of that size, and passes it in. A C buffer is still needed as an intermediary because <code>EVP_DigestSignFinal</code> writes to a native <code>unsigned char*</code>. <code>SetByteArrayRegion</code> copies the result in — same copy-in pattern as key wrap. The C buffer is freed immediately after copy.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">// verifyFinal — three-way result
+int rc = EVP_DigestVerifyFinal(ctx->mdCtx, sigNat, length);
+if (rc == 1)  return JNI_TRUE;   // Valid
+if (rc != 0)  { setPendingOpenSSLException(...); }
+return JNI_FALSE;                 // Invalid or error</div>
+<p class="explanation">Same three-way OpenSSL result interpretation as <code>SIGNATURE_verify</code>: 1 = valid, 0 = invalid (normal case), anything else = error. The <code>rc != 0</code> check before the false return means a -1 from OpenSSL both sets a pending exception <em>and</em> returns <code>JNI_FALSE</code>. The Java caller checks for exceptions first, so the false return value is irrelevant on the error path.</p>
+</div>
+
+
+<!-- ======================================================================== -->
+<h2>15. RSAPSS_reset / releaseContext <span class="file">OpenSSLRSAPSS.c</span></h2>
+<p class="fn-desc"><code>reset</code> reinitialises for the next operation. <code>releaseContext</code> frees everything.</p>
+
+<div class="entry">
+<div class="code-block">// reset
+rsapss_init_impl(env, ctx, ctx->pkey, ctx->mode, ctx->saltlen, fn);</div>
+<p class="explanation">One-liner because <code>rsapss_init_impl</code> already starts with <code>EVP_MD_CTX_reset</code>. The stored <code>pkey</code>, <code>mode</code>, and <code>saltlen</code> from the last <code>signInit</code>/<code>verifyInit</code> call are reused. This is why those values were stored at init time.</p>
+</div>
+<hr class="entry-sep">
+
+<div class="entry">
+<div class="code-block">// releaseContext
+EVP_MD_CTX_free(ctx->mdCtx);       // Frees pkeyCtx too
+EVP_MD_free((EVP_MD*)ctx->md);
+EVP_MD_free((EVP_MD*)ctx->mgf1Md);
+// NOTE: pkey is NOT freed — caller owns it
+free(ctx);</div>
+<p class="explanation">Critically, <code>pkey</code> is not freed here — the comment in the struct definition says "not owned; caller manages". The native key handle (<code>EVP_PKEY*</code>) lives in a separate key-context object managed by the Java key class. If <code>releaseContext</code> freed it, the key object would be left holding a dangling pointer. Both digests are freed here because they were fetched with <code>EVP_MD_fetch</code> inside <code>createContext</code>.</p>
+</div>
+
+<div class="note"><strong>Lifecycle summary:</strong>
+<br>RSA-PSS: <code>createContext</code> → <code>signInit/verifyInit</code> → <code>digestUpdate</code>* → <code>signFinal/verifyFinal</code> → [<code>reset</code> → repeat from init] → <code>releaseContext</code>
+<br>General: <code>create</code> → [<code>setPSSParams</code>] → <code>update</code>* → <code>sign/verify</code> → [<code>reset</code> → repeat from update] → <code>delete</code></div>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

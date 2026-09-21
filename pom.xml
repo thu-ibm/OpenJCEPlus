@@ -501,6 +501,10 @@
                         <property>ock.library.path</property>
                         <message>"Property ock.library.path is not set, perhaps this required property is missing from the command line?"</message>
                       </requireProperty>
+                      <requireProperty>
+                        <property>openssl.library.path</property>
+                        <message>"Property openssl.library.path is not set, perhaps this required property is missing from the command line?"</message>
+                      </requireProperty>
                       <requireJavaVersion>
                         <version>[26,28)</version>
                         <message>"Java 26 or 27 required to build OpenJCEPlus."</message>

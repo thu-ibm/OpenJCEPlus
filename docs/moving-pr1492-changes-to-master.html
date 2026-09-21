@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Moving pr-1492 Changes to Master</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.6; color: #1f2328;
+    background: #ffffff; margin: 0; padding: 24px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin: 0 0 28px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+  h3 { font-size: 13px; font-weight: 700; margin: 18px 0 6px; }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 10px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  code {
+    font-family: "Consolas","Cascadia Code","Menlo",monospace;
+    font-size: 12px; background: #f7f8fa; border: 1px solid #e5e7eb;
+    border-radius: 3px; padding: 1px 5px;
+  }
+  pre {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+    padding: 10px 14px; overflow-x: auto;
+    font-family: "Consolas","Cascadia Code","Menlo",monospace;
+    font-size: 12px; line-height: 1.5; margin: 0 0 12px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0 0 14px; }
+  th { background: #f7f8fa; font-weight: 600; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; }
+  td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .step {
+    counter-increment: step;
+    border-left: 3px solid #3b82d4; padding: 10px 0 10px 16px; margin-bottom: 20px;
+  }
+  .step-header { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: #1f2328; }
+  .step-header::before { content: "Step " counter(step) " — "; color: #3b82d4; }
+  .steps { counter-reset: step; }
+  .note {
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    border-left: 3px solid #f59e0b; border-radius: 0 4px 4px 0;
+    padding: 8px 12px; font-size: 12px; color: #1f2328; margin: 8px 0 12px;
+  }
+  .info {
+    background: #f0f6ff; border: 1px solid #c8d8f0;
+    border-left: 3px solid #3b82d4; border-radius: 0 4px 4px 0;
+    padding: 8px 12px; font-size: 12px; color: #1f2328; margin: 8px 0 12px;
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    border-radius: 3px; padding: 1px 7px; margin-right: 4px;
+  }
+  .tag-include { background: #ddf4dd; color: #1a5c1a; border: 1px solid #a8d5a8; }
+  .tag-exclude { background: #fdeeed; color: #8b1a1a; border: 1px solid #e8b8b8; }
+  footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Moving <code>pr-1492</code> Integration Work to <code>master</code></h1>
+<p class="subtitle">Branch: <code>pr-1492</code> · Target: <code>IBM/OpenJCEPlus:main</code> · Written: 2026-08-19</p>
+
+<!-- ============================================================ -->
+<h2>Background</h2>
+
+<h3>Remote layout</h3>
+<table>
+  <tr><th>Remote</th><th>Repo</th><th>Yours?</th></tr>
+  <tr><td><code>origin</code></td><td><code>thu-ibm/OpenJCEPlus</code></td><td>Yes — your fork</td></tr>
+  <tr><td><code>ibm</code></td><td><code>IBM/OpenJCEPlus</code></td><td>Upstream (not yours)</td></tr>
+  <tr><td><code>kostas</code></td><td><code>KostasTsiounis/OpenJCEPlus</code></td><td>Kostas's fork — PR 1492 originates here</td></tr>
+</table>
+<p>The local <code>pr-1492</code> branch was checked out from Kostas's fork (<code>KostasTsiounis/OpenJCEPlus</code>) and has <strong>no upstream tracking ref</strong> — it has never been pushed to your fork (<code>thu-ibm</code>). Do not push to Kostas's fork. Instead, commit your work onto a new branch on <strong>your own fork</strong> (<code>origin</code> = <code>thu-ibm/OpenJCEPlus</code>).</p>
+
+<h3>Change categories</h3>
+<table>
+  <tr><th>Category</th><th>Commits / Files</th><th>How it reaches <code>main</code></th></tr>
+  <tr>
+    <td><strong>PR 1492 scaffolding</strong></td>
+    <td><code>ae12d366</code>, <code>555cceca</code>, <code>bc12610b</code> — NativeCryptoSelector, OpenSSL adapter stubs, config infrastructure, GCM/CCM cipher base classes</td>
+    <td>Lands automatically when the upstream PR is merged into <code>IBM/OpenJCEPlus:main</code></td>
+  </tr>
+  <tr>
+    <td><strong>Integration fixes</strong> (this workspace)</td>
+    <td>Native C files, adapter implementations, <code>AESGCMCipher.java</code>, <code>OpenSSLException.java</code>, test wiring — all currently <em>uncommitted working-tree changes</em></td>
+    <td>Commit to a new branch on <strong>your fork</strong> (<code>origin/thu/openssl-aes</code>) now, then open a PR to <code>ibm/main</code> after PR 1492 merges</td>
+  </tr>
+</table>
+<div class="info">
+  <strong>Why a new branch and not pushing to pr-1492?</strong> <code>pr-1492</code> lives on Kostas's fork — you should not push there. Your fork (<code>thu-ibm</code>) has no <code>pr-1492</code> branch. The new branch <code>thu/openssl-aes</code> will be created on <code>origin</code> (your fork).
+</div>
+
+<!-- ============================================================ -->
+<h2>Phase 1 — Do Now (create branch <code>thu/openssl-aes</code> on your fork)</h2>
+<div class="steps">
+
+<div class="step">
+  <div class="step-header">Create a new branch from the current working tree</div>
+  <p>This creates a local branch starting from the same commit as <code>pr-1492</code> but owned by you.</p>
+  <pre>git checkout -b thu/openssl-aes</pre>
+</div>
+
+<div class="step">
+  <div class="step-header">Commit all integration work</div>
+  <p>Stage every file changed in this workspace.</p>
+  <pre>git add src/main/java/com/ibm/crypto/plus/provider/AESGCMCipher.java
+git add src/main/java/com/ibm/crypto/plus/provider/base/NativeInterface.java
+git add src/main/java/com/ibm/crypto/plus/provider/ock/NativeOCKAdapter.java
+git add src/main/java/com/ibm/crypto/plus/provider/openssl/NativeOpenSSLAdapter.java
+git add src/main/java/com/ibm/crypto/plus/provider/openssl/NativeOpenSSLImplementation.java
+git add src/main/java/com/ibm/crypto/plus/provider/openssl/OpenSSLException.java
+git add src/main/native/openssl/
+git add src/test/OpenSSLOnly.config
+git add src/test/OCKOnly.config
+git add src/test/java/ibm/jceplus/junit/base/BaseUtils.java
+git add src/test/java/ibm/jceplus/junit/openjceplus/
+git add src/test/java/ibm/jceplus/junit/suites/TestOpenJCEPlus.java
+
+git commit -m "OpenSSL AES backend: native C, adapter fixes, test wiring (441/0/0)"</pre>
+  <div class="note">
+    <strong>Do not stage:</strong> <code>*.dll</code>, <code>*.obj</code>, <code>*.lib</code>, <code>*.exp</code>, <code>*.res</code>, <code>ProviderOpenSSLAttrs.config</code>, the local <code>.bat</code> runner scripts, <code>docs/</code>, or <code>internal-monologue/</code>. See the file classification table below.
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-header">Push to your fork</div>
+  <p>This preserves the committed state on <code>origin</code> (<code>thu-ibm/OpenJCEPlus</code>).</p>
+  <pre>git push origin thu/openssl-aes</pre>
+</div>
+
+</div><!-- /steps -->
+
+<!-- ============================================================ -->
+<h2>Phase 2 — After PR 1492 Merges into <code>IBM/OpenJCEPlus:main</code></h2>
+<div class="steps">
+
+<div class="step">
+  <div class="step-header">Fetch the updated upstream</div>
+  <pre>git fetch ibm</pre>
+</div>
+
+<div class="step">
+  <div class="step-header">Rebase your branch onto <code>ibm/main</code></div>
+  <p>The PR 1492 scaffolding commits are now in <code>ibm/main</code>. Rebase so your integration commit sits cleanly on top.</p>
+  <pre>git checkout thu/openssl-aes
+git rebase ibm/main</pre>
+  <p>Resolve any conflicts (minimal — the scaffolding your work depends on is already present), then <code>git rebase --continue</code>.</p>
+</div>
+
+<div class="step">
+  <div class="step-header">Verify tests still pass</div>
+  <pre>cmd /c run_all_aes_tests.bat</pre>
+  <p>Expected: <strong>10/10 PASS</strong>.</p>
+</div>
+
+<div class="step">
+  <div class="step-header">Force-push and open a PR</div>
+  <pre>git push origin thu/openssl-aes --force-with-lease</pre>
+  <p>Open a pull request from <code>thu-ibm/OpenJCEPlus:thu/openssl-aes</code> → <code>IBM/OpenJCEPlus:main</code>.</p>
+</div>
+
+</div><!-- /steps -->
+
+<!-- ============================================================ -->
+<h2>File Classification</h2>
+<table>
+  <tr><th>File / Path</th><th>Include in upstream PR?</th><th>Reason</th></tr>
+  <tr><td><code>src/main/native/openssl/OpenSSL*.c/.h</code></td><td><span class="tag tag-include">YES</span></td><td>Core native AES/GCM/CCM/KeyWrap/Random implementation</td></tr>
+  <tr><td><code>src/main/native/openssl/BuildDate.c</code></td><td><span class="tag tag-include">YES</span></td><td>DLL build metadata</td></tr>
+  <tr><td><code>src/main/native/openssl/openssl.win64.mak</code></td><td><span class="tag tag-include">YES</span></td><td>Windows NMAKE build script for the DLL</td></tr>
+  <tr><td><code>src/main/native/openssl/jgskit_resource.rc</code></td><td><span class="tag tag-include">YES</span></td><td>Windows DLL version resource</td></tr>
+  <tr><td><code>src/main/native/openssl/Digest.c</code></td><td><span class="tag tag-include">YES</span></td><td>OpenSSL digest implementation (replaces <code>Utils.c</code>)</td></tr>
+  <tr><td><code>src/main/java/…/AESGCMCipher.java</code></td><td><span class="tag tag-include">YES</span></td><td><code>finalCalled</code> guards + AAD concatenation fix</td></tr>
+  <tr><td><code>src/main/java/…/NativeInterface.java</code></td><td><span class="tag tag-include">YES</span></td><td><code>create_GCM_context(int keySize)</code> overload</td></tr>
+  <tr><td><code>src/main/java/…/NativeOCKAdapter.java</code></td><td><span class="tag tag-include">YES</span></td><td>Stub for new overload (delegates to no-arg)</td></tr>
+  <tr><td><code>src/main/java/…/NativeOpenSSLAdapter.java</code></td><td><span class="tag tag-include">YES</span></td><td>Full OpenSSL adapter implementation</td></tr>
+  <tr><td><code>src/main/java/…/OpenSSLException.java</code></td><td><span class="tag tag-include">YES</span></td><td>Full exception class with <code>(String,int)</code> constructor required by native DLL</td></tr>
+  <tr><td><code>src/test/OpenSSLOnly.config</code></td><td><span class="tag tag-include">YES</span></td><td>Canonical config for <code>OpenJCEPlus-OpenSSL</code> provider</td></tr>
+  <tr><td><code>src/test/OCKOnly.config</code></td><td><span class="tag tag-include">YES</span></td><td>Name fix: <code>OpenJCEPlus-OCK</code></td></tr>
+  <tr><td><code>src/test/java/…/TestAES*.java</code> (10 classes)</td><td><span class="tag tag-include">YES</span></td><td>Updated to use <code>loadProviderOpenSSL()</code> + <code>OpenJCEPlus_OpenSSL</code> tag</td></tr>
+  <tr><td><code>src/test/java/…/Utils.java</code></td><td><span class="tag tag-include">YES</span></td><td>Adds <code>loadProviderOpenSSL()</code> and related constants</td></tr>
+  <tr><td><code>src/test/java/…/BaseUtils.java</code></td><td><span class="tag tag-include">YES</span></td><td>Adds <code>loadProviderOpenJCEPlus()</code> OpenSSL path</td></tr>
+  <tr><td><code>src/test/java/…/TestOpenJCEPlus.java</code></td><td><span class="tag tag-include">YES</span></td><td>Suite registration</td></tr>
+  <tr><td><code>buildNativeWin64OpenSSL.bat</code></td><td><span class="tag tag-include">YES</span></td><td>Windows build script for the OpenSSL DLL</td></tr>
+  <tr><td><code>src/test/ProviderOpenSSLAttrs.config</code></td><td><span class="tag tag-include">YES</span></td><td>Required by <code>TestAES256Interop</code> / <code>-Dopenjceplus.useOpenSSL=true</code> path</td></tr>
+  <tr><td><code>run_all_aes_tests.bat</code>, <code>run_suite_openssl.bat</code>, <code>buildNativeOpenSSL_Win64_AutoEnv.bat</code></td><td><span class="tag tag-exclude">NO</span></td><td>Local dev convenience scripts — not upstream material</td></tr>
+  <tr><td><code>*.dll</code>, <code>*.obj</code>, <code>*.lib</code>, <code>*.exp</code>, <code>*.res</code></td><td><span class="tag tag-exclude">NO</span></td><td>Binary build outputs — never committed to git</td></tr>
+  <tr><td><code>docs/</code>, <code>internal-monologue/</code></td><td><span class="tag tag-exclude">NO</span></td><td>Local design documentation — not upstream material</td></tr>
+  <tr><td><code>compile_openssl.bat</code>, <code>_run_build_openssl.bat</code></td><td><span class="tag tag-exclude">NO</span></td><td>Local dev scripts</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>Remotes Reference</h2>
+<table>
+  <tr><th>Remote</th><th>URL</th><th>Purpose</th></tr>
+  <tr><td><code>ibm</code></td><td><code>git@github.com:IBM/OpenJCEPlus.git</code></td><td>Upstream — target for the final PR</td></tr>
+  <tr><td><code>origin</code></td><td><code>git@github.com:thu-ibm/OpenJCEPlus.git</code></td><td>Fork — where branches are pushed</td></tr>
+  <tr><td><code>kostas</code></td><td><code>git@github.com:KostasTsiounis/OpenJCEPlus.git</code></td><td>Collaborator fork</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,662 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OpenSSLSignature.c — Line-by-Line Explanation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #ffffff;
+    color: #1f2328;
+    padding: 32px 16px 64px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px;
+       padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 14px; font-weight: 600; margin: 20px 0 6px; color: #3b82d4; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 6px 0 10px 22px; }
+  li { margin-bottom: 4px; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12.5px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin: 8px 0 14px;
+  }
+  .anno-table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; }
+  .anno-table th {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #57606a;
+  }
+  .anno-table td {
+    border: 1px solid #e5e7eb;
+    padding: 6px 10px;
+    vertical-align: top;
+    font-size: 13px;
+  }
+  .anno-table tr:nth-child(even) td { background: #fafbfc; }
+  .anno-table td:first-child { white-space: nowrap; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; color: #57606a; }
+  .anno-table td:nth-child(2) { width: 38%; }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .tag-struct  { background: #dbeafe; color: #1e40af; }
+  .tag-helper  { background: #d1fae5; color: #065f46; }
+  .tag-jni     { background: #fef3c7; color: #92400e; }
+  .tag-jni-s   { background: #fce7f3; color: #9d174d; }
+  .tag-cleanup { background: #fee2e2; color: #991b1b; }
+  .tag-note    { background: #f3e8ff; color: #6b21a8; }
+  .callout {
+    background: #f7f8fa;
+    border-left: 3px solid #3b82d4;
+    padding: 10px 14px;
+    margin: 12px 0 16px;
+    font-size: 13px;
+  }
+  .callout.warn { border-left-color: #f59e0b; }
+  .callout.info { border-left-color: #7c5cd8; }
+  .toc { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+         padding: 14px 18px; margin-bottom: 32px; }
+  .toc-title { font-weight: 700; margin-bottom: 8px; font-size: 13px; color: #57606a; }
+  .toc ol { margin-left: 18px; }
+  .toc li { font-size: 13px; margin-bottom: 3px; }
+  .toc a { color: #3b82d4; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+           text-align: center; font-size: 12px; color: #57606a; }
+  .fn-sig { font-size: 12px; font-family: "SFMono-Regular", Consolas, monospace;
+            background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px;
+            padding: 8px 12px; margin: 6px 0 12px; display: block; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+  .flow-box {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px;
+  }
+  .flow-step {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+    padding: 6px 12px; font-size: 12.5px; position: relative;
+  }
+  .flow-step::after { content: "→"; margin-left: 8px; color: #57606a; }
+  .flow-step:last-child::after { content: ""; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>OpenSSLSignature.c — Line-by-Line Explanation</h1>
+<p class="subtitle">
+  <code>src/main/native/openssl/OpenSSLSignature.c</code>  ·  1 187 lines  ·  IBM OpenJCEPlus OpenSSL backend
+</p>
+
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#s1">File header &amp; includes (lines 1–41)</a></li>
+    <li><a href="#s2">Constants &amp; context structure (lines 43–63)</a></li>
+    <li><a href="#s3">validateSignatureContext — helper (lines 68–106)</a></li>
+    <li><a href="#s4">loadKeyFromBytes — helper (lines 111–170)</a></li>
+    <li><a href="#s5">signature_create_impl — internal factory (lines 175–356)</a></li>
+    <li><a href="#s6">SIGNATURE_create — JNI entry point (lines 358–364)</a></li>
+    <li><a href="#s7">SIGNATURE_update — streaming data feed (lines 369–489)</a></li>
+    <li><a href="#s8">SIGNATURE_sign — finalize &amp; return bytes (lines 494–655)</a></li>
+    <li><a href="#s9">SIGNATURE_verify — verify signature (lines 660–791)</a></li>
+    <li><a href="#s10">SIGNATURE_size — query size (lines 796–816)</a></li>
+    <li><a href="#s11">SIGNATURE_reset — re-initialise context (lines 821–868)</a></li>
+    <li><a href="#s12">SIGNATURE_setPSSParams — RSA-PSS configuration (lines 873–956)</a></li>
+    <li><a href="#s13">SIGNATURE_delete — free all resources (lines 961–1006)</a></li>
+    <li><a href="#s14">SIGNATUREEdDSA_signOneShot (lines 1014–1104)</a></li>
+    <li><a href="#s15">SIGNATUREEdDSA_verifyOneShot (lines 1114–1187)</a></li>
+    <li><a href="#s16">Overall design &amp; data-flow summary</a></li>
+  </ol>
+</div>
+
+
+<h2 id="s1">1 · File header &amp; includes (lines 1–41)</h2>
+
+<h3>Lines 1–7 — Copyright block</h3>
+<p>Standard IBM copyright notice. Marks the file as free software under the IBM Classpath licence, identical to the rest of the project.</p>
+
+<h3>Lines 9–27 — Doxygen file-level comment</h3>
+<p>Describes the file's purpose at a high level. Four points are worth noting:</p>
+<ul>
+  <li><strong>EVP interface</strong> — all cryptographic operations go through OpenSSL's high-level <code>EVP_*</code> API rather than low-level RSA/ECDSA/DSA primitives. This means algorithm selection is string-driven and works equally with the FIPS provider.</li>
+  <li><strong>Streaming model</strong> — callers may call <em>update</em> multiple times before a single <em>sign</em> or <em>verify</em>.</li>
+  <li><strong>EdDSA exception</strong> — Ed25519/Ed448 do not support incremental updates in OpenSSL 3.x, so the file manually buffers data and uses a one-shot API.</li>
+  <li><strong>FIPS mode</strong> — all operations validate a <code>fipsFlag</code> parameter on every call to select the correct <code>OSSL_LIB_CTX</code>.</li>
+</ul>
+
+<h3>Lines 29–32 — Standard C headers</h3>
+<table class="anno-table">
+  <tr><th>Header</th><th>Why it is needed</th></tr>
+  <tr><td>#include &lt;jni.h&gt;</td><td>JNI types (<code>JNIEnv</code>, <code>jlong</code>, <code>jbyteArray</code>, etc.) and macros like <code>JNIEXPORT</code>/<code>JNICALL</code>.</td></tr>
+  <tr><td>#include &lt;stdio.h&gt;</td><td>Pulled in transitively; not directly used but standard practice.</td></tr>
+  <tr><td>#include &lt;stdlib.h&gt;</td><td><code>malloc</code>, <code>free</code>, <code>realloc</code> for heap management.</td></tr>
+  <tr><td>#include &lt;string.h&gt;</td><td><code>memset</code>, <code>memcpy</code>, <code>strncpy</code>, <code>strstr</code>, <code>strcmp</code>, <code>strlen</code>.</td></tr>
+</table>
+
+<h3>Lines 34–36 — OpenSSL headers</h3>
+<table class="anno-table">
+  <tr><th>Header</th><th>Provides</th></tr>
+  <tr><td>openssl/evp.h</td><td>All <code>EVP_*</code> types and functions: <code>EVP_MD_CTX</code>, <code>EVP_PKEY</code>, <code>EVP_DigestSignInit</code>, etc.</td></tr>
+  <tr><td>openssl/err.h</td><td>Error queue functions used by <code>logOpenSSLError()</code>.</td></tr>
+  <tr><td>openssl/rsa.h</td><td><code>RSA_PKCS1_PSS_PADDING</code> constant needed in <code>SIGNATURE_setPSSParams</code>.</td></tr>
+</table>
+
+<h3>Lines 38–41 — Project-local headers</h3>
+<table class="anno-table">
+  <tr><th>Header</th><th>Provides</th></tr>
+  <tr><td>OpenSSLContext.h</td><td><code>OpenSSLContext</code> struct (wraps <code>OSSL_LIB_CTX</code> + providers).</td></tr>
+  <tr><td>OpenSSLExceptionCodes.h</td><td>Integer error codes (<code>OPENSSL_SIGNATURE_*</code>) that map to Java exception messages.</td></tr>
+  <tr><td>OpenSSLUtils.h</td><td>Low-level utilities: <code>gslogMessage</code>, <code>gslogMessageHex</code>, <code>debug</code> flag.</td></tr>
+  <tr><td>OpenSSLHelpers.h</td><td>Safe wrappers: <code>getByteArrayElementsSafe</code>, <code>validateAndGetContext</code>, <code>fetchDigestSafe</code>, <code>mallocSafe</code>, <code>logFunctionEntry/Exit</code>, etc.</td></tr>
+</table>
+
+
+<hr class="divider" />
+<h2 id="s2">2 · Constants &amp; context structure (lines 43–63)</h2>
+
+<h3>Lines 46–47 — Mode constants</h3>
+<pre>#define SIGNATURE_MODE_SIGN   1
+#define SIGNATURE_MODE_VERIFY 2</pre>
+<p>These two <code>#define</code> values are stored in <code>OpenSSLSignatureContext.mode</code>. Every function that touches the context checks this flag to know whether to call <code>EVP_DigestSign*</code> or <code>EVP_DigestVerify*</code>.</p>
+
+<h3>Lines 52–63 — <code>OpenSSLSignatureContext</code> struct</h3>
+<span class="tag tag-struct">struct</span>
+<p>This is the core heap-allocated object. A pointer to it is cast to a <code>jlong</code> and returned to Java as an opaque handle (<em>signatureId</em>). Java passes it back on every subsequent call.</p>
+<table class="anno-table">
+  <tr><th>Field</th><th>Type</th><th>Purpose</th></tr>
+  <tr><td>mdCtx</td><td>EVP_MD_CTX*</td><td>OpenSSL message-digest + signing context. Owns the streaming state for non-EdDSA algorithms.</td></tr>
+  <tr><td>pkey</td><td>EVP_PKEY*</td><td>The asymmetric key (private for sign, public for verify). Ref-counted by OpenSSL.</td></tr>
+  <tr><td>md</td><td>const EVP_MD*</td><td>Fetched digest algorithm object (e.g. SHA-256). NULL for EdDSA and NONE-digest algorithms.</td></tr>
+  <tr><td>mode</td><td>int</td><td>SIGNATURE_MODE_SIGN or SIGNATURE_MODE_VERIFY.</td></tr>
+  <tr><td>signatureSize</td><td>int</td><td>Maximum signature byte length, pre-computed via <code>EVP_PKEY_get_size()</code> at creation time.</td></tr>
+  <tr><td>pkeyCtx</td><td>EVP_PKEY_CTX*</td><td>Key-algorithm context populated by <code>EVP_DigestSign/VerifyInit</code>. Used to set PSS parameters. Owned by <code>mdCtx</code> — do not free separately.</td></tr>
+  <tr><td>isEdDSA</td><td>int</td><td>1 if the algorithm is Ed25519 or Ed448; drives the buffered one-shot path.</td></tr>
+  <tr><td>dataBuffer</td><td>unsigned char*</td><td>Growable heap buffer used only when isEdDSA == 1. Accumulates all update() calls.</td></tr>
+  <tr><td>dataBufferSize</td><td>size_t</td><td>Number of valid bytes currently in dataBuffer.</td></tr>
+  <tr><td>dataBufferCapacity</td><td>size_t</td><td>Allocated capacity of dataBuffer (grown with realloc when needed).</td></tr>
+</table>
+<div class="callout">
+  <strong>Key insight:</strong> The struct acts as a persistent session object. Java holds the pointer as a <code>long</code>; the native layer casts it back with <code>(OpenSSLSignatureContext*)((intptr_t)signatureId)</code>. This is the standard JNI pattern for native resource handles.
+</div>
+
+
+<hr class="divider" />
+<h2 id="s3">3 · <code>validateSignatureContext</code> — helper (lines 68–106)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static int validateSignatureContext(JNIEnv* env, jint fipsFlag, jlong signatureId,
+    const char* functionName, OpenSSLSignatureContext** signatureCtx)</span>
+
+<p>Called at the top of almost every public JNI function. Returns 1 on success, 0 on failure (with a pending Java exception already set). Performs three checks in order:</p>
+
+<h3>Line 75 — FIPS flag validation</h3>
+<p>Delegates to <code>validateAndGetContext(env, fipsFlag, functionName, NULL)</code>. This confirms that if FIPS mode was requested the OpenSSL FIPS provider is actually loaded, and maps <code>fipsFlag</code> to the correct <code>OSSL_LIB_CTX*</code>. Passing <code>NULL</code> for the out-context means we only want the validation side-effect here.</p>
+
+<h3>Lines 80–90 — NULL pointer check</h3>
+<p><code>signatureId</code> (a Java <code>long</code>) is cast to a pointer. If zero (Java's default uninitialized value) the function throws <code>OPENSSL_SIGNATURE_NULL</code>.</p>
+
+<h3>Lines 93–102 — Internal structure check</h3>
+<p>Ensures <code>mdCtx</code> and <code>pkey</code> are non-NULL. If the context was partially constructed and then a failure occurred, this guards against using a half-initialised struct.</p>
+
+<h3>Lines 84–88, 97–100 — Conditional debug logging</h3>
+<p>The blocks are guarded by <code>#ifdef DEBUG_SIGNATURE_DETAIL</code>. They compile to nothing in production builds; in debug builds they print a message to the IBM GSKit log.</p>
+
+
+<hr class="divider" />
+<h2 id="s4">4 · <code>loadKeyFromBytes</code> — helper (lines 111–170)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static EVP_PKEY* loadKeyFromBytes(JNIEnv* env, jbyteArray keyBytes,
+    int isPrivateKey, const char* functionName)</span>
+
+<p>Converts a raw Java <code>byte[]</code> DER key into an OpenSSL <code>EVP_PKEY*</code>.</p>
+
+<h3>Lines 115–119 — Pin the Java array</h3>
+<p><code>getByteArrayElementsSafe</code> is a safe wrapper around <code>GetByteArrayElements</code>. It returns a pointer to the raw bytes (possibly a copy, possibly direct) and will have already thrown a JNI exception and returned NULL if the JVM ran out of memory.</p>
+
+<h3>Lines 121, 124 — Array length &amp; BIO creation</h3>
+<p><code>GetArrayLength</code> retrieves the byte count. <code>BIO_new_mem_buf(keyData, keyLen)</code> wraps the existing C buffer in an OpenSSL in-memory BIO (no extra copy). The BIO is read-only.</p>
+
+<h3>Lines 133–156 — Key deserialization</h3>
+<table class="anno-table">
+  <tr><th>isPrivateKey</th><th>OpenSSL call</th><th>Expected format</th></tr>
+  <tr><td>true (1)</td><td><code>d2i_PrivateKey_bio(bio, NULL)</code></td><td>DER-encoded PKCS#8 / raw algorithm-specific private key</td></tr>
+  <tr><td>false (0)</td><td><code>d2i_PUBKEY_bio(bio, NULL)</code></td><td>DER-encoded X.509 SubjectPublicKeyInfo</td></tr>
+</table>
+<p>On failure both paths free the BIO, unpin the Java array, and throw <code>OPENSSL_SIGNATURE_KEY_LOAD_FAILED</code>.</p>
+
+<h3>Lines 158–159 — Cleanup</h3>
+<p><code>BIO_free(bio)</code> releases the BIO wrapper (not the underlying memory, since it was <code>BIO_new_mem_buf</code>). <code>cleanupByteArray(..., JNI_ABORT)</code> releases the JNI pin without writing back to the Java array.</p>
+
+
+<hr class="divider" />
+<h2 id="s5">5 · <code>signature_create_impl</code> — internal factory (lines 175–356)</h2>
+
+<span class="tag tag-helper">static — called by JNI entry point</span>
+<span class="fn-sig">static jlong signature_create_impl(JNIEnv* env, jclass cls, jint fipsFlag,
+    jbyteArray keyBytes, jstring algorithm, jint mode)</span>
+
+<p>This is the real implementation of <em>create</em>. It is separated from the JNI entry point (next section) so the entry point can discard the unused <code>keyLength</code> parameter without cluttering the logic.</p>
+
+<div class="flow-box">
+  <div class="flow-step">Validate context</div>
+  <div class="flow-step">Parse algorithm string</div>
+  <div class="flow-step">Alloc struct</div>
+  <div class="flow-step">EdDSA buffer?</div>
+  <div class="flow-step">Load key</div>
+  <div class="flow-step">Fetch digest</div>
+  <div class="flow-step">Create mdCtx</div>
+  <div class="flow-step">Init sign/verify</div>
+  <div class="flow-step">Return handle</div>
+</div>
+
+<h3>Lines 181–185 — Context validation</h3>
+<p><code>validateAndGetContext</code> is called with a non-NULL <code>&amp;context</code> pointer so that the <code>OpenSSLContext*</code> (which carries the <code>OSSL_LIB_CTX*</code>) is retrieved for later use in <code>fetchDigestSafe</code>.</p>
+
+<h3>Lines 188–192 — Algorithm string</h3>
+<p><code>getStringUTFCharsSafe</code> pins the Java <code>String</code> as a UTF-8 C string. Returns NULL (with exception) if the JVM cannot allocate memory.</p>
+
+<h3>Lines 196 — Mode mapping</h3>
+<p>Java passes <code>mode == 0</code> for sign and <code>mode == 1</code> for verify. The mapping converts this to a boolean <code>isPrivateKey</code>: signing requires a private key, verification requires a public key.</p>
+
+<h3>Lines 203–229 — Algorithm string parsing</h3>
+<p>The string can arrive in three forms:</p>
+<table class="anno-table">
+  <tr><th>Form</th><th>Example</th><th>Result</th></tr>
+  <tr><td>EdDSA</td><td>"Ed25519", "Ed448"</td><td>digestName = NULL; isEdDSA set to 1</td></tr>
+  <tr><td>DigestwithKeyType</td><td>"SHA256withRSA"</td><td>digestName = "SHA256"</td></tr>
+  <tr><td>DigestwithKeyType (NONE)</td><td>"NONEwithECDSA"</td><td>digestName = NULL (pre-hashed data)</td></tr>
+  <tr><td>Digest only</td><td>"SHA256"</td><td>digestName = "SHA256"</td></tr>
+</table>
+<p>The parsing uses <code>strstr(algoName, "with")</code> to find the separator and <code>strncpy</code> into a 64-byte stack buffer to extract the prefix.</p>
+
+<h3>Lines 240–246 — Struct allocation</h3>
+<p><code>mallocSafe</code> calls <code>malloc</code> and throws <code>OutOfMemoryError</code> if it fails. <code>memset(..., 0, ...)</code> on line 249 zeroes all fields so no field is ever uninitialised.</p>
+
+<h3>Lines 255–276 — EdDSA buffer initialisation</h3>
+<p>When <code>isEdDSA == 1</code>, a 4096-byte heap buffer is allocated immediately. If <code>malloc</code> fails here, the partially-built struct is freed before returning 0.</p>
+<div class="callout warn">
+  <strong>Why buffer at all?</strong> OpenSSL 3.x's Ed25519/Ed448 implementation does not support <code>EVP_DigestSignUpdate</code>/<code>EVP_DigestVerifyUpdate</code>; all data must be passed in a single <code>EVP_DigestSign</code>/<code>EVP_DigestVerify</code> call. The buffer accumulates incremental updates so the Java streaming API still works.
+</div>
+
+<h3>Lines 279–285 — Key loading</h3>
+<p>Calls <code>loadKeyFromBytes</code> (section 4). On failure the partially-built struct and the EdDSA buffer are freed via the <code>FREE_AND_NULL</code> macro before returning.</p>
+
+<h3>Lines 288–301 — Digest algorithm fetch</h3>
+<p><code>fetchDigestSafe(env, context, digestName, ...)</code> calls <code>EVP_MD_fetch</code> on the library context. The returned <code>EVP_MD*</code> is a reference-counted OpenSSL object; the caller is responsible for <code>EVP_MD_free()</code>ing it when done. If <code>digestName</code> is NULL (EdDSA, NONE-digest), <code>signatureCtx-&gt;md</code> is left NULL — OpenSSL accepts NULL for the digest in <code>EVP_DigestSignInit</code> for EdDSA.</p>
+
+<h3>Lines 303–314 — <code>EVP_MD_CTX</code> creation</h3>
+<p><code>createMDCtxSafe</code> calls <code>EVP_MD_CTX_new()</code>. The context manages all digest + signing state going forward. On failure the already-acquired key and digest objects are freed before returning.</p>
+
+<h3>Lines 318–338 — Sign/Verify initialisation</h3>
+<pre>EVP_DigestSignInit(signatureCtx-&gt;mdCtx, &amp;signatureCtx-&gt;pkeyCtx,
+                   signatureCtx-&gt;md, NULL, signatureCtx-&gt;pkey);</pre>
+<p>This is the pivotal call. It:</p>
+<ol>
+  <li>Associates the digest algorithm with the context.</li>
+  <li>Associates the private/public key.</li>
+  <li>Populates <code>pkeyCtx</code> (the inner <code>EVP_PKEY_CTX*</code>), which is needed later by <code>SIGNATURE_setPSSParams</code>.</li>
+  <li>The 4th argument (<code>NULL</code>) is for an <code>ENGINE*</code>; deprecated in OpenSSL 3 but kept for compatibility.</li>
+</ol>
+<p>On failure a full cleanup (mdCtx, md, pkey, dataBuffer, struct) is performed before throwing <code>OPENSSL_SIGNATURE_INIT_FAILED</code>.</p>
+
+<h3>Lines 344 — Pre-compute signature size</h3>
+<p><code>EVP_PKEY_get_size(pkey)</code> returns the <em>maximum</em> possible DER-encoded signature size for the key. For ECDSA this is an upper bound (actual DER size varies); for RSA it is exact. Stored in <code>signatureCtx-&gt;signatureSize</code> so <code>SIGNATURE_sign</code> can allocate a buffer without a separate OpenSSL query that would consume the streaming context state.</p>
+
+<h3>Lines 353–355 — Return</h3>
+<p>The struct pointer is cast through <code>intptr_t</code> to <code>jlong</code> and returned. Java stores this as a long field and passes it back as <code>signatureId</code> on every subsequent call.</p>
+
+
+<hr class="divider" />
+<h2 id="s6">6 · <code>SIGNATURE_create</code> — JNI entry point (lines 358–364)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jlong JNICALL
+Java_..._SIGNATURE_1create(JNIEnv* env, jclass cls, jint fipsFlag,
+    jbyteArray keyBytes, jint keyLength, jstring algorithm, jint mode)</span>
+
+<p>A thin shim. The Java API includes a <code>keyLength</code> parameter (a leftover from an earlier design where raw key lengths were passed separately). The native layer has no use for it — the DER encoding is self-describing — so it is explicitly cast away with <code>(void)keyLength</code> to suppress compiler warnings, and the call is forwarded to <code>signature_create_impl</code>.</p>
+
+
+<hr class="divider" />
+<h2 id="s7">7 · <code>SIGNATURE_update</code> — streaming data feed (lines 369–489)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL
+Java_..._SIGNATURE_1update(JNIEnv* env, jclass cls, jint fipsFlag,
+    jlong signatureId, jbyteArray data, jint offset, jint dataLen)</span>
+
+<p>Called once per chunk of data. Returns 1 on success, -1 on error.</p>
+
+<h3>Lines 377–381 — Context validation</h3>
+<p>Standard call to <code>validateSignatureContext</code>. Returns -1 (not 0) on failure so Java callers can distinguish "no data processed" from "success".</p>
+
+<h3>Lines 384–394 — Input guards</h3>
+<p>NULL check on <code>data</code> array. Zero-length data returns 1 immediately — a no-op is valid. <code>validateOffsetAndLength</code> checks that <code>offset + dataLen &lt;= arrayLen</code> to prevent out-of-bounds reads.</p>
+
+<h3>Lines 403–409 — Pin Java array</h3>
+<p><code>getByteArrayElementsSafe</code> pins the byte array. The <code>offset</code> is applied in later calls as <code>dataBytes + offset</code>; the array is not sliced.</p>
+
+<h3>Lines 420–461 — EdDSA branch: buffer the data</h3>
+<p>When <code>isEdDSA == 1</code>, data is appended to the heap buffer:</p>
+<ol>
+  <li><strong>Capacity check:</strong> if <code>dataBufferSize + dataLen &gt; dataBufferCapacity</code>, call <code>realloc</code> to at least double the buffer.</li>
+  <li><strong>Double-or-fit growth:</strong> new capacity = max(current × 2, required). This amortises realloc calls to O(log n) over the lifetime.</li>
+  <li><strong>Copy:</strong> <code>memcpy</code> the incoming bytes starting at the current write position.</li>
+  <li>Unpin the Java array with <code>JNI_ABORT</code> (no write-back needed).</li>
+</ol>
+
+<h3>Lines 462–484 — Non-EdDSA branch: streaming update</h3>
+<p>Calls either <code>EVP_DigestSignUpdate</code> or <code>EVP_DigestVerifyUpdate</code> depending on <code>signatureCtx-&gt;mode</code>. Both functions feed data into the running hash inside <code>mdCtx</code> and return 1 on success.</p>
+<div class="callout">
+  The data pointer passed to OpenSSL is <code>(unsigned char*)(dataBytes + offset)</code> — the offset is applied here, not when pinning the array.
+</div>
+
+
+<hr class="divider" />
+<h2 id="s8">8 · <code>SIGNATURE_sign</code> — finalize &amp; return bytes (lines 494–655)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL
+Java_..._SIGNATURE_1sign(JNIEnv* env, jclass cls, jint fipsFlag, jlong signatureId)</span>
+
+<p>Takes no data — all data was fed via <code>update</code>. Produces and returns a Java <code>byte[]</code> containing the signature.</p>
+
+<h3>Lines 500–511 — Validation &amp; mode check</h3>
+<p>In addition to <code>validateSignatureContext</code>, the function explicitly checks <code>mode == SIGNATURE_MODE_SIGN</code>. Calling sign on a verify-context is a programming error; the exception <code>OPENSSL_SIGNATURE_INVALID</code> is thrown.</p>
+
+<h3>Lines 514–536 — Allocate C output buffer</h3>
+<p>Uses the pre-computed <code>signatureCtx-&gt;signatureSize</code> to size the buffer. The comment explains why this is preferred over calling <code>EVP_DigestSignFinal(mdCtx, NULL, &amp;sigLen)</code>: that two-phase approach can mutate the context state in some OpenSSL versions, breaking the streaming model.</p>
+
+<h3>Lines 540–563 — EdDSA one-shot path</h3>
+<p>Calls <code>EVP_DigestSign(mdCtx, sigBuf, &amp;sigLen, dataBuffer, dataBufferSize)</code>. This is the single call that performs hash + sign atomically over the entire buffered message.</p>
+
+<h3>Lines 566–586 — Non-EdDSA finalization</h3>
+<p><code>EVP_DigestSignFinal(mdCtx, sigBuf, &amp;sigLen)</code> finalises the running hash and produces the signature. After this call, <code>sigLen</code> holds the <em>actual</em> number of bytes written (which may be less than the allocated <code>signatureSize</code> for variable-length formats like ECDSA DER).</p>
+
+<h3>Lines 608–642 — Java array creation and copy</h3>
+<p>A new Java byte array of <em>actual</em> size (<code>sigLen</code>, not max size) is created with <code>NewByteArray</code>, then populated with <code>SetByteArrayRegion</code>. The C buffer is freed immediately after the copy. After both calls an <code>ExceptionCheck</code> guards against the rare case where <code>SetByteArrayRegion</code> throws an <code>ArrayIndexOutOfBoundsException</code>.</p>
+
+<div class="callout info">
+  <strong>Why allocate a C buffer first instead of a Java array?</strong> <code>NewByteArray</code> returns a GC-managed object. Passing its pinned address directly to <code>EVP_DigestSignFinal</code> is unsafe because the GC could move the object. Using a C buffer avoids this entirely.
+</div>
+
+<h3>Line 650 — Context not reset</h3>
+<p>The comment notes that the context is intentionally <em>not</em> reset after signing. The Java layer calls <code>SIGNATURE_reset</code> explicitly if it wants to reuse the context, or <code>SIGNATURE_delete</code> to free it.</p>
+
+
+<hr class="divider" />
+<h2 id="s9">9 · <code>SIGNATURE_verify</code> — verify signature (lines 660–791)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL
+Java_..._SIGNATURE_1verify(JNIEnv* env, jclass cls, jint fipsFlag,
+    jlong signatureId, jbyteArray signature)</span>
+
+<p>Accepts the signature bytes and returns one of three distinct values:</p>
+<table class="anno-table">
+  <tr><th>Return</th><th>Meaning</th></tr>
+  <tr><td>1</td><td>Signature is cryptographically valid</td></tr>
+  <tr><td>0</td><td>Signature is invalid (not an error — expected in API)</td></tr>
+  <tr><td>-1</td><td>An OpenSSL internal error occurred</td></tr>
+</table>
+
+<h3>Lines 683–693 — Mode check</h3>
+<p>Throws if called on a sign-context.</p>
+
+<h3>Lines 697–720 — Signature array validation</h3>
+<p>Null check and length check. An empty signature is always invalid but should be caught here before calling OpenSSL, as <code>EVP_DigestVerifyFinal</code> with length 0 has undefined behaviour.</p>
+
+<h3>Lines 729–738 — Pin signature bytes</h3>
+<p>The signature bytes are pinned. Unlike the data buffer, these are read-only and will be unpinned with <code>JNI_ABORT</code>.</p>
+
+<h3>Lines 748–763 — EdDSA vs. non-EdDSA verification</h3>
+<p>Exactly symmetric to the sign path:</p>
+<ul>
+  <li><strong>EdDSA:</strong> <code>EVP_DigestVerify(mdCtx, sig, sigLen, dataBuffer, dataBufferSize)</code> — one-shot.</li>
+  <li><strong>Other:</strong> <code>EVP_DigestVerifyFinal(mdCtx, sig, sigLen)</code> — finalises the streaming hash and compares.</li>
+</ul>
+
+<h3>Lines 781–790 — Result mapping</h3>
+<p>OpenSSL returns 1 for valid, 0 for invalid, and a negative value for an error. The code maps these to the public return contract (1/0/-1). An OpenSSL error also triggers <code>setPendingOpenSSLException</code>.</p>
+
+
+<hr class="divider" />
+<h2 id="s10">10 · <code>SIGNATURE_size</code> — query size (lines 796–816)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL
+Java_..._SIGNATURE_1size(JNIEnv* env, jclass cls, jint fipsFlag, jlong signatureId)</span>
+
+<p>A trivial accessor. After validation, returns <code>signatureCtx-&gt;signatureSize</code> — the value computed once during <code>SIGNATURE_create</code> via <code>EVP_PKEY_get_size</code>. Java uses this to pre-size output buffers.</p>
+
+
+<hr class="divider" />
+<h2 id="s11">11 · <code>SIGNATURE_reset</code> — re-initialise context (lines 821–868)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT void JNICALL
+Java_..._SIGNATURE_1reset(JNIEnv* env, jclass cls, jint fipsFlag, jlong signatureId)</span>
+
+<p>Resets the context to the same state it had immediately after creation, without destroying and re-creating it. This is used by the Java layer when the same key is used for multiple sign/verify operations (e.g. a thread-local context pool).</p>
+
+<h3>Lines 839–841 — Clear EdDSA buffer</h3>
+<p>Only resets <code>dataBufferSize</code> to 0; the allocated capacity of the buffer is kept so the memory doesn't need to be re-allocated next time.</p>
+
+<h3>Lines 845 — <code>EVP_MD_CTX_reset</code></h3>
+<p>This is a critical OpenSSL 3.x requirement. Before calling <code>EVP_DigestSignInit</code> again on an already-initialised <code>EVP_MD_CTX</code>, the context <strong>must</strong> be reset first; otherwise OpenSSL 3.x returns an error. The comment explicitly calls this out.</p>
+
+<h3>Lines 848–865 — Re-initialise</h3>
+<p>Calls <code>EVP_DigestSignInit</code> or <code>EVP_DigestVerifyInit</code> with the same <code>md</code> and <code>pkey</code> that were stored at creation time. This re-populates <code>pkeyCtx</code>. If it fails, a Java exception is thrown but the function returns void — the context is now in an indeterminate state and should be deleted by the caller.</p>
+
+
+<hr class="divider" />
+<h2 id="s12">12 · <code>SIGNATURE_setPSSParams</code> — RSA-PSS configuration (lines 873–956)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL
+Java_..._SIGNATURE_1setPSSParams(JNIEnv* env, jclass cls, jint fipsFlag,
+    jlong signatureId, jint saltLen, jstring mgf1Digest)</span>
+
+<p>Called by Java after <code>SIGNATURE_create</code> when the algorithm is RSA-PSS. Must be called <em>before</em> any <code>update</code> calls.</p>
+
+<h3>Line 886–891 — pkeyCtx guard</h3>
+<p><code>pkeyCtx</code> is populated by <code>EVP_DigestSignInit</code>. If it is NULL (e.g. because the context was constructed incorrectly) the call is rejected.</p>
+
+<h3>Lines 894–899 — Set PSS padding</h3>
+<p><code>EVP_PKEY_CTX_set_rsa_padding(pkeyCtx, RSA_PKCS1_PSS_PADDING)</code> switches the RSA key context from the default PKCS#1 v1.5 padding to PSS. This must come before setting the salt length.</p>
+
+<h3>Lines 903–909 — Set salt length</h3>
+<p><code>EVP_PKEY_CTX_set_rsa_pss_saltlen(pkeyCtx, saltLen)</code> sets the salt. Java may pass <code>-1</code> (digest length) or <code>-2</code> (maximum allowed) as OpenSSL magic values, or any non-negative byte count.</p>
+
+<h3>Lines 912–945 — Set MGF1 digest (optional)</h3>
+<p>If <code>mgf1Digest</code> is not NULL, the digest used inside the PSS mask-generation function is set separately from the outer digest. The function fetches a new <code>EVP_MD*</code>, passes it to <code>EVP_PKEY_CTX_set_rsa_mgf1_md</code>, and then immediately frees it — the <code>pkeyCtx</code> takes its own reference.</p>
+<div class="callout warn">
+  <strong>Ownership note:</strong> The fetched <code>mgf1Md</code> is freed on line 944 regardless of success. OpenSSL takes a reference internally on the <code>set_rsa_mgf1_md</code> call, so this is correct. Failing to free it here would leak one reference.
+</div>
+
+
+<hr class="divider" />
+<h2 id="s13">13 · <code>SIGNATURE_delete</code> — free all resources (lines 961–1006)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="tag tag-cleanup">cleanup</span>
+<span class="fn-sig">JNIEXPORT void JNICALL
+Java_..._SIGNATURE_1delete(JNIEnv* env, jclass cls, jint fipsFlag, jlong signatureId)</span>
+
+<p>The destructor. Unconditionally frees everything associated with the context. The FIPS flag is accepted for API consistency but not validated — a delete must always succeed even if the context is half-initialised.</p>
+
+<h3>Lines 967–969 — NULL guard</h3>
+<p>If <code>signatureId</code> is 0 the function returns silently. This lets Java safely call delete on a context that was never successfully created.</p>
+
+<h3>Lines 981–985 — Free <code>mdCtx</code></h3>
+<p><code>EVP_MD_CTX_free(mdCtx)</code> also frees the associated <code>EVP_PKEY_CTX</code> that was passed as an out-parameter to <code>EVP_DigestSignInit</code>. The comment on line 984 documents this: <code>pkeyCtx</code> is set to NULL but not freed directly to prevent a double-free.</p>
+
+<h3>Lines 988–991 — Free digest</h3>
+<p><code>EVP_MD_free</code> decrements the reference count on the digest object. Because <code>fetchDigestSafe</code> acquired a reference at creation time, this is the correct matching release.</p>
+
+<h3>Lines 994–997 — Free key</h3>
+<p><code>EVP_PKEY_free(pkey)</code> decrements the key's reference count. Since only one reference was taken in <code>loadKeyFromBytes</code>, this frees the key.</p>
+
+<h3>Lines 1000 — Free EdDSA buffer</h3>
+<p><code>FREE_AND_NULL(signatureCtx-&gt;dataBuffer)</code> is a project-defined macro that calls <code>free</code> and sets the pointer to NULL. Safe to call even if <code>dataBuffer</code> is already NULL.</p>
+
+<h3>Line 1003 — Free struct</h3>
+<p>Finally, the <code>OpenSSLSignatureContext</code> struct itself is freed. After this line the <code>signatureId</code> long held by Java is a dangling value; Java is responsible for not using it again.</p>
+
+
+<hr class="divider" />
+<h2 id="s14">14 · <code>SIGNATUREEdDSA_signOneShot</code> (lines 1014–1104)</h2>
+
+<span class="tag tag-jni-s">JNI — alternate EdDSA path</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL
+Java_..._SIGNATUREEdDSA_1signOneShot(JNIEnv* env, jclass cls,
+    jlong osslContextId, jlong pkeyId, jbyteArray data)</span>
+
+<p>This function provides an alternative EdDSA sign path that accepts an <em>already-loaded</em> <code>EVP_PKEY*</code> handle (<code>pkeyId</code>) rather than raw DER key bytes. It creates and destroys its own <code>EVP_MD_CTX</code> internally; the caller manages the <code>EVP_PKEY</code> lifetime.</p>
+
+<div class="callout">
+  <strong>When is this used vs. the streaming path?</strong> When the Java layer has already loaded the key into a native key object (e.g. via the EC or RSA key factory) and wants to sign with it directly, avoiding a redundant DER serialise/deserialise round-trip.
+</div>
+
+<h3>Lines 1022–1028 — Argument check</h3>
+<p>Both <code>pkey</code> and <code>data</code> must be non-NULL. The <code>osslContextId</code> parameter is accepted for API symmetry but not used (the <code>EVP_PKEY</code> already carries its context association).</p>
+
+<h3>Lines 1030–1035 — Pin data</h3>
+<p>The data array is pinned and its length queried.</p>
+
+<h3>Lines 1037–1055 — Create mdCtx and init</h3>
+<p>A fresh <code>EVP_MD_CTX</code> is created and initialised with <code>EVP_DigestSignInit(mdCtx, &amp;pkeyCtx, NULL, NULL, pkey)</code>. The digest is <code>NULL</code> because EdDSA (RFC 8032) defines its own internal hashing; OpenSSL handles this automatically when the key type is Ed25519/Ed448.</p>
+
+<h3>Lines 1057–1068 — Two-call signing</h3>
+<p>EdDSA has a fixed 64-byte output for Ed25519 and 114 bytes for Ed448, but the code uses the portable two-call pattern:</p>
+<ol>
+  <li><strong>Size query:</strong> <code>EVP_DigestSign(mdCtx, NULL, &amp;sigLen, data, dataLen)</code> — output buffer is NULL; OpenSSL sets <code>sigLen</code>.</li>
+  <li><strong>Actual sign:</strong> <code>EVP_DigestSign(mdCtx, sigBuf, &amp;sigLen, data, dataLen)</code> — output buffer is provided.</li>
+</ol>
+<p>Each call cleans up and returns NULL on failure.</p>
+
+<h3>Lines 1093–1100 — Copy to Java array</h3>
+<p>Creates a Java <code>byte[]</code> of exactly <code>sigLen</code> bytes, copies the C buffer into it, then frees the C buffer. Note that if <code>NewByteArray</code> returns NULL (OOM), the result is NULL — the JVM has already thrown <code>OutOfMemoryError</code>, so no additional exception is set.</p>
+
+
+<hr class="divider" />
+<h2 id="s15">15 · <code>SIGNATUREEdDSA_verifyOneShot</code> (lines 1114–1187)</h2>
+
+<span class="tag tag-jni-s">JNI — alternate EdDSA path</span>
+<span class="fn-sig">JNIEXPORT jboolean JNICALL
+Java_..._SIGNATUREEdDSA_1verifyOneShot(JNIEnv* env, jclass cls,
+    jlong osslContextId, jlong pkeyId, jbyteArray sigBytes, jbyteArray data)</span>
+
+<p>Mirror of <code>signOneShot</code> for verification. Returns <code>JNI_TRUE</code> / <code>JNI_FALSE</code> rather than a tri-state integer — the distinction between "invalid" and "error" is collapsed because from the caller's perspective both mean "cannot verify".</p>
+
+<h3>Lines 1122–1128 — NULL guards</h3>
+<p>All three pointer arguments (<code>pkey</code>, <code>sigBytes</code>, <code>data</code>) must be non-NULL.</p>
+
+<h3>Lines 1130–1143 — Pin both arrays</h3>
+<p>Both the signature and the message data are pinned separately. If pinning the data fails after pinning the signature, the signature pin is released before returning.</p>
+
+<h3>Lines 1145–1165 — Create mdCtx and init</h3>
+<p>Same pattern as sign: fresh <code>EVP_MD_CTX</code>, then <code>EVP_DigestVerifyInit(mdCtx, &amp;pkeyCtx, NULL, NULL, pkey)</code>.</p>
+
+<h3>Lines 1167–1169 — One-shot verify</h3>
+<pre>int rc = EVP_DigestVerify(mdCtx,
+    (unsigned char*)sigNat,  (size_t)sigLen,
+    (unsigned char*)dataNat, (size_t)dataLen);</pre>
+<p>All four arguments in one call. OpenSSL verifies the signature over the full message internally.</p>
+
+<h3>Lines 1171–1173 — Cleanup</h3>
+<p>Context and both pinned arrays are released <em>before</em> inspecting <code>rc</code>. This is important: cleanup must happen regardless of the result, and there are no further JNI calls that need the pinned data.</p>
+
+<h3>Lines 1175–1186 — Result interpretation</h3>
+<p><code>rc == 1</code> → <code>JNI_TRUE</code>. <code>rc == 0</code> → <code>JNI_FALSE</code> (clean failure, no exception). <code>rc != 0 &amp;&amp; rc != 1</code> → <code>JNI_FALSE</code> with a pending exception. The comment on line 1179 explicitly marks <code>rc == 0</code> as a clean verify-failure.</p>
+
+
+<hr class="divider" />
+<h2 id="s16">16 · Overall design &amp; data-flow summary</h2>
+
+<h3>Lifecycle of a sign operation</h3>
+<div class="flow-box">
+  <div class="flow-step">Java: DSASignature.engineInitSign(key)</div>
+  <div class="flow-step">SIGNATURE_create → returns handle</div>
+  <div class="flow-step">SIGNATURE_update × N</div>
+  <div class="flow-step">SIGNATURE_sign → byte[]</div>
+  <div class="flow-step">SIGNATURE_delete</div>
+</div>
+
+<h3>Lifecycle of a PSS sign operation</h3>
+<div class="flow-box">
+  <div class="flow-step">SIGNATURE_create</div>
+  <div class="flow-step">SIGNATURE_setPSSParams</div>
+  <div class="flow-step">SIGNATURE_update × N</div>
+  <div class="flow-step">SIGNATURE_sign → byte[]</div>
+  <div class="flow-step">SIGNATURE_delete</div>
+</div>
+
+<h3>Two EdDSA code paths</h3>
+<table class="anno-table">
+  <tr><th>Path</th><th>Key source</th><th>Functions used</th><th>Use case</th></tr>
+  <tr>
+    <td>Streaming + buffered</td>
+    <td>DER bytes passed to create</td>
+    <td>create → update × N → sign/verify</td>
+    <td>Java Signature engine (streaming API compatibility)</td>
+  </tr>
+  <tr>
+    <td>One-shot direct</td>
+    <td>Pre-loaded EVP_PKEY* handle</td>
+    <td>SIGNATUREEdDSA_signOneShot / verifyOneShot</td>
+    <td>Direct call from native key objects; avoids DER round-trip</td>
+  </tr>
+</table>
+
+<h3>Memory ownership rules</h3>
+<ul>
+  <li><code>EVP_PKEY*</code> — created in <code>loadKeyFromBytes</code>, freed in <code>SIGNATURE_delete</code>. One reference throughout.</li>
+  <li><code>EVP_MD*</code> — fetched in <code>signature_create_impl</code>, freed in <code>SIGNATURE_delete</code>. Any <em>additional</em> fetch (e.g. in <code>setPSSParams</code>) is freed immediately after use.</li>
+  <li><code>EVP_MD_CTX*</code> — owns and frees its inner <code>EVP_PKEY_CTX*</code>; do not free <code>pkeyCtx</code> directly.</li>
+  <li><code>dataBuffer</code> — owned exclusively by the <code>OpenSSLSignatureContext</code> struct; freed in <code>SIGNATURE_delete</code>.</li>
+  <li>JNI arrays pinned with <code>JNI_ABORT</code> — this means "release without copying back", appropriate since the native layer never modifies the Java-side input arrays.</li>
+</ul>
+
+<h3>Debug instrumentation</h3>
+<p>Three compile-time switches control log verbosity. None of them are defined in production builds:</p>
+<table class="anno-table">
+  <tr><th>Macro</th><th>What it enables</th></tr>
+  <tr><td>DEBUG_SIGNATURE_DETAIL</td><td>Entry/exit, context pointers, sizes, algorithm names, success/failure per step</td></tr>
+  <tr><td>DEBUG_SIGNATURE_DATA</td><td>Hex dump of the data being signed/verified (large output — for diagnosis only)</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

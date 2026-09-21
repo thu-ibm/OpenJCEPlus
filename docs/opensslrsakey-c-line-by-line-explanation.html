@@ -1,0 +1,651 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>OpenSSLRSAKey.c — Line-by-Line Explanation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.6;
+    background: #ffffff; color: #1f2328;
+    padding: 32px 16px 64px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px;
+       padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 14px; font-weight: 600; margin: 20px 0 6px; color: #3b82d4; }
+  p  { margin-bottom: 10px; }
+  ul, ol { margin: 6px 0 10px 22px; }
+  li { margin-bottom: 4px; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12.5px; background: #f7f8fa;
+    border: 1px solid #e5e7eb; border-radius: 3px; padding: 1px 5px;
+  }
+  pre {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+    padding: 12px 14px; overflow-x: auto;
+    font-size: 12.5px; line-height: 1.5; margin: 8px 0 14px;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; }
+  th {
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    padding: 6px 10px; text-align: left;
+    font-size: 12.5px; font-weight: 600; color: #57606a;
+  }
+  td { border: 1px solid #e5e7eb; padding: 6px 10px; vertical-align: top; font-size: 13px; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  td:first-child { white-space: nowrap; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; color: #57606a; }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    border-radius: 3px; padding: 1px 6px; margin-right: 4px; vertical-align: middle;
+  }
+  .tag-jni     { background: #fef3c7; color: #92400e; }
+  .tag-helper  { background: #d1fae5; color: #065f46; }
+  .tag-cleanup { background: #fee2e2; color: #991b1b; }
+  .tag-compat  { background: #dbeafe; color: #1e40af; }
+  .callout {
+    background: #f7f8fa; border-left: 3px solid #3b82d4;
+    padding: 10px 14px; margin: 12px 0 16px; font-size: 13px;
+  }
+  .callout.warn  { border-left-color: #f59e0b; }
+  .callout.note  { border-left-color: #7c5cd8; }
+  .toc { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+         padding: 14px 18px; margin-bottom: 32px; }
+  .toc-title { font-weight: 700; margin-bottom: 8px; font-size: 13px; color: #57606a; }
+  .toc ol { margin-left: 18px; }
+  .toc li { font-size: 13px; margin-bottom: 3px; }
+  .toc a { color: #3b82d4; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .fn-sig {
+    font-size: 12px; font-family: "SFMono-Regular", Consolas, monospace;
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px;
+    padding: 8px 12px; margin: 6px 0 12px; display: block;
+  }
+  .flow-box { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+  .flow-step {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+    padding: 6px 12px; font-size: 12.5px;
+  }
+  .flow-step::after { content: "→"; margin-left: 8px; color: #57606a; }
+  .flow-step:last-child::after { content: ""; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+           text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>OpenSSLRSAKey.c — Line-by-Line Explanation</h1>
+<p class="subtitle">
+  <code>src/main/native/openssl/OpenSSLRSAKey.c</code>  ·  1 271 lines  ·  IBM OpenJCEPlus OpenSSL backend
+</p>
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#s1">File header, includes &amp; key-format conventions (lines 1–58)</a></li>
+    <li><a href="#s2">mapPadding — padding ID helper (lines 65–73)</a></li>
+    <li><a href="#s3">mdNameById — digest ID helper (lines 78–90)</a></li>
+    <li><a href="#s4">setCtxPadding — OAEP digest configurator (lines 97–139)</a></li>
+    <li><a href="#s5">RSAKEY_generate — key generation (lines 144–210)</a></li>
+    <li><a href="#s6">RSAKEY_createPrivateKey — import private key (lines 216–359)</a></li>
+    <li><a href="#s7">RSAKEY_createPublicKey — import public key (lines 365–409)</a></li>
+    <li><a href="#s8">RSAKEY_getPrivateKeyBytes — export private key (lines 415–455)</a></li>
+    <li><a href="#s9">RSAKEY_getPublicKeyBytes — export public key (lines 461–501)</a></li>
+    <li><a href="#s10">RSAKEY_size — modulus size query (lines 506–513)</a></li>
+    <li><a href="#s11">RSAKEY_delete — free key handle (lines 518–524)</a></li>
+    <li><a href="#s12">RSACIPHER_public_encrypt (lines 535–629)</a></li>
+    <li><a href="#s13">RSACIPHER_private_encrypt (lines 635–687)</a></li>
+    <li><a href="#s14">RSACIPHER_public_decrypt (lines 692–744)</a></li>
+    <li><a href="#s15">RSACIPHER_private_decrypt (lines 751–845)</a></li>
+    <li><a href="#s16">digestLenToNid — hash-len-to-NID helper (lines 854–864)</a></li>
+    <li><a href="#s17">RSAKEY_signDataWithRSA — sign pre-computed digest (lines 871–933)</a></li>
+    <li><a href="#s18">RSAKEY_verifyDataWithRSA — verify pre-computed digest (lines 941–987)</a></li>
+    <li><a href="#s19">PKEY_getBaseId — EVP_PKEY type query (lines 993–1000)</a></li>
+    <li><a href="#s20">RSAKEY_signDigestCtx — sign from live digest context (lines 1008–1080)</a></li>
+    <li><a href="#s21">RSAKEY_verifyDigestCtx — verify from live digest context (lines 1086–1139)</a></li>
+    <li><a href="#s22">RSASSL_SIGNATURE_sign — SSL MD5+SHA-1 sign (lines 1149–1212)</a></li>
+    <li><a href="#s23">RSASSL_SIGNATURE_verify — SSL MD5+SHA-1 verify (lines 1223–1270)</a></li>
+    <li><a href="#s24">Overall design: API split, key formats, memory ownership</a></li>
+  </ol>
+</div>
+
+
+<h2 id="s1">1 · File header, includes &amp; conventions (lines 1–58)</h2>
+
+<h3>Lines 1–7 — Copyright</h3>
+<p>Standard IBM copyright under the Classpath licence, matching every other file in the project.</p>
+
+<h3>Lines 9–41 — Doxygen comment: critical design decisions</h3>
+<p>This block is unusually detailed and documents four important design choices that affect every function below.</p>
+
+<p><strong>Key format conventions</strong> — the file deals in two DER formats:</p>
+<table>
+  <tr><th>Direction</th><th>Format</th><th>OpenSSL function</th></tr>
+  <tr><td>Import private</td><td>PKCS#1 RSAPrivateKey DER</td><td><code>d2i_RSAPrivateKey</code></td></tr>
+  <tr><td>Import public</td><td>PKCS#1 RSAPublicKey DER (SEQUENCE{n,e})</td><td><code>d2i_RSAPublicKey</code></td></tr>
+  <tr><td>Export private</td><td>PKCS#1 RSAPrivateKey DER</td><td><code>i2d_RSAPrivateKey</code></td></tr>
+  <tr><td>Export public</td><td>PKCS#1 RSAPublicKey DER</td><td><code>i2d_RSAPublicKey</code></td></tr>
+</table>
+
+<p><strong>Padding IDs</strong> — Java's <code>RSAPadding</code> enum values that travel over JNI as integers:</p>
+<table>
+  <tr><th>ID</th><th>Meaning</th></tr>
+  <tr><td>0</td><td>NoPadding</td></tr>
+  <tr><td>1</td><td>PKCS1Padding</td></tr>
+  <tr><td>2</td><td>OAEPPadding</td></tr>
+</table>
+
+<p><strong>Digest IDs</strong> — Java's digest enum, also passed as integers:</p>
+<table>
+  <tr><th>ID</th><th>Algorithm</th></tr>
+  <tr><td>0</td><td>NONE (pre-hashed)</td></tr>
+  <tr><td>1</td><td>SHA-1</td></tr>
+  <tr><td>2</td><td>SHA-224</td></tr>
+  <tr><td>3</td><td>SHA-256</td></tr>
+  <tr><td>4</td><td>SHA-384</td></tr>
+  <tr><td>5</td><td>SHA-512</td></tr>
+  <tr><td>6</td><td>SHA-512/224</td></tr>
+  <tr><td>7</td><td>SHA-512/256</td></tr>
+</table>
+
+<p><strong>API split rationale</strong> — The comment explains why the file intentionally mixes OpenSSL 3 high-level (<code>EVP_PKEY_CTX</code>) and low-level (<code>RSA_*</code>) APIs:</p>
+<div class="callout warn">
+  <strong>Why low-level RSA_* for NoPadding and PKCS1?</strong> Java's <code>RSAPrivateKeySpec</code> keys carry only (n, e, d) — no CRT primes (p, q, dp, dq, qi). OpenSSL 3's <code>EVP_PKEY_decrypt</code> refuses these keys. The low-level <code>RSA_private_decrypt</code> performs raw m^d mod n and succeeds.
+</div>
+<div class="callout note">
+  <strong>Why high-level EVP_PKEY_CTX for OAEP?</strong> OAEP is never used with plain n/d-only keys. The high-level path is used here because <code>EVP_MD_fetch</code> respects the caller's <code>OSSL_LIB_CTX</code> (review item S-2), ensuring digest lookups resolve inside the correct provider (e.g., FIPS provider).
+</div>
+
+<h3>Lines 43–58 — Includes</h3>
+<table>
+  <tr><th>Header</th><th>Purpose</th></tr>
+  <tr><td>jni.h</td><td>JNI types and <code>JNIEXPORT</code>/<code>JNICALL</code></td></tr>
+  <tr><td>stdio.h / stdlib.h / string.h</td><td>Standard I/O, <code>malloc/free</code>, <code>memset/memcpy</code></td></tr>
+  <tr><td>openssl/evp.h</td><td><code>EVP_PKEY</code>, <code>EVP_PKEY_CTX</code>, <code>EVP_MD_CTX</code>, high-level API</td></tr>
+  <tr><td>openssl/rsa.h</td><td>Low-level <code>RSA</code> struct, <code>RSA_sign</code>, <code>RSA_verify</code>, <code>RSA_public_encrypt</code>, etc.</td></tr>
+  <tr><td>openssl/err.h</td><td>Error queue for <code>logOpenSSLError()</code></td></tr>
+  <tr><td>openssl/bn.h</td><td><code>BIGNUM</code> arithmetic — needed to set public exponent (e) during key generation and fallback parse</td></tr>
+  <tr><td>openssl/x509.h</td><td>DER encode/decode support used by <code>d2i_RSAPublicKey</code> / <code>i2d_RSAPublicKey</code></td></tr>
+  <tr><td>openssl/core_names.h</td><td>OpenSSL 3 string constants for key parameters</td></tr>
+  <tr><td>OpenSSLContext.h / ExceptionCodes.h / Utils.h / Helpers.h</td><td>Project-local context, error codes, logging, safe JNI wrappers</td></tr>
+</table>
+
+
+<hr />
+<h2 id="s2">2 · <code>mapPadding</code> — padding ID → OpenSSL constant (lines 65–73)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static int mapPadding(int rsaPaddingId)</span>
+
+<p>A simple switch that converts Java's 0/1/2 padding ID into OpenSSL's named constants:</p>
+<table>
+  <tr><th>Java ID</th><th>OpenSSL constant</th><th>Value</th></tr>
+  <tr><td>0</td><td><code>RSA_NO_PADDING</code></td><td>3</td></tr>
+  <tr><td>1</td><td><code>RSA_PKCS1_PADDING</code></td><td>1</td></tr>
+  <tr><td>2</td><td><code>RSA_PKCS1_OAEP_PADDING</code></td><td>4</td></tr>
+  <tr><td>other</td><td>-1 (error sentinel)</td><td>—</td></tr>
+</table>
+<p>Returns -1 for unknown IDs; callers check for this and throw an exception.</p>
+
+
+<hr />
+<h2 id="s3">3 · <code>mdNameById</code> — digest ID → name string (lines 78–90)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static const char* mdNameById(int mdId)</span>
+
+<p>Maps Java digest ID integers to OpenSSL provider-neutral name strings for use with <code>EVP_MD_fetch</code>. The comment explicitly states why name strings are used instead of global handles like <code>EVP_sha256()</code>: the latter bypasses the <code>OSSL_LIB_CTX</code> and would find the default provider's implementation even when the FIPS provider is active.</p>
+
+<table>
+  <tr><th>mdId</th><th>Name passed to EVP_MD_fetch</th></tr>
+  <tr><td>1</td><td>"SHA1"</td></tr>
+  <tr><td>2</td><td>"SHA2-224"</td></tr>
+  <tr><td>3</td><td>"SHA2-256"</td></tr>
+  <tr><td>4</td><td>"SHA2-384"</td></tr>
+  <tr><td>5</td><td>"SHA2-512"</td></tr>
+  <tr><td>6</td><td>"SHA2-512/224"</td></tr>
+  <tr><td>7</td><td>"SHA2-512/256"</td></tr>
+  <tr><td>default</td><td>"SHA1" (safe fallback)</td></tr>
+</table>
+
+
+<hr />
+<h2 id="s4">4 · <code>setCtxPadding</code> — OAEP digest configurator (lines 97–139)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static int setCtxPadding(JNIEnv* env, EVP_PKEY_CTX* ctx,
+    int rsaPaddingId, int mdId, int mgf1Id, OSSL_LIB_CTX* libctx, const char* fn)</span>
+
+<p>Configures padding and, for OAEP, the associated digest objects on an already-initialised <code>EVP_PKEY_CTX</code>. Returns 1 on success, 0 with a pending exception on failure.</p>
+
+<h3>Lines 101–106 — Padding ID validation</h3>
+<p>Calls <code>mapPadding</code>. Returns 0 immediately if the ID is unknown.</p>
+
+<h3>Lines 107–112 — Set base padding</h3>
+<p><code>EVP_PKEY_CTX_set_rsa_padding(ctx, pad)</code> applies the padding mode to the encrypt/decrypt context. Must be called before any digest-specific settings.</p>
+
+<h3>Lines 113–137 — OAEP-only digest setup</h3>
+<p>Only entered when <code>pad == RSA_PKCS1_OAEP_PADDING</code>. Two <code>EVP_MD*</code> objects are fetched:</p>
+<ul>
+  <li><strong>md</strong> — the OAEP hash (used to hash the label).</li>
+  <li><strong>mgf</strong> — the MGF1 hash (used inside the mask generation function).</li>
+</ul>
+<p>Both are fetched with the caller-supplied <code>libctx</code> so provider isolation is maintained. The ownership rules are subtle:</p>
+<div class="callout warn">
+  <strong>Ownership detail:</strong> After <code>EVP_PKEY_CTX_set_rsa_oaep_md(ctx, md)</code> and <code>EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, mgf)</code> succeed, the <code>EVP_PKEY_CTX</code> takes its own internal reference. The caller must still call <code>EVP_MD_free</code> to release the reference obtained by <code>EVP_MD_fetch</code>. Line 128 frees <code>md</code> on failure; line 135 always frees <code>mgf</code> (regardless of success) — both are correct.
+</div>
+
+
+<hr />
+<h2 id="s5">5 · <code>RSAKEY_generate</code> — key generation (lines 144–210)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jlong JNICALL Java_..._RSAKEY_1generate(
+    JNIEnv* env, jclass cls, jlong osslContextId, jint numBits, jlong e)</span>
+
+<p>Generates a fresh RSA key pair. Returns an <code>EVP_PKEY*</code> handle cast to <code>jlong</code>.</p>
+
+<div class="flow-box">
+  <div class="flow-step">Validate context</div>
+  <div class="flow-step">CTX_new_from_name("RSA")</div>
+  <div class="flow-step">keygen_init</div>
+  <div class="flow-step">set_bits</div>
+  <div class="flow-step">set_pubexp (BIGNUM)</div>
+  <div class="flow-step">EVP_PKEY_keygen</div>
+  <div class="flow-step">Return handle</div>
+</div>
+
+<h3>Line 152 — Context validation</h3>
+<p><code>validateAndGetContext(env, (jint)(osslContextId - 1), ...)</code> — the <code>-1</code> converts the Java 1-based context ID back to the 0-based internal index. The retrieved <code>OpenSSLContext*</code> provides the <code>OSSL_LIB_CTX*</code>.</p>
+
+<h3>Line 158 — <code>EVP_PKEY_CTX_new_from_name</code> (review item A-4)</h3>
+<p>In OpenSSL 3 the preferred way to create a keygen context is by algorithm name with an explicit library context. This ensures the key is generated using the provider registered in that <code>OSSL_LIB_CTX</code> (e.g. FIPS provider). The older <code>EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL)</code> uses the default global context and is not FIPS-aware.</p>
+
+<h3>Lines 168–173 — <code>keygen_init</code></h3>
+<p>Transitions the context from "creation" state to "keygen initialisation" state. Must precede any parameter-setting calls.</p>
+
+<h3>Lines 174–178 — Set key size</h3>
+<p><code>EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, numBits)</code> sets the modulus size. Common values: 2048, 3072, 4096.</p>
+
+<h3>Lines 180–196 — Set public exponent via BIGNUM</h3>
+<p>The public exponent <code>e</code> arrives as a Java <code>long</code>. It must be converted to an OpenSSL <code>BIGNUM</code> before being passed to <code>EVP_PKEY_CTX_set1_rsa_keygen_pubexp</code>. The <code>set1_</code> prefix means the function takes a reference — the caller must still free its own <code>bn_e</code> copy (line 195). Common values: 65537 (0x10001), 3, 17.</p>
+
+<h3>Lines 197–202 — <code>EVP_PKEY_keygen</code></h3>
+<p>Performs the actual key generation. On success <code>pkey</code> is populated with a new <code>EVP_PKEY*</code> containing both private and public components.</p>
+
+<h3>Lines 205–209 — Cleanup with goto</h3>
+<p>A single <code>done:</code> label handles cleanup regardless of which step failed. The guard <code>if (pkey &amp;&amp; ret == 0) EVP_PKEY_free(pkey)</code> frees a partially-generated key only on failure; on success <code>ret</code> holds the pointer so <code>pkey</code> is left alive and returned.</p>
+
+
+<hr />
+<h2 id="s6">6 · <code>RSAKEY_createPrivateKey</code> — import private key (lines 216–359)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="tag tag-compat">fallback path</span>
+<span class="fn-sig">JNIEXPORT jlong JNICALL Java_..._RSAKEY_1createPrivateKey(
+    JNIEnv* env, jclass cls, jlong osslContextId, jbyteArray privateKeyBytes)</span>
+
+<p>This is the most complex function in the file. It parses a PKCS#1 RSAPrivateKey DER and produces an <code>EVP_PKEY*</code>, handling non-CRT keys that OpenSSL 3 would otherwise reject.</p>
+
+<div class="flow-box">
+  <div class="flow-step">Pin byte array</div>
+  <div class="flow-step">d2i_RSAPrivateKey</div>
+  <div class="flow-step">Standard path or fallback</div>
+  <div class="flow-step">Non-CRT rebuild?</div>
+  <div class="flow-step">EVP_PKEY_assign_RSA</div>
+  <div class="flow-step">Return handle</div>
+</div>
+
+<h3>Lines 229–234 — Pin the Java array</h3>
+<p><code>getByteArrayElementsSafe</code> pins the byte array. A separate <code>const unsigned char* p</code> pointer is used for the DER parse; <code>d2i_*</code> functions advance the pointer as they consume bytes.</p>
+
+<h3>Lines 241 — Standard parse: <code>d2i_RSAPrivateKey</code></h3>
+<p>Attempts to parse a full PKCS#1 RSAPrivateKey structure (SEQUENCE with version, n, e, d, p, q, dp, dq, qi). For keys that have all CRT components this succeeds immediately.</p>
+
+<h3>Lines 243–309 — Fallback: inline DER parser for non-CRT keys</h3>
+<p>When <code>d2i_RSAPrivateKey</code> returns NULL (typically because e=0 in a non-CRT key from <code>RSAPrivateKeySpec</code>), the code manually walks the DER bytes using two inline macros:</p>
+<ul>
+  <li><strong><code>DER_READ_LEN(cur, out_len)</code></strong> — reads a BER/DER length field at <code>*cur</code>, handles both short (1-byte) and long (multi-byte) encodings, advances the pointer.</li>
+  <li><strong><code>DER_SKIP_TLV(cur)</code></strong> — skips one tag-length-value triplet, checking the tag is <code>0x02</code> (INTEGER), then jumping over the value.</li>
+</ul>
+<p>The parser:</p>
+<ol>
+  <li>Reads the outer SEQUENCE tag (<code>0x30</code>) and total length.</li>
+  <li>Skips the version INTEGER.</li>
+  <li>Extracts <strong>n</strong> (modulus) as a <code>BIGNUM</code>.</li>
+  <li>Skips <strong>e</strong> (public exponent — may be 0, so it is discarded and 65537 is substituted).</li>
+  <li>Extracts <strong>d</strong> (private exponent) as a <code>BIGNUM</code>.</li>
+  <li>Builds a fresh <code>RSA*</code> with <code>RSA_new()</code> + <code>RSA_set0_key(rsa, n, e, d)</code>.</li>
+</ol>
+<p>The macros are <code>#undef</code>ed at line 299–300 to keep the namespace clean.</p>
+
+<div class="callout">
+  <strong>Why 65537 as a fallback exponent?</strong> For m^d mod n raw decryption the public exponent is irrelevant — it is only used in encryption. Substituting 65537 satisfies OpenSSL's internal structural requirements without affecting correctness.
+</div>
+
+<h3>Lines 310–342 — Non-CRT rebuild for standard parse</h3>
+<p>Even if <code>d2i_RSAPrivateKey</code> succeeded, the key might have been encoded with CRT fields set to zero (e.g. from a serialised non-CRT key). Lines 315–316 read back the prime <code>p</code> via <code>RSA_get0_factors</code>. If it is NULL or zero, the RSA object is rebuilt from just (n, e, d) using a fresh <code>RSA_new()</code> + <code>RSA_set0_key</code>. This prevents OpenSSL 3 from attempting CRT operations on a key that cannot support them.</p>
+
+<h3>Lines 345–354 — Wrap into EVP_PKEY</h3>
+<p><code>EVP_PKEY_new()</code> creates a generic key container, then <code>EVP_PKEY_assign_RSA(pkey, rsa)</code> assigns the RSA object and transfers ownership. After this call <strong>do not</strong> free <code>rsa</code> separately — it is owned by <code>pkey</code>. On failure <code>RSA_free(rsa)</code> must be called explicitly.</p>
+
+
+<hr />
+<h2 id="s7">7 · <code>RSAKEY_createPublicKey</code> — import public key (lines 365–409)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jlong JNICALL Java_..._RSAKEY_1createPublicKey(
+    JNIEnv* env, jclass cls, jlong osslContextId, jbyteArray publicKeyBytes)</span>
+
+<p>Straightforward compared to <code>createPrivateKey</code> — public keys always contain (n, e) which is unambiguous. The flow is:</p>
+<ol>
+  <li>Pin the Java array.</li>
+  <li><code>d2i_RSAPublicKey(NULL, &amp;p, len)</code> — parses PKCS#1 RSAPublicKey DER (SEQUENCE{n, e}).</li>
+  <li><code>EVP_PKEY_assign_RSA(pkey, rsa)</code> — wraps into a generic key handle.</li>
+  <li>Unpin and return.</li>
+</ol>
+<p>No fallback DER parser is needed here because a public key always has a valid non-zero exponent.</p>
+
+
+<hr />
+<h2 id="s8">8 · <code>RSAKEY_getPrivateKeyBytes</code> — export private key (lines 415–455)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL Java_..._RSAKEY_1getPrivateKeyBytes(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong rsaKeyId)</span>
+
+<p>Serialises the private key back to PKCS#1 DER. Key steps:</p>
+<ol>
+  <li><code>EVP_PKEY_get1_RSA(pkey)</code> — extracts and bumps the reference count on the inner <code>RSA*</code>. The <code>get1_</code> prefix means the caller owns this reference and must call <code>RSA_free</code>.</li>
+  <li><code>i2d_RSAPrivateKey(rsa, &amp;der)</code> — encodes the key to DER; OpenSSL allocates the buffer at <code>der</code>.</li>
+  <li><code>RSA_free(rsa)</code> — releases the <code>get1_</code> reference immediately after encoding.</li>
+  <li>Create a Java <code>byte[]</code>, copy the DER bytes, then <code>OPENSSL_free(der)</code> — note: the DER buffer was allocated by OpenSSL and must be freed with <code>OPENSSL_free</code>, not <code>free()</code>.</li>
+</ol>
+
+
+<hr />
+<h2 id="s9">9 · <code>RSAKEY_getPublicKeyBytes</code> — export public key (lines 461–501)</h2>
+
+<span class="tag tag-jni">JNI</span>
+
+<p>Symmetric to <code>getPrivateKeyBytes</code> but calls <code>i2d_RSAPublicKey</code> to produce a PKCS#1 RSAPublicKey DER (just the SEQUENCE{n, e} block, not X.509 SubjectPublicKeyInfo). Same <code>EVP_PKEY_get1_RSA</code> → encode → <code>RSA_free</code> → copy → <code>OPENSSL_free</code> pattern.</p>
+
+
+<hr />
+<h2 id="s10">10 · <code>RSAKEY_size</code> — modulus size query (lines 506–513)</h2>
+
+<span class="tag tag-jni">JNI</span>
+
+<p>One-liner: <code>EVP_PKEY_get_size(pkey)</code> returns the RSA modulus size in bytes (= key length / 8). This is the maximum ciphertext / signature size. Java uses it to pre-size output buffers. Returns 0 if the handle is NULL.</p>
+
+
+<hr />
+<h2 id="s11">11 · <code>RSAKEY_delete</code> — free key handle (lines 518–524)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="tag tag-cleanup">cleanup</span>
+
+<p>One-liner: <code>EVP_PKEY_free(pkey)</code> decrements the reference count. Since the key is held with a single reference throughout its lifetime, this deallocates it. NULL-safe (skips the call if the handle is 0).</p>
+
+
+<hr />
+<h2 id="s12">12 · <code>RSACIPHER_public_encrypt</code> (lines 535–629)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL Java_..._RSACIPHER_1public_1encrypt(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong rsaKeyId,
+    jint rsaPaddingId, jint mdId, jint mgf1Id,
+    jbyteArray plaintext, jint plaintextOffset, jint plaintextLen,
+    jbyteArray ciphertext, jint ciphertextOffset)</span>
+
+<p>Encrypts with the RSA public key. Returns the output length.</p>
+
+<h3>Lines 566–599 — OAEP branch (paddingId == 2)</h3>
+<p>Uses the high-level <code>EVP_PKEY_CTX</code> API:</p>
+<ol>
+  <li><code>EVP_PKEY_CTX_new_from_pkey(context-&gt;libctx, pkey, NULL)</code> — creates an encrypt context tied to the correct library context.</li>
+  <li><code>EVP_PKEY_encrypt_init(ctx)</code>.</li>
+  <li><code>setCtxPadding</code> — applies OAEP padding and both digest objects.</li>
+  <li><strong>Size query:</strong> <code>EVP_PKEY_encrypt(ctx, NULL, &amp;outLen, pt, ptLen)</code> — output buffer is NULL, OpenSSL fills in <code>outLen</code>.</li>
+  <li><strong>Actual encrypt:</strong> <code>EVP_PKEY_encrypt(ctx, ct + offset, &amp;outLen, pt + offset, ptLen)</code>.</li>
+</ol>
+<div class="callout">
+  The two-call pattern is needed because OAEP ciphertext is always exactly <code>RSA_size</code> bytes, but using the size query is the portable, forward-compatible approach.
+</div>
+
+<h3>Lines 601–622 — NoPadding / PKCS1 branch</h3>
+<p>Uses the low-level path: <code>EVP_PKEY_get1_RSA(pkey)</code> extracts the inner <code>RSA*</code>, then <code>RSA_public_encrypt(ptLen, pt+off, ct+off, rsa, pad)</code> performs the operation. <code>RSA_free(rsa)</code> releases the <code>get1_</code> reference immediately after use.</p>
+
+<h3>Lines 624–628 — Cleanup label</h3>
+<p>The <code>done:</code> label releases pinned arrays. Note the asymmetry: the plaintext is unpinned with <code>JNI_ABORT</code> (read-only, no write-back) while the ciphertext is unpinned with <code>0</code> (JNI_COMMIT — the output bytes must be written back to the Java array).</p>
+
+
+<hr />
+<h2 id="s13">13 · <code>RSACIPHER_private_encrypt</code> (lines 635–687)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL Java_..._RSACIPHER_1private_1encrypt(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong rsaKeyId,
+    jint rsaPaddingId,
+    jbyteArray plaintext, jint plaintextOffset, jint plaintextLen,
+    jbyteArray ciphertext, jint ciphertextOffset, jboolean convertKey)</span>
+
+<p>Encrypts with the <em>private</em> key — used for the "NONEwithRSA" and "RSAforSSL" sign paths where the Java layer performs its own DigestInfo wrapping and passes the result here as raw bytes.</p>
+<p>Always uses <code>RSA_private_encrypt(ptLen, pt, ct, rsa, pad)</code> — no OAEP branch because OAEP is never used with private-key encryption. The <code>convertKey</code> parameter is accepted for API symmetry but not used (OpenSSL keys loaded from DER are always normalised).</p>
+<p>Same cleanup pattern as <code>public_encrypt</code>: plaintext → <code>JNI_ABORT</code>, ciphertext → <code>0</code> (commit output).</p>
+
+
+<hr />
+<h2 id="s14">14 · <code>RSACIPHER_public_decrypt</code> (lines 692–744)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL Java_..._RSACIPHER_1public_1decrypt(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong rsaKeyId,
+    jint rsaPaddingId,
+    jbyteArray ciphertext, jint ciphertextOffset, jint ciphertextLen,
+    jbyteArray plaintext, jint plaintextOffset)</span>
+
+<p>Decrypts with the <em>public</em> key — the "verify" side of the NONEwithRSA path. Uses <code>RSA_public_decrypt(ctLen, ct, pt, rsa, pad)</code>. This is the inverse of <code>private_encrypt</code>.</p>
+<p>Cleanup asymmetry is reversed: plaintext is the output → unpinned with <code>0</code> (commit), ciphertext is input → unpinned with <code>JNI_ABORT</code>.</p>
+
+
+<hr />
+<h2 id="s15">15 · <code>RSACIPHER_private_decrypt</code> (lines 751–845)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL Java_..._RSACIPHER_1private_1decrypt(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong rsaKeyId,
+    jint rsaPaddingId, jint mdId, jint mgf1Id,
+    jbyteArray ciphertext, jint ciphertextOffset, jint ciphertextLen,
+    jbyteArray plaintext, jint plaintextOffset, jboolean convertKey)</span>
+
+<p>The normal decryption path (private key decrypts). Mirrors <code>public_encrypt</code> with the roles swapped:</p>
+<ul>
+  <li><strong>OAEP (paddingId == 2):</strong> uses <code>EVP_PKEY_CTX</code> with <code>EVP_PKEY_decrypt_init</code> + <code>setCtxPadding</code> + two-call <code>EVP_PKEY_decrypt</code>.</li>
+  <li><strong>NoPadding / PKCS1:</strong> uses <code>RSA_private_decrypt(ctLen, ct, pt, rsa, pad)</code>.</li>
+</ul>
+<p>Output array (plaintext) is unpinned with <code>0</code> (commit); input array (ciphertext) with <code>JNI_ABORT</code>.</p>
+
+
+<hr />
+<h2 id="s16">16 · <code>digestLenToNid</code> — hash-length-to-NID helper (lines 854–864)</h2>
+
+<span class="tag tag-helper">static helper</span>
+<span class="fn-sig">static int digestLenToNid(int digestLen)</span>
+
+<p>Used by <code>RSA_sign</code> and <code>RSA_verify</code> (which take an OID NID rather than an <code>EVP_MD*</code>) to determine the DigestInfo OID from the digest output length:</p>
+<table>
+  <tr><th>Byte length</th><th>OID NID</th><th>Algorithm</th></tr>
+  <tr><td>20</td><td><code>NID_sha1</code></td><td>SHA-1</td></tr>
+  <tr><td>28</td><td><code>NID_sha224</code></td><td>SHA-224 (also SHA-512/224)</td></tr>
+  <tr><td>32</td><td><code>NID_sha256</code></td><td>SHA-256 (also SHA-512/256)</td></tr>
+  <tr><td>48</td><td><code>NID_sha384</code></td><td>SHA-384</td></tr>
+  <tr><td>64</td><td><code>NID_sha512</code></td><td>SHA-512</td></tr>
+  <tr><td>other</td><td><code>NID_sha256</code></td><td>safe fallback</td></tr>
+</table>
+<p>The comment acknowledges the ambiguity: SHA-224 and SHA-512/224 both produce 28 bytes; SHA-256 and SHA-512/256 both produce 32 bytes. The function defaults to the more common SHA-2 variant. For the NONEwithRSA case the caller passes <code>digestLen == 0</code> (hitting the default NID_sha256) but the DigestInfo wrapping in that scenario is not used.</p>
+
+
+<hr />
+<h2 id="s17">17 · <code>RSAKEY_signDataWithRSA</code> (lines 871–933)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL Java_..._RSAKEY_1signDataWithRSA(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jbyteArray digestBytes, jint digestBytesLen, jlong rsaPrivKeyId)</span>
+
+<p>Signs a <strong>pre-computed digest</strong> (the Java layer has already hashed the message). Returns the PKCS#1 v1.5 signature as a <code>byte[]</code>.</p>
+
+<h3>Lines 890–897 — Extract RSA inner key</h3>
+<p><code>EVP_PKEY_get1_RSA</code> — bumps refcount, must be freed after use.</p>
+
+<h3>Lines 899–908 — Allocate output buffer</h3>
+<p><code>RSA_size(rsa)</code> returns the modulus byte count (the exact signature size for PKCS#1). A C buffer of this size is allocated with <code>malloc</code>.</p>
+
+<h3>Lines 910–913 — <code>RSA_sign</code></h3>
+<pre>int r = RSA_sign(nid, digestNat, digestBytesLen, sig, &amp;outLen, rsa);</pre>
+<p><code>RSA_sign</code> wraps the digest in a DigestInfo ASN.1 structure (SEQUENCE{OID, OCTET STRING}) and then applies PKCS#1 v1.5 block formatting and RSA private-key operation. The NID identifies which OID to embed. This matches exactly what OCK's <code>ICC_RSA_sign</code> does, ensuring byte-for-byte compatibility.</p>
+
+<h3>Lines 914–930 — Cleanup and Java array creation</h3>
+<p>Both the <code>RSA*</code> and the pinned digest bytes are freed before constructing the Java result array. The C buffer is freed after <code>SetByteArrayRegion</code>.</p>
+
+
+<hr />
+<h2 id="s18">18 · <code>RSAKEY_verifyDataWithRSA</code> (lines 941–987)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jboolean JNICALL Java_..._RSAKEY_1verifyDataWithRSA(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jbyteArray digestBytes, jint digestBytesLen,
+    jbyteArray sigBytes, jint sigBytesLen, jlong rsaPubKeyId)</span>
+
+<p>Verifies a PKCS#1 v1.5 signature against a pre-computed digest. Returns <code>JNI_TRUE</code> / <code>JNI_FALSE</code>.</p>
+
+<h3>Lines 957–966 — Pin both arrays</h3>
+<p>The digest and signature arrays are pinned sequentially. If pinning the signature fails after pinning the digest, the digest pin is released before returning.</p>
+
+<h3>Lines 978–980 — <code>RSA_verify</code></h3>
+<pre>int r = RSA_verify(nid, digestNat, digestBytesLen, sigNat, sigBytesLen, rsa);</pre>
+<p><code>RSA_verify</code> applies the RSA public-key operation, strips PKCS#1 padding, unwraps the DigestInfo, and compares the embedded hash to the provided <code>digestNat</code>. Returns 1 on match, 0 on mismatch. Unlike <code>SIGNATURE_verify</code> there is no separate error code — any non-1 result maps to <code>JNI_FALSE</code>.</p>
+
+
+<hr />
+<h2 id="s19">19 · <code>PKEY_getBaseId</code> — EVP_PKEY type query (lines 993–1000)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jint JNICALL Java_..._PKEY_1getBaseId(
+    JNIEnv* env, jclass cls, jlong osslContextId, jlong pkeyId)</span>
+
+<p>Returns <code>EVP_PKEY_get_base_id(pkey)</code>. This integer identifies the algorithm type of any <code>EVP_PKEY*</code> handle — not just RSA ones. The file-level comment lists known values: <code>EVP_PKEY_RSA=6</code>, <code>EVP_PKEY_EC=408</code>, etc. Java uses this to introspect an opaque native key handle.</p>
+
+
+<hr />
+<h2 id="s20">20 · <code>RSAKEY_signDigestCtx</code> (lines 1008–1080)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL Java_..._RSAKEY_1signDigestCtx(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jlong digestCtxId, jlong rsaPrivKeyId)</span>
+
+<p>Alternative sign path: instead of receiving pre-computed digest bytes, it receives a <strong>live <code>EVP_MD_CTX*</code></strong> (a digest context that has already absorbed all message data via <code>EVP_DigestUpdate</code> calls). It finalises the hash internally and then signs.</p>
+
+<h3>Lines 1026–1033 — Query NID and output size from context</h3>
+<p><code>EVP_MD_CTX_get_type(mdCtx)</code> returns the NID of the digest algorithm active in the context. <code>EVP_MD_CTX_get_size(mdCtx)</code> returns the digest output length in bytes. Both are needed before finalising.</p>
+
+<h3>Lines 1036–1043 — Finalize digest</h3>
+<p><code>EVP_DigestFinal_ex(mdCtx, hash, &amp;hashLen)</code> completes the hash computation into a stack-allocated <code>unsigned char hash[EVP_MAX_MD_SIZE]</code> buffer (64 bytes max). After this call the <code>mdCtx</code> is exhausted but remains alive — the caller is responsible for freeing it.</p>
+
+<h3>Lines 1045–1064 — Sign with DigestInfo wrapping</h3>
+<p>Same <code>EVP_PKEY_get1_RSA</code> + <code>RSA_size</code> + <code>RSA_sign(nid, hash, hashLen, sig, &amp;outLen, rsa)</code> pattern as <code>signDataWithRSA</code>. The NID came from the context itself rather than from a length-to-NID mapping, so it is always exact.</p>
+
+
+<hr />
+<h2 id="s21">21 · <code>RSAKEY_verifyDigestCtx</code> (lines 1086–1139)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jboolean JNICALL Java_..._RSAKEY_1verifyDigestCtx(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jlong digestCtxId, jbyteArray sigBytes, jint sigBytesLen, jlong rsaPubKeyId)</span>
+
+<p>Mirror of <code>signDigestCtx</code> for verification. Finalises the live digest context then calls <code>RSA_verify(nid, hash, hashLen, sigNat, sigBytesLen, rsa)</code>. Returns <code>JNI_TRUE</code> / <code>JNI_FALSE</code>.</p>
+
+<p>Notable ordering: the digest is finalised <em>before</em> pinning the signature bytes, so the hash buffer is filled before any JNI pin operation that could fail.</p>
+
+
+<hr />
+<h2 id="s22">22 · <code>RSASSL_SIGNATURE_sign</code> (lines 1149–1212)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jbyteArray JNICALL Java_..._RSASSL_1SIGNATURE_1sign(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jbyteArray digest, jlong rsaKeyId)</span>
+
+<p>Signs the legacy SSL 3.0 / TLS 1.0 combined digest (MD5 + SHA-1 concatenated = 36 bytes). The NID is hardcoded as <code>NID_md5_sha1</code> rather than being derived from the digest length.</p>
+<div class="callout note">
+  <strong>Historical context:</strong> Before TLS 1.2, the SSL handshake signature was computed over a 36-byte value: MD5(msg) ‖ SHA-1(msg). RSA_sign(NID_md5_sha1, ...) applies this specific DigestInfo encoding to match what ICC's <code>ICC_RSA_sign</code> produces.
+</div>
+<p>Flow is identical to <code>signDataWithRSA</code> except for the hardcoded NID.</p>
+
+
+<hr />
+<h2 id="s23">23 · <code>RSASSL_SIGNATURE_verify</code> (lines 1223–1270)</h2>
+
+<span class="tag tag-jni">JNI</span>
+<span class="fn-sig">JNIEXPORT jboolean JNICALL Java_..._RSASSL_1SIGNATURE_1verify(
+    JNIEnv* env, jclass cls, jlong osslContextId,
+    jbyteArray digest, jlong rsaKeyId, jbyteArray sigBytes, jboolean convert)</span>
+
+<p>Verifies the legacy SSL MD5+SHA-1 signature. Hardcoded <code>NID_md5_sha1</code>. The <code>convert</code> parameter is accepted but intentionally unused — the comment notes that OpenSSL RSA keys loaded from DER are always normalised, so no encoding conversion is needed.</p>
+<p>Pins both digest and sigBytes, extracts <code>RSA*</code>, calls <code>RSA_verify(NID_md5_sha1, ...)</code>, then releases everything before returning <code>JNI_TRUE</code> / <code>JNI_FALSE</code>.</p>
+
+
+<hr />
+<h2 id="s24">24 · Overall design summary</h2>
+
+<h3>The two-tier API split</h3>
+<table>
+  <tr><th>Operation</th><th>Padding</th><th>API used</th><th>Reason</th></tr>
+  <tr><td>Encrypt / Decrypt</td><td>OAEP</td><td><code>EVP_PKEY_CTX</code> (high-level)</td><td>FIPS-aware, libctx-respecting digest fetch</td></tr>
+  <tr><td>Encrypt / Decrypt</td><td>NoPadding / PKCS1</td><td><code>RSA_public_encrypt</code> / <code>RSA_private_decrypt</code> (low-level)</td><td>OpenSSL 3 <code>EVP_PKEY_decrypt</code> rejects n/d-only keys</td></tr>
+  <tr><td>Sign / Verify (PKCS#1 v1.5)</td><td>n/a</td><td><code>RSA_sign</code> / <code>RSA_verify</code> (low-level)</td><td>DigestInfo wrapping compatible with OCK; works with n/d-only keys</td></tr>
+  <tr><td>Key generation</td><td>n/a</td><td><code>EVP_PKEY_CTX_new_from_name</code> (high-level)</td><td>Explicit libctx for FIPS-aware generation</td></tr>
+</table>
+
+<h3>Key handle lifecycle</h3>
+<div class="flow-box">
+  <div class="flow-step">Java: generateKeyPair() or engineGetKeySpec()</div>
+  <div class="flow-step">RSAKEY_generate / createPrivateKey / createPublicKey → jlong handle</div>
+  <div class="flow-step">cipher / sign / verify ops (pass handle)</div>
+  <div class="flow-step">RSAKEY_delete</div>
+</div>
+
+<h3>Sign path selection</h3>
+<table>
+  <tr><th>Java Signature algorithm</th><th>Native path</th></tr>
+  <tr><td>SHA*withRSA (streaming)</td><td>Java updates a digest context; <code>RSAKEY_signDigestCtx</code> finalises and signs</td></tr>
+  <tr><td>SHA*withRSA (pre-computed)</td><td>Java provides the hash bytes; <code>RSAKEY_signDataWithRSA</code> wraps and signs</td></tr>
+  <tr><td>NONEwithRSA / RSAforSSL</td><td>Java wraps DigestInfo itself and passes raw bytes; <code>RSACIPHER_private_encrypt</code></td></tr>
+  <tr><td>MD5SHA1withRSA (SSL legacy)</td><td><code>RSASSL_SIGNATURE_sign</code> with <code>NID_md5_sha1</code></td></tr>
+</table>
+
+<h3>Memory ownership rules</h3>
+<ul>
+  <li><code>EVP_PKEY*</code> — one reference per handle; freed only in <code>RSAKEY_delete</code>.</li>
+  <li><code>RSA*</code> from <code>EVP_PKEY_get1_RSA</code> — caller owns the reference; freed with <code>RSA_free</code> immediately after each use.</li>
+  <li><code>RSA*</code> assigned via <code>EVP_PKEY_assign_RSA</code> — ownership transferred to <code>EVP_PKEY</code>; never free separately.</li>
+  <li>DER buffers from <code>i2d_*</code> — allocated by OpenSSL; must be freed with <code>OPENSSL_free</code>, not <code>free()</code>.</li>
+  <li>Signature buffers from <code>malloc</code> — freed with <code>free()</code> after copying to Java array.</li>
+  <li><code>EVP_MD*</code> from <code>EVP_MD_fetch</code> — freed with <code>EVP_MD_free</code> after setting on a <code>CTX</code>.</li>
+  <li>JNI input arrays — unpinned with <code>JNI_ABORT</code>; output arrays with <code>0</code> (commit).</li>
+</ul>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

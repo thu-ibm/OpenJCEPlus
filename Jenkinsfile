@@ -263,6 +263,7 @@ def run(platform) {
             echo "${nodeTags}"
 
             node("$nodeTags") {
+                echo "Machine Name = ${env.NODE_NAME}"
                 cloneOpenJCEPlus(software)
                 echo "OpenJCEPlus cloned"
                 dir("openjceplus/OpenJCEPlus") {
