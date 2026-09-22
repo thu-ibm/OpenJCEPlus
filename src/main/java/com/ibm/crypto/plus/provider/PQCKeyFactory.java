@@ -182,9 +182,9 @@ class PQCKeyFactory extends KeyFactorySpi {
 
     /**
      *  Internal utility method for checking key algorithm. Per JEP 497, getAlgorithm() always
-    * returns the family name ("ML-DSA", "ML-KEM") for all PQC key types - both our own
-    * and foreign providers (e.g. SUN).
-    */
+     * returns the family name ("ML-DSA", "ML-KEM") for all PQC key types - both our own
+     * and foreign providers (e.g. SUN).
+     */
     private void checkKeyAlgo(Key key) throws InvalidKeyException {
         String keyAlg = key.getAlgorithm();
 
