@@ -933,7 +933,7 @@ public final class GCMCipher {
                 throw new NativeException("Unsupported AES key length for GCM: " + keyLength + " bytes");
         }
         gcmCtx = gcmCtxBuffer.get();
-        if (gcmCtx == null) {
+        if (gcmCtx == null || gcmCtx.nativeInterface != this.nativeInterface) {
             gcmCtx = new GCMContextPointer(nativeInterface, provider, keyLength);
             gcmCtxBuffer.set(gcmCtx);
         }
@@ -1074,6 +1074,7 @@ public final class GCMCipher {
 
     static class GCMContextPointer {
         OpenJCEPlusProvider provider;
+        final NativeInterface nativeInterface;
         final long gcmCtx;
 
         /**
@@ -1084,6 +1085,7 @@ public final class GCMCipher {
          *                 for the right key size before the first Init call.
          */
         GCMContextPointer(NativeInterface nativeInterface, OpenJCEPlusProvider provider, int keySize) throws NativeException {
+            this.nativeInterface = nativeInterface;
             this.gcmCtx = nativeInterface.create_GCM_context(keySize);
             this.provider = provider;
 

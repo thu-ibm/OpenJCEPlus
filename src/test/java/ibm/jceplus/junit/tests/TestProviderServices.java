@@ -237,14 +237,14 @@ public class TestProviderServices extends BaseTest {
     // This test does not play well in multi-thread. So, do not include this in those tests.
     public void testDefaultSecureRandom() throws Exception {
         
-        String config = "name = test\n"
+        String config = "name = OpenJCEPlus-test\n"
             + "description =  OpenJCEPlus-test Provider\n"
             + "default = true\n"
             + "securerandomdefault = SHA512DRBG";
 
         SecureRandom secureRandom = new SecureRandom();
 
-        List<String> acceptableValues = List.of("NativePRNG", "NativePRNGBlocking", "NativePRNGNonBlocking", "DRBG");
+        List<String> acceptableValues = List.of("NativePRNG", "NativePRNGBlocking", "NativePRNGNonBlocking", "DRBG", "SHA512DRBG", "SHA256DRBG", "Windows-PRNG");
         assertTrue (acceptableValues.contains(secureRandom.getAlgorithm()), "SecureRandom not SunJCE - " + secureRandom.getAlgorithm());
 
         //Now Put OpenJCEPlus first in the list.
@@ -293,7 +293,7 @@ public class TestProviderServices extends BaseTest {
 
         SecureRandom secureRandom = new SecureRandom();
 
-        List<String> acceptableValues = List.of("NativePRNG", "NativePRNGBlocking", "NativePRNGNonBlocking", "DRBG");
+        List<String> acceptableValues = List.of("NativePRNG", "NativePRNGBlocking", "NativePRNGNonBlocking", "DRBG", "SHA512DRBG", "SHA256DRBG", "Windows-PRNG");
         assertTrue (acceptableValues.contains(secureRandom.getAlgorithm()), "SecureRandom not SunJCE");
 
         //Now Put OpenJCEPlus first in the list.
