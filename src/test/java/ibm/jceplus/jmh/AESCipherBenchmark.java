@@ -42,11 +42,15 @@ public class AESCipherBenchmark extends SymmetricCipherBase {
     @Param({"1024", "32768"})
     private int payloadSize;
 
-    @Param({"OpenJCEPlus", "OpenJCEPlusFIPS", "SunJCE"})
+    @Param({"OpenJCEPlus", "OpenJCEPlus-OpenSSL", "OpenJCEPlusFIPS", "SunJCE"})
     private String provider;
 
     @Setup
     public void setup() throws Exception {
+        // AES/GCM is not yet supported by the OpenSSL backend. Remove with the GCM PR.
+        if (provider.endsWith("-OpenSSL") && transformation.contains("/GCM/")) {
+            throw new RunnerException("Skipping unsupported GCM on provider: " + provider);
+        }
         super.setup(keySize, transformation, payloadSize, provider);
     }
 
