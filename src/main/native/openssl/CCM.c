@@ -16,6 +16,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/proverr.h>
 
 #include "com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation.h"
 #include "Utils.h"
@@ -679,7 +680,16 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1decry
                          (actualInputLen > 0) ? (const unsigned char *)(inPin.p + inputOffset)
                                               : emptyBuf,
                          actualInputLen) != 1) {
-        throwOSSLException(env, 0, "Failed to process final input");
+        /* The OpenSSL CCM provider verifies the tag in this call and reports a
+         * mismatch as PROV_R_CIPHER_OPERATION_FAILED. */
+        unsigned long err = ERR_peek_last_error();
+        if (ERR_GET_LIB(err) == ERR_LIB_PROV &&
+            ERR_GET_REASON(err) == PROV_R_CIPHER_OPERATION_FAILED) {
+            throwOSSLException(env, 0, "CCM tag verification failed");
+            returnResult = OPENSSL_TAG_MISMATCH_ERROR;
+        } else {
+            throwOSSLException(env, 0, "Failed to process final input");
+        }
         osslCheckStatus();
         goto cleanup;
     }
@@ -687,8 +697,8 @@ Java_com_ibm_crypto_plus_provider_openssl_NativeOpenSSLImplementation_CCM_1decry
 
     finalLen = 0;
     if (EVP_CipherFinal_ex(ctx, outPtr + totalOutLen, &finalLen) != 1) {
-        throwOSSLException(env, 0, "CCM tag verification failed");
-        returnResult = OPENSSL_TAG_MISMATCH_ERROR;
+        throwOSSLException(env, 0, "Failed to finalize CCM decryption");
+        osslCheckStatus();
         goto cleanup;
     }
     totalOutLen += finalLen;

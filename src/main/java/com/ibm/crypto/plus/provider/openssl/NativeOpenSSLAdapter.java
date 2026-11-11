@@ -726,28 +726,6 @@ public abstract class NativeOpenSSLAdapter implements NativeInterface {
         // No-op for OpenSSL backend - contexts are managed per-operation.
     }
 
-    public void CCM_init(long cipherId, int encrypt, byte[] key, byte[] iv, int tagLen) throws OpenSSLException {
-        NativeOpenSSLImplementation.CCM_init(osslContext.getId(), cipherId, encrypt, key, iv, tagLen);
-    }
-
-    public int CCM_update(long cipherId, int encrypt, byte[] input, int inputOffset, int inputLen,
-            byte[] output, int outputOffset, byte[] aad, int aadLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.CCM_update(osslContext.getId(), cipherId, encrypt,
-                input, inputOffset, inputLen, output, outputOffset, aad, aadLen);
-    }
-
-    public int CCM_encryptFinal(long cipherId, byte[] input, int inputOffset, int inputLen,
-            byte[] output, int outputOffset, byte[] aad, int aadLen, int tagLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.CCM_encryptFinal(osslContext.getId(), cipherId,
-                input, inputOffset, inputLen, output, outputOffset, aad, aadLen, tagLen);
-    }
-
-    public int CCM_decryptFinal(long cipherId, byte[] input, int inputOffset, int inputLen,
-            byte[] output, int outputOffset, byte[] aad, int aadLen, int tagLen) throws OpenSSLException {
-        return NativeOpenSSLImplementation.CCM_decryptFinal(osslContext.getId(), cipherId,
-                input, inputOffset, inputLen, output, outputOffset, aad, aadLen, tagLen);
-    }
-
     @Override
     public int RSACIPHER_public_encrypt(long rsaKeyId,
             int rsaPaddingId, int mdId, int mgf1Id, byte[] plaintext, int plaintextOffset,

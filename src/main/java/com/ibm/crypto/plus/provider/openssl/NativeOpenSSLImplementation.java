@@ -383,36 +383,6 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
     // CCM Cipher functions
     // =========================================================================
 
-    static public native long do_CCM_checkHardwareCCMSupport(long osslContextId);
-
-    static public native int do_CCM_encryptFastJNI_WithHardwareSupport(int keyLen, int ivLen,
-            int inOffset, int inLen, int ciphertextOffset, int aadLen, int tagLen,
-            long parameterBuffer, byte[] input, int inputOffset, byte[] output, int outputOffset)
-            throws OpenSSLException;
-
-    static public native int do_CCM_encryptFastJNI(long osslContextId, int keyLen, int ivLen,
-            int inLen, int ciphertextLen, int aadLen, int tagLen, long parameterBuffer,
-            long inputBuffer, long outputBuffer) throws OpenSSLException;
-
-    static public native int do_CCM_decryptFastJNI_WithHardwareSupport(int keyLen, int ivLen,
-            int inOffset, int inLen, int ciphertextOffset, int aadLen, int tagLen,
-            long parameterBuffer, byte[] input, int inputOffset, byte[] output, int outputOffset)
-            throws OpenSSLException;
-
-    static public native int do_CCM_decryptFastJNI(long osslContextId, int keyLen, int ivLen,
-            int ciphertextLen, int plaintextLen, int aadLen, int tagLen, long parameterBuffer,
-            long inputBuffer, long outputBuffer) throws OpenSSLException;
-
-    static public native int do_CCM_encrypt(long osslContextId, byte[] iv, int ivLen, byte[] key,
-            int keyLen, byte[] aad, int aadLen, byte[] input, int inLen, byte[] ciphertext,
-            int ciphertextLen, int tagLen) throws OpenSSLException;
-
-    static public native int do_CCM_decrypt(long osslContextId, byte[] iv, int ivLen, byte[] key,
-            int keyLen, byte[] aad, int aadLen, byte[] ciphertext, int ciphertextLength,
-            byte[] plaintext, int plaintextLength, int tagLen) throws OpenSSLException;
-
-    static public native void do_CCM_delete(long osslContextId) throws OpenSSLException;
-
     static public native void CCM_init(long osslContextId, long cipherId, int encrypt,
             byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
 

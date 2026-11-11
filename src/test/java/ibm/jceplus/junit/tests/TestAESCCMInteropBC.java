@@ -28,7 +28,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * This test case exercises the AES/CCM cipher using a CCMParameterSpec object.
  */
-@Tag(Tags.OPENJCEPLUS_NAME)
+@Tag(Tags.OPENJCEPLUS_OCK_NAME)
+@Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @Tag(Tags.OPENJCEPLUS_FIPS_NAME)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ParameterizedClass
@@ -432,7 +433,7 @@ public class TestAESCCMInteropBC extends BaseTestInterop {
                 "Scenario B: OpenJCEPlus-decrypted bytes must match original plaintext");
     }
 
-    private static byte[] encrypt(byte[] plaintext, byte[] aesKeyBytes, byte[] IV, int ccmTagLength)
+    private byte[] encrypt(byte[] plaintext, byte[] aesKeyBytes, byte[] IV, int ccmTagLength)
             throws Exception {
         synchronized (myMutexObject) {
             if (printJunitTrace)
@@ -447,7 +448,7 @@ public class TestAESCCMInteropBC extends BaseTestInterop {
         }
 
         // If the encryption provider is OpenIBMJCEPlus, then initialize the cipher with a ibm.security.internal.spec.CCMParameterSpec object
-        if (encryptionProvider.equals("OpenJCEPlus")) {
+        if (encryptionProvider.equals(getProviderName())) {
             // Get Cipher Instance
             Cipher cipher = Cipher.getInstance("AES/CCM/NoPadding", encryptionProvider);
             if (printJunitTrace)
@@ -674,7 +675,7 @@ public class TestAESCCMInteropBC extends BaseTestInterop {
 
 
 
-    private static String decrypt(byte[] cipherText, byte[] aesKeyBytes, byte[] IV,
+    private String decrypt(byte[] cipherText, byte[] aesKeyBytes, byte[] IV,
             int ccmTagLength) throws Exception {
         synchronized (myMutexObject) {
             if (printJunitTrace)
@@ -689,7 +690,7 @@ public class TestAESCCMInteropBC extends BaseTestInterop {
         }
 
         // If the decryption provider is IBMJCEPlus, then initialize the cipher with a ibm.security.internal.spec.CCMParameterSpec object
-        if (decryptionProvider.equals("OpenJCEPlus")) {
+        if (decryptionProvider.equals(getProviderName())) {
             // Get Cipher Instance
             Cipher cipher = Cipher.getInstance("AES/CCM/NoPadding", decryptionProvider);
             if (printJunitTrace)

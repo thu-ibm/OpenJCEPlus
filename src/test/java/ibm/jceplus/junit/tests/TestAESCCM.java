@@ -29,7 +29,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 // This test case exercises the AES/CCM cipher using a CCMParameterSpec object
 
-@Tag(Tags.OPENJCEPLUS_NAME)
+@Tag(Tags.OPENJCEPLUS_OCK_NAME)
 @Tag(Tags.OPENJCEPLUS_FIPS_NAME)
 @Tag(Tags.OPENJCEPLUS_OPENSSL_NAME)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -382,6 +382,47 @@ public class TestAESCCM extends BaseTest {
                 "Decrypted output length should equal original plaintext length");
         Assertions.assertArrayEquals(plaintext, output,
                 "Decrypted bytes should match original plaintext");
+    }
+
+    /**
+     * Decrypting data with a forged tag must fail, including when the payload is empty
+     * (tag-only input) where only the tag authenticates the message.
+     */
+    @Test
+    public void testDoFinalDecryptForgedTag() throws Exception {
+        byte[] iv = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+        byte[] aadBytes = {9, 8, 7, 6};
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES", getProviderName());
+        keyGenerator.init(128);
+        SecretKeySpec keySpec = new SecretKeySpec(keyGenerator.generateKey().getEncoded(), "AES");
+
+        for (byte[] plaintext : new byte[][] {new byte[0], "HelloWorld".getBytes()}) {
+            Cipher encCipher = Cipher.getInstance("AES/CCM/NoPadding", getProviderName());
+            encCipher.init(Cipher.ENCRYPT_MODE, keySpec, new CCMParameterSpec(128, iv));
+            encCipher.updateAAD(aadBytes);
+            byte[] ciphertext = encCipher.doFinal(plaintext);
+
+            // Valid input round-trips.
+            Cipher decCipher = Cipher.getInstance("AES/CCM/NoPadding", getProviderName());
+            decCipher.init(Cipher.DECRYPT_MODE, keySpec, new CCMParameterSpec(128, iv));
+            decCipher.updateAAD(aadBytes);
+            Assertions.assertArrayEquals(plaintext, decCipher.doFinal(ciphertext));
+
+            // Flipping any single bit of the tag must be rejected.
+            for (int i = plaintext.length; i < ciphertext.length; i++) {
+                byte[] forged = ciphertext.clone();
+                forged[i] ^= 0x01;
+                Cipher badCipher = Cipher.getInstance("AES/CCM/NoPadding", getProviderName());
+                badCipher.init(Cipher.DECRYPT_MODE, keySpec, new CCMParameterSpec(128, iv));
+                badCipher.updateAAD(aadBytes);
+                try {
+                    badCipher.doFinal(forged);
+                    Assertions.fail("Forged tag accepted, plaintext length " + plaintext.length);
+                } catch (AEADBadTagException expected) {
+                    // expected
+                }
+            }
+        }
     }
 
     /**
