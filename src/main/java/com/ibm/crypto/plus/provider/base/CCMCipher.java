@@ -11,6 +11,7 @@ package com.ibm.crypto.plus.provider.base;
 import com.ibm.crypto.plus.provider.OpenJCEPlusProvider;
 import com.ibm.crypto.plus.provider.SystemAccessUtils;
 import com.ibm.crypto.plus.provider.ock.NativeOCKAdapterNonFIPS;
+import com.ibm.crypto.plus.provider.openssl.NativeOpenSSLAdapter;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -198,7 +199,8 @@ public final class CCMCipher {
             CCMHardwareFunctionPtr = nativeInterface.do_CCM_checkHardwareCCMSupport();
         }
 
-        if (iv.length + key.length + aadLen <= FastJNIParameterBufferSize && !disableCCMAcceleration
+        if (!(nativeInterface instanceof NativeOpenSSLAdapter)
+                && iv.length + key.length + aadLen <= FastJNIParameterBufferSize && !disableCCMAcceleration
                 && (inputLen <= FastJNIInputBufferSize || CCMHardwareFunctionPtr != -1)) {
             FastJNIBuffer parameters = CCMCipher.parameterBuffer.get();
             parameters.put(0, iv, 0, iv.length);
@@ -337,7 +339,8 @@ public final class CCMCipher {
         if (CCMHardwareFunctionPtr == 0)
             CCMHardwareFunctionPtr = nativeInterface.do_CCM_checkHardwareCCMSupport();
 
-        if (iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
+        if (!(nativeInterface instanceof NativeOpenSSLAdapter)
+                && iv.length + key.length + aadLen + tagLen <= FastJNIParameterBufferSize
                 && (inputLen <= FastJNIInputBufferSize || CCMHardwareFunctionPtr != -1)) {
 
             FastJNIBuffer parameters = CCMCipher.parameterBuffer.get();
@@ -368,16 +371,16 @@ public final class CCMCipher {
 
         } else {
 
-            // Create tempInput
-            byte[] tempInput = new byte[input.length - inputOffset];
+            // Create tempInput sized to inputLen, not input.length - inputOffset.
+            byte[] tempInput = new byte[inputLen];
             // Copy contents of input from inputOffset for length inputLen into tempInput
-            System.arraycopy(input, inputOffset, tempInput, 0, input.length - inputOffset);
+            System.arraycopy(input, inputOffset, tempInput, 0, inputLen);
 
             // Create tempOutput
             byte[] tempOutput = new byte[len + outputOffset]; // len from call to getOutputSizeLegacy() above
 
             rc = nativeInterface.do_CCM_encrypt(iv, iv.length, key, key.length,
-                    authenticationData, aadLen, tempInput, tempInput.length, tempOutput,
+                    authenticationData, aadLen, tempInput, inputLen, tempOutput,
                     tempOutput.length, tagLen);
 
             if (rc != 0) {

@@ -25,6 +25,7 @@ TARGET_LIBS := -L ${OPENSSL_LIB_LOCATION} -l ${OPENSSL_LIB}
 
 OBJS = \
 	${HOSTOUT}/BuildDate.o \
+	${HOSTOUT}/CCM.o \
 	${HOSTOUT}/Digest.o \
 	${HOSTOUT}/KEM.o \
 	${HOSTOUT}/MLKey.o \

@@ -116,12 +116,14 @@ int gslogFunctionExit(const char *functionName) {
 //
 void osslCheckStatus(void) {
     unsigned long errCode;
+    char          err[256];
 
+    /* Always drain the error queue; only log when debugging. */
     while ((errCode = ERR_get_error()) != 0) {
-        char *err;
-        // gslogMessage("Generating error message");
-        err = ERR_error_string(errCode, NULL);
-        gslogMessage("%s", err);
+        if (debug) {
+            ERR_error_string_n(errCode, err, sizeof(err));
+            gslogMessage("%s", err);
+        }
     }
 
 }
@@ -271,6 +273,38 @@ void releaseByteArrayElements(JNIEnv *env, jbyteArray array, jbyte *bytes,
     if (bytes != NULL && array != NULL) {
         (*env)->ReleaseByteArrayElements(env, array, bytes, mode);
     }
+}
+
+//============================================================================
+// Validation helpers
+//============================================================================
+
+/*
+ * Checks that arr[off .. off+required) lies inside arr. A NULL array is
+ * accepted only when required == 0.
+ * Returns 1 if valid, 0 otherwise (exception already thrown).
+ */
+int checkRange(JNIEnv *env, jbyteArray arr, jint off, jint required,
+               const char *msg) {
+    jsize total;
+
+    if (off < 0 || required < 0) {
+        throwOSSLException(env, 0, msg);
+        return 0;
+    }
+    if (arr == NULL) {
+        if (required == 0) {
+            return 1;
+        }
+        throwOSSLException(env, 0, msg);
+        return 0;
+    }
+    total = (*env)->GetArrayLength(env, arr);
+    if (off > total || (jlong)total - off < (jlong)required) {
+        throwOSSLException(env, 0, msg);
+        return 0;
+    }
+    return 1;
 }
 
 //============================================================================

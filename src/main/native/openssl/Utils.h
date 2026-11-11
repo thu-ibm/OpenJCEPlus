@@ -69,6 +69,12 @@ jbyte *getByteArrayElementsSafe(JNIEnv *env, jbyteArray array, const char *error
 void releaseByteArrayElements(JNIEnv *env, jbyteArray array, jbyte *bytes, jint mode);
 
 //============================================================================
+// Validation helpers
+//============================================================================
+
+int checkRange(JNIEnv *env, jbyteArray arr, jint off, jint required, const char *msg);
+
+//============================================================================
 // Memory helpers
 //============================================================================
 

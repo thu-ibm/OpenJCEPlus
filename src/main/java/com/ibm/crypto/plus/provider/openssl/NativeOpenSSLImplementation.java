@@ -413,6 +413,21 @@ final class NativeOpenSSLImplementation extends NativeImplementation {
 
     static public native void do_CCM_delete(long osslContextId) throws OpenSSLException;
 
+    static public native void CCM_init(long osslContextId, long cipherId, int encrypt,
+            byte[] key, byte[] iv, int tagLen) throws OpenSSLException;
+
+    static public native int CCM_update(long osslContextId, long cipherId, int encrypt,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen) throws OpenSSLException;
+
+    static public native int CCM_encryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
+    static public native int CCM_decryptFinal(long osslContextId, long cipherId,
+            byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+            byte[] aad, int aadLen, int tagLen) throws OpenSSLException;
+
     // =========================================================================
     // RSA cipher functions
     // =========================================================================
